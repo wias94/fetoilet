@@ -60,7 +60,7 @@ export function InquirySheet({
         <Drawer.Content className="fixed inset-x-0 bottom-0 z-50 flex max-h-[88dvh] flex-col rounded-t-3xl bg-surface outline-none">
           <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-fg/15" />
           <Drawer.Title className="px-5 pb-1 pt-4 font-display text-xl font-semibold">
-            占这肉厕 {profile.name}
+            占用这具肉便器 {profile.name}
           </Drawer.Title>
           <p className="px-5 text-sm text-muted">
             {formatFen(profile.hourFen)} / 冲 · 通宵 {formatFen(profile.nightFen)}

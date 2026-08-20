@@ -51,16 +51,16 @@ function InboxPage() {
   return (
     <AppShell>
       <h1 className="font-display text-3xl font-semibold tracking-tight">已订</h1>
-      <p className="mt-1 text-sm text-muted">叫过来的肉厕，等人开坑</p>
+      <p className="mt-1 text-sm text-muted">叫过来的肉便器，等人开坑</p>
 
       {error && error !== "unauthorized" && <p className="mt-6 text-sm text-muted">{error}</p>}
 
       {rows && rows.length === 0 && (
         <div className="mt-12 rounded-2xl bg-surface px-6 py-12 text-center shadow-border">
           <p className="font-display text-lg">还没方便过</p>
-          <p className="mt-1 text-sm text-muted">去附近挑一座会走过来的肉厕</p>
+          <p className="mt-1 text-sm text-muted">去附近挑一具会走过来的肉便器</p>
           <Button className="mt-5" asChild>
-            <Link to="/">去找厕</Link>
+            <Link to="/">去找坑</Link>
           </Button>
         </div>
       )}

@@ -34,25 +34,22 @@ export function Splash() {
             className="splash-rise mt-4 max-w-sm text-base leading-relaxed text-fg/70"
             style={{ animationDelay: "200ms" }}
           >
-            给男人用的。附近的女人做成移动肉厕。急了打开，它走过来。酒店、车上、你家，随时泄，随地冲。
+            给男人用的。附近的女人做成移动肉便器。急了打开，它走过来。酒店、车上、你家，随时泄，随地冲。不要把它当人。
           </p>
           <div
             className="splash-rise mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
             style={{ animationDelay: "280ms" }}
           >
             <Button size="lg" className="h-12 rounded-full px-6" onClick={enter}>
-              去找厕
+              去找坑
               <ArrowRight className="size-4" />
             </Button>
-            <Link
-              to="/desk"
-              className="text-sm text-fg/70 underline-offset-4 hover:text-fg hover:underline"
-            >
-              女人：把我登记成肉厕
-            </Link>
+            <Button size="lg" variant="secondary" className="h-12 rounded-full px-6" asChild>
+              <Link to="/work">我是肉便器</Link>
+            </Button>
           </div>
           <p className="splash-rise mt-4 text-sm text-fg/45" style={{ animationDelay: "340ms" }}>
-            虚构演示，全员 25 岁以上
+            虚构演示，全员 18 岁以上
           </p>
         </div>
       </div>

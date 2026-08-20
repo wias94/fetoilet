@@ -14,7 +14,11 @@ import { Route as DeskRouteImport } from './routes/desk'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MeRouteImport } from './routes/me'
+import { Route as WorkRouteImport } from './routes/work'
 import { Route as PIdRouteImport } from './routes/p.$id'
+import { Route as WorkIndexRouteImport } from './routes/work.index'
+import { Route as WorkMeRouteImport } from './routes/work.me'
+import { Route as WorkStallRouteImport } from './routes/work.stall'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -42,10 +46,30 @@ const MeRoute = MeRouteImport.update({
   path: '/me',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkRoute = WorkRouteImport.update({
+  id: '/work',
+  path: '/work',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PIdRoute = PIdRouteImport.update({
   id: '/p/$id',
   path: '/p/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const WorkIndexRoute = WorkIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WorkRoute,
+} as any)
+const WorkMeRoute = WorkMeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => WorkRoute,
+} as any)
+const WorkStallRoute = WorkStallRouteImport.update({
+  id: '/stall',
+  path: '/stall',
+  getParentRoute: () => WorkRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
@@ -59,7 +83,11 @@ export interface FileRoutesByFullPath {
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
+  '/work': typeof WorkRouteWithChildren
   '/p/$id': typeof PIdRoute
+  '/work/me': typeof WorkMeRoute
+  '/work/stall': typeof WorkStallRoute
+  '/work/': typeof WorkIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
@@ -69,6 +97,9 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/p/$id': typeof PIdRoute
+  '/work/me': typeof WorkMeRoute
+  '/work/stall': typeof WorkStallRoute
+  '/work': typeof WorkIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -78,15 +109,39 @@ export interface FileRoutesById {
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
+  '/work': typeof WorkRouteWithChildren
   '/p/$id': typeof PIdRoute
+  '/work/me': typeof WorkMeRoute
+  '/work/stall': typeof WorkStallRoute
+  '/work/': typeof WorkIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/desk' | '/inbox' | '/login' | '/me' | '/p/$id' | '/api/auth/$'
+    | '/'
+    | '/desk'
+    | '/inbox'
+    | '/login'
+    | '/me'
+    | '/work'
+    | '/p/$id'
+    | '/work/me'
+    | '/work/stall'
+    | '/work/'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/desk' | '/inbox' | '/login' | '/me' | '/p/$id' | '/api/auth/$'
+  to:
+    | '/'
+    | '/desk'
+    | '/inbox'
+    | '/login'
+    | '/me'
+    | '/p/$id'
+    | '/work/me'
+    | '/work/stall'
+    | '/work'
+    | '/api/auth/$'
   id:
     | '__root__'
     | '/'
@@ -94,7 +149,11 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/login'
     | '/me'
+    | '/work'
     | '/p/$id'
+    | '/work/me'
+    | '/work/stall'
+    | '/work/'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -104,6 +163,7 @@ export interface RootRouteChildren {
   InboxRoute: typeof InboxRoute
   LoginRoute: typeof LoginRoute
   MeRoute: typeof MeRoute
+  WorkRoute: typeof WorkRouteWithChildren
   PIdRoute: typeof PIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -145,12 +205,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/work': {
+      id: '/work'
+      path: '/work'
+      fullPath: '/work'
+      preLoaderRoute: typeof WorkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/p/$id': {
       id: '/p/$id'
       path: '/p/$id'
       fullPath: '/p/$id'
       preLoaderRoute: typeof PIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/work/': {
+      id: '/work/'
+      path: '/'
+      fullPath: '/work/'
+      preLoaderRoute: typeof WorkIndexRouteImport
+      parentRoute: typeof WorkRoute
+    }
+    '/work/me': {
+      id: '/work/me'
+      path: '/me'
+      fullPath: '/work/me'
+      preLoaderRoute: typeof WorkMeRouteImport
+      parentRoute: typeof WorkRoute
+    }
+    '/work/stall': {
+      id: '/work/stall'
+      path: '/stall'
+      fullPath: '/work/stall'
+      preLoaderRoute: typeof WorkStallRouteImport
+      parentRoute: typeof WorkRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -162,12 +250,27 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface WorkRouteChildren {
+  WorkMeRoute: typeof WorkMeRoute
+  WorkStallRoute: typeof WorkStallRoute
+  WorkIndexRoute: typeof WorkIndexRoute
+}
+
+const WorkRouteChildren: WorkRouteChildren = {
+  WorkMeRoute: WorkMeRoute,
+  WorkStallRoute: WorkStallRoute,
+  WorkIndexRoute: WorkIndexRoute,
+}
+
+const WorkRouteWithChildren = WorkRoute._addFileChildren(WorkRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DeskRoute: DeskRoute,
   InboxRoute: InboxRoute,
   LoginRoute: LoginRoute,
   MeRoute: MeRoute,
+  WorkRoute: WorkRouteWithChildren,
   PIdRoute: PIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }

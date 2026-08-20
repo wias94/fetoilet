@@ -23,10 +23,10 @@ function ProfilePage() {
   if (!profile) {
     return (
       <AppShell>
-        <p className="py-16 text-center text-sm text-muted">这厕关了</p>
+        <p className="py-16 text-center text-sm text-muted">这具便器关了</p>
         <div className="flex justify-center">
           <Button asChild variant="secondary">
-            <Link to="/">回找厕</Link>
+            <Link to="/">回找坑</Link>
           </Button>
         </div>
       </AppShell>
@@ -39,7 +39,7 @@ function ProfilePage() {
     <AppShell>
       <Link to="/" className="inline-flex h-10 items-center gap-1 text-sm text-muted hover:text-fg">
         <ArrowLeft className="size-4" />
-        找厕
+        找坑
       </Link>
 
       <div className="mt-3 overflow-hidden rounded-2xl bg-surface shadow-border md:grid md:grid-cols-2">
@@ -59,7 +59,7 @@ function ProfilePage() {
                 <span className="ml-2 font-sans text-lg font-normal text-muted">{profile.age}</span>
               </h1>
               <p className="mt-1 text-sm text-muted">
-                {profile.area} · {profile.heightCm}cm · {profile.cup}杯 · 厕号 {profile.id}
+                {profile.area} · {profile.heightCm}cm · {profile.cup}杯 · 便器号 {profile.id}
               </p>
               <p className="mt-2 text-sm text-fg">
                 {profile.online ? "现在可冲" : "稍后可冲"} · {profile.etaMin} 分钟到 ·{" "}
@@ -87,7 +87,7 @@ function ProfilePage() {
               </span>
             ))}
           </div>
-          <h2 className="mt-6 font-display text-lg font-semibold">这肉厕怎么冲</h2>
+          <h2 className="mt-6 font-display text-lg font-semibold">这具肉便器怎么冲</h2>
           <ul className="mt-3 flex flex-wrap gap-2">
             {profile.services.map((s) => (
               <li key={s} className="rounded-full bg-sunken px-3 py-2 text-sm">
@@ -106,7 +106,7 @@ function ProfilePage() {
             </div>
           </div>
           <Button className="mt-6 w-full" onClick={() => setOpen(true)}>
-            叫这厕过来
+            叫这具便器过来
           </Button>
         </div>
       </div>

@@ -1,9 +1,10 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { signOut } from "@/lib/auth/client";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 
-export function AuthSlot() {
+export function AuthSlot({ to = "/me" }: { to?: "/me" | "/work/me" }) {
   const { user, isPending } = useCurrentUserState();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   if (isPending) {
     return <div className="size-9 shrink-0 animate-pulse rounded-full bg-fg/10" />;
   }
@@ -11,6 +12,7 @@ export function AuthSlot() {
     return (
       <Link
         to="/login"
+        search={{ redirect: pathname.startsWith("/work") ? "/work" : pathname }}
         className="inline-flex h-9 items-center rounded-full bg-fg px-3.5 text-sm font-medium text-bg transition-transform duration-150 ease-out active:scale-[0.96]"
       >
         登录
@@ -19,7 +21,7 @@ export function AuthSlot() {
   }
   const label = user.displayName ?? user.primaryEmail ?? "我的";
   return (
-    <Link to="/me" className="flex min-w-0 items-center gap-2">
+    <Link to={to} className="flex min-w-0 items-center gap-2">
       {user.profileImageUrl ? (
         <img
           src={user.profileImageUrl}
@@ -35,11 +37,11 @@ export function AuthSlot() {
   );
 }
 
-export function SignOutButton() {
+export function SignOutButton({ home = "/" }: { home?: string }) {
   return (
     <button
       type="button"
-      onClick={() => void signOut("/")}
+      onClick={() => void signOut(home)}
       className="h-11 rounded-xl px-4 text-sm font-medium text-muted shadow-border transition-transform duration-150 ease-out active:scale-[0.96]"
     >
       退出登录

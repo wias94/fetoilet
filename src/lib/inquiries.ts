@@ -45,7 +45,7 @@ export const placeInquiry = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const sql = await getSql();
     const profile = await findStall(sql, data.profileId);
-    if (!profile) throw new Error("没这肉厕");
+    if (!profile) throw new Error("没这具肉便器");
     const id = crypto.randomUUID();
     await sql`
       insert into inquiries (id, user_id, profile_id, profile_name, slot, note)
@@ -69,6 +69,24 @@ export const listInquiries = createServerFn({ method: "GET" })
       select id, profile_id, profile_name, slot, note, created_at
       from inquiries
       where user_id = ${context.userId}
+      order by created_at desc
+      limit 40
+    `;
+    return rows.map(toInquiry);
+  });
+
+export const listStallInquiries = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    const mine = await sql<{ id: string }>`
+      select id from stalls where user_id = ${context.userId} limit 1
+    `;
+    if (!mine[0]) return [] as Inquiry[];
+    const rows = await sql<Row>`
+      select id, profile_id, profile_name, slot, note, created_at
+      from inquiries
+      where profile_id = ${mine[0].id}
       order by created_at desc
       limit 40
     `;

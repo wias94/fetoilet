@@ -20,7 +20,7 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: APP_NAME },
-      { name: "description", content: "夜巷 — 附近的移动肉厕。男人随时随地方便。" },
+      { name: "description", content: "夜巷 — 附近的移动肉便器。男人随时随地方便。" },
       { name: "theme-color", content: "#0C0B0A" },
     ],
     links: [

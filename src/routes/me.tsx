@@ -37,7 +37,7 @@ function MePage() {
         ) : (
           <div>
             <p className="font-display text-lg">还没登录</p>
-            <p className="mt-1 text-sm text-muted">找肉厕不用号。要冲或要登记成厕，再登。</p>
+            <p className="mt-1 text-sm text-muted">找肉便器不用号。要冲，再登。</p>
             <Button className="mt-4" asChild>
               <Link to="/login" search={{ redirect: "/me" }}>
                 登录
@@ -50,7 +50,7 @@ function MePage() {
       <section className="mt-8">
         <h2 className="text-sm font-medium text-muted">占着的坑</h2>
         {saved.length === 0 ? (
-          <p className="mt-3 text-sm text-subtle">还没占。右上角点一下，先锁这厕。</p>
+          <p className="mt-3 text-sm text-subtle">还没占。右上角点一下，先锁这具便器。</p>
         ) : (
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {saved.map((p) => (
@@ -61,13 +61,13 @@ function MePage() {
       </section>
 
       <div className="mt-8 flex flex-col gap-3">
-        <Button asChild>
-          <Link to="/desk">登记成肉厕 / 管理我的厕</Link>
-        </Button>
         <Button variant="secondary" asChild>
-          <Link to="/inbox">我订的厕</Link>
+          <Link to="/inbox">我订的便器</Link>
         </Button>
         {user && <SignOutButton />}
+        <Link to="/work" className="text-center text-sm text-subtle hover:text-muted">
+          我是肉便器，进便器端
+        </Link>
       </div>
     </AppShell>
   );

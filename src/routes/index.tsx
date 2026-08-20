@@ -45,10 +45,10 @@ function HomeFeed() {
     <div>
       <p className="text-sm text-muted">{hello}</p>
       <h1 className="mt-1 font-display text-3xl font-semibold leading-tight tracking-tight">
-        附近的肉厕
+        附近的肉便器
       </h1>
       <p className="mt-2 max-w-md text-sm leading-relaxed text-muted">
-        男人急了就近找坑。现在 {onlineCount(stalls)} 座可冲，会走过来，酒店、车里、你家都能泄。
+        男人急了就近找坑。现在 {onlineCount(stalls)} 具可冲，会走过来当马桶。酒店、车里、你家都能泄。不要跟它说话。
       </p>
 
       <div className="-mx-4 mt-5 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -72,7 +72,7 @@ function HomeFeed() {
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="搜肉厕、上门、车里、通宵"
+          placeholder="搜肉便器、上门、车里、通宵"
           className="pl-10"
           type="search"
         />
@@ -95,7 +95,7 @@ function HomeFeed() {
       </div>
 
       {list.length === 0 ? (
-        <p className="mt-16 text-center text-sm text-muted">这片没有肉厕。换个区再找。</p>
+        <p className="mt-16 text-center text-sm text-muted">这片没有肉便器。换个区再找。</p>
       ) : (
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {list.map((p) => (

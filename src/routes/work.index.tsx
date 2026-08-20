@@ -1,0 +1,177 @@
+import { useEffect, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { toast } from "sonner";
+import { WorkShell } from "@/components/work-shell";
+import { Button } from "@/components/ui/button";
+import { LogoMark } from "@/components/logo";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { listStallInquiries, type Inquiry } from "@/lib/inquiries";
+import { getMyStall, setMyStallOnline } from "@/lib/stalls";
+import type { Profile } from "@/lib/profiles";
+import { formatWhen } from "@/lib/utils";
+
+export const Route = createFileRoute("/work/")({ component: WorkHome });
+
+function WorkHome() {
+  const { user, isPending } = useCurrentUserState();
+
+  if (isPending) {
+    return (
+      <WorkShell>
+        <div className="h-8 w-32 animate-pulse rounded-lg bg-fg/10" />
+        <div className="mt-4 h-40 animate-pulse rounded-2xl bg-fg/10" />
+      </WorkShell>
+    );
+  }
+
+  if (!user) return <WorkLanding />;
+  return <WorkBoard />;
+}
+
+function WorkLanding() {
+  return (
+    <main className="relative min-h-dvh overflow-hidden bg-bg text-fg">
+      <img src="/profiles/splash.jpg" alt="" className="absolute inset-0 size-full object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/75 to-bg/30" />
+      <div className="relative z-10 flex min-h-dvh flex-col justify-end px-6 pb-10 pt-16 sm:px-10">
+        <div className="mx-auto w-full max-w-lg">
+          <div className="flex items-center gap-2 text-fg/70">
+            <LogoMark className="size-8" />
+            <span className="text-sm tracking-widest">YEXIANG · STALL</span>
+          </div>
+          <h1 className="mt-5 font-display text-5xl font-semibold leading-[1.08] tracking-tight sm:text-6xl">
+            便器端
+          </h1>
+          <p className="mt-4 max-w-sm text-base leading-relaxed text-fg/70">
+            男人那边是找坑。你这边是等着被泄。开着坑，他们把你当移动马桶叫过去。关着，货架上就看不见这具便器。
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Button size="lg" className="h-12 rounded-full px-6" asChild>
+              <Link to="/login" search={{ redirect: "/work" }}>
+                登录进便器端
+              </Link>
+            </Button>
+            <Link to="/" className="text-sm text-fg/70 underline-offset-4 hover:text-fg hover:underline">
+              我是男人，去找坑
+            </Link>
+          </div>
+          <p className="mt-4 text-sm text-fg/45">虚构演示，登记需满 18 岁</p>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function WorkBoard() {
+  const [stall, setStall] = useState<Profile | null | undefined>(undefined);
+  const [rows, setRows] = useState<Inquiry[] | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([getMyStall(), listStallInquiries()])
+      .then(([mine, list]) => {
+        if (cancelled) return;
+        setStall(mine);
+        setRows(list);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setStall(null);
+        setRows([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function toggleOnline() {
+    if (!stall) return;
+    setBusy(true);
+    try {
+      const next = await setMyStallOnline({ data: { online: !stall.online } });
+      setStall(next);
+      toast(next.online ? "已开坑，男人能拿你泄" : "已收坑，货架上先藏着这具便器");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "没改成");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (stall === undefined) {
+    return (
+      <WorkShell>
+        <div className="h-8 w-28 animate-pulse rounded-lg bg-fg/10" />
+        <div className="mt-4 h-36 animate-pulse rounded-2xl bg-fg/10" />
+      </WorkShell>
+    );
+  }
+
+  if (!stall) {
+    return (
+      <WorkShell>
+        <p className="text-sm text-muted">便器端 · 等人来泄</p>
+        <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">还没把自己登记成便器</h1>
+        <p className="mt-2 max-w-md text-sm leading-relaxed text-muted">
+          先占一个坑位。挂上之后，男人要拿你泄的单会堆在这里。
+        </p>
+        <Button className="mt-6" asChild>
+          <Link to="/work/stall">去登记成肉便器</Link>
+        </Button>
+      </WorkShell>
+    );
+  }
+
+  return (
+    <WorkShell>
+      <p className="text-sm text-muted">便器端 · 等人来泄</p>
+      <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">{stall.name}</h1>
+      <p className="mt-1 text-sm text-muted">
+        {stall.area} · {stall.etaMin} 分钟到 · {stall.online ? "现在挂着" : "关着"}
+      </p>
+
+      <button
+        type="button"
+        onClick={() => void toggleOnline()}
+        disabled={busy}
+        className="mt-5 flex w-full items-center justify-between rounded-2xl bg-surface px-5 py-4 text-left shadow-border disabled:opacity-50"
+      >
+        <div>
+          <p className="font-display text-lg font-semibold">{stall.online ? "开着坑" : "收着坑"}</p>
+          <p className="mt-0.5 text-sm text-muted">
+            {stall.online ? "男人能从附近把你当马桶叫走" : "休息。货架上先不露这具便器"}
+          </p>
+        </div>
+        <span className={stall.online ? "text-sm text-live" : "text-sm text-subtle"}>
+          {stall.online ? "出车中" : "收车"}
+        </span>
+      </button>
+
+      <section className="mt-8">
+        <h2 className="text-sm font-medium text-muted">要拿你泄的男人</h2>
+        {rows && rows.length === 0 ? (
+          <div className="mt-3 rounded-2xl bg-surface px-5 py-10 text-center shadow-border">
+            <p className="font-display text-lg">还没人叫</p>
+            <p className="mt-1 text-sm text-muted">
+              {stall.online ? "开着就等。有人要点这具便器，单会落在这儿。" : "先开坑，单才会来。"}
+            </p>
+          </div>
+        ) : (
+          <ul className="mt-3 space-y-3">
+            {rows?.map((row) => (
+              <li key={row.id} className="rounded-2xl bg-surface p-4 shadow-border">
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="font-medium">客人要点这具便器</p>
+                  <p className="text-xs text-subtle">{formatWhen(row.createdAt)}</p>
+                </div>
+                <p className="mt-1 text-sm text-muted">{row.slot}</p>
+                {row.note ? <p className="mt-2 text-sm text-subtle">{row.note}</p> : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </WorkShell>
+  );
+}

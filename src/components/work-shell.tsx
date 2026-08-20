@@ -1,24 +1,24 @@
 import type { ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Compass, Inbox, UserRound } from "lucide-react";
+import { ClipboardList, DoorOpen, UserRound } from "lucide-react";
 import { Wordmark } from "@/components/logo";
 import { AuthSlot } from "@/components/auth-slot";
 import { cn } from "@/lib/utils";
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function WorkShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh bg-bg text-fg">
       <header className="sticky top-0 z-30 border-b border-border/70 bg-bg/90 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-          <Link to="/" className="min-w-0">
-            <Wordmark />
+          <Link to="/work" className="min-w-0">
+            <Wordmark side="便器端" />
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
-            <HeaderLink to="/" label="找坑" />
-            <HeaderLink to="/inbox" label="已订" />
-            <HeaderLink to="/me" label="我的" />
+            <HeaderLink to="/work" label="接泄" exact />
+            <HeaderLink to="/work/stall" label="坑位" />
+            <HeaderLink to="/work/me" label="我的" />
           </nav>
-          <AuthSlot />
+          <AuthSlot to="/work/me" />
         </div>
       </header>
       <div className="mx-auto w-full max-w-5xl px-4 pb-24 pt-5 md:pb-12">{children}</div>
@@ -27,9 +27,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
-function HeaderLink({ to, label }: { to: "/" | "/inbox" | "/me"; label: string }) {
+function HeaderLink({
+  to,
+  label,
+  exact,
+}: {
+  to: "/work" | "/work/stall" | "/work/me";
+  label: string;
+  exact?: boolean;
+}) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const active = to === "/" ? pathname === "/" : pathname.startsWith(to);
+  const active = exact ? pathname === to : pathname.startsWith(to);
   return (
     <Link
       to={to}
@@ -46,9 +54,24 @@ function HeaderLink({ to, label }: { to: "/" | "/inbox" | "/me"; label: string }
 function MobileTabBar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const tabs = [
-    { to: "/" as const, label: "找坑", icon: Compass, active: pathname === "/" },
-    { to: "/inbox" as const, label: "已订", icon: Inbox, active: pathname.startsWith("/inbox") },
-    { to: "/me" as const, label: "我的", icon: UserRound, active: pathname.startsWith("/me") },
+    {
+      to: "/work" as const,
+      label: "接泄",
+      icon: ClipboardList,
+      active: pathname === "/work",
+    },
+    {
+      to: "/work/stall" as const,
+      label: "坑位",
+      icon: DoorOpen,
+      active: pathname.startsWith("/work/stall"),
+    },
+    {
+      to: "/work/me" as const,
+      label: "我的",
+      icon: UserRound,
+      active: pathname.startsWith("/work/me"),
+    },
   ];
 
   return (
