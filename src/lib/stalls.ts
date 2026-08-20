@@ -1,0 +1,202 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { authMiddleware } from "@/lib/auth/middleware";
+import { getSql, type Sql } from "@/lib/db";
+import {
+  AREAS,
+  PLACE_PRESETS,
+  PROFILES,
+  SERVICE_PRESETS,
+  STOCK_COVERS,
+  type Profile,
+  type TagId,
+} from "@/lib/profiles";
+
+const TAG_IDS = ["visit", "incall", "night", "parttime", "business"] as const;
+const AREA_SET = AREAS.filter((a) => a !== "附近");
+const COVER_SET = new Set(STOCK_COVERS.map((c) => c.image));
+
+const StallInput = z.object({
+  name: z.string().trim().min(1).max(12),
+  age: z.number().int().min(25).max(55),
+  heightCm: z.number().int().min(150).max(185),
+  cup: z.enum(["B", "C", "D", "E"]),
+  area: z.string().refine((v) => AREA_SET.includes(v as (typeof AREA_SET)[number])),
+  tags: z.array(z.enum(TAG_IDS)).min(1).max(4),
+  image: z.string().refine((v) => COVER_SET.has(v)),
+  online: z.boolean(),
+  hourFen: z.number().int().min(2000).max(200000),
+  nightFen: z.number().int().min(8000).max(800000),
+  etaMin: z.number().int().min(5).max(90),
+  places: z.array(z.string().min(1).max(8)).min(1).max(6),
+  bio: z.string().trim().min(8).max(280),
+  services: z.array(z.string().min(1).max(12)).min(1).max(8),
+  confirmedAdult: z.literal(true),
+});
+
+export type StallInput = z.infer<typeof StallInput>;
+
+type StallRow = {
+  id: string;
+  user_id: string;
+  name: string;
+  age: number;
+  height_cm: number;
+  cup: string;
+  area: string;
+  tags: TagId[] | string;
+  image: string;
+  online: boolean;
+  hour_fen: number;
+  night_fen: number;
+  eta_min: number;
+  places: string[] | string;
+  bio: string;
+  services: string[] | string;
+  work: string;
+};
+
+function parseJsonArray<T>(value: T[] | string): T[] {
+  if (Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(value) as T[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function toProfile(row: StallRow): Profile {
+  return {
+    id: row.id,
+    name: row.name,
+    age: Number(row.age),
+    heightCm: Number(row.height_cm),
+    cup: row.cup,
+    area: row.area,
+    tags: parseJsonArray<TagId>(row.tags),
+    image: row.image,
+    online: Boolean(row.online),
+    hourFen: Number(row.hour_fen),
+    nightFen: Number(row.night_fen),
+    etaMin: Number(row.eta_min),
+    places: parseJsonArray<string>(row.places),
+    bio: row.bio,
+    services: parseJsonArray<string>(row.services),
+    work: row.work,
+  };
+}
+
+function autoWork(data: StallInput) {
+  if (!data.online) return "这厕暂时关着";
+  if (data.tags.includes("visit")) return `现在可上门 · 约 ${data.etaMin} 分钟到`;
+  return `定点坑 · 步行约 ${data.etaMin} 分钟`;
+}
+
+async function ensureSeeded(sql: Sql) {
+  const counted = await sql<{ n: number }>`select count(*)::int as n from stalls`;
+  if (Number(counted[0]?.n ?? 0) > 0) return;
+  for (const p of PROFILES) {
+    await sql`
+      insert into stalls (
+        id, user_id, name, age, height_cm, cup, area, tags, image, online,
+        hour_fen, night_fen, eta_min, places, bio, services, work
+      ) values (
+        ${p.id}, ${`seed:${p.id}`}, ${p.name}, ${p.age}, ${p.heightCm}, ${p.cup}, ${p.area},
+        ${JSON.stringify(p.tags)}::jsonb, ${p.image}, ${p.online},
+        ${p.hourFen}, ${p.nightFen}, ${p.etaMin}, ${JSON.stringify(p.places)}::jsonb,
+        ${p.bio}, ${JSON.stringify(p.services)}::jsonb, ${p.work}
+      )
+    `;
+  }
+}
+
+export async function findStall(sql: Sql, id: string) {
+  await ensureSeeded(sql);
+  const rows = await sql<StallRow>`select * from stalls where id = ${id} limit 1`;
+  return rows[0] ? toProfile(rows[0]) : undefined;
+}
+
+export const listPublicStalls = createServerFn({ method: "GET" }).handler(async () => {
+  const sql = await getSql();
+  await ensureSeeded(sql);
+  const rows = await sql<StallRow>`
+    select * from stalls
+    order by online desc, created_at desc
+  `;
+  return rows.map(toProfile);
+});
+
+export const getPublicStall = createServerFn({ method: "GET" })
+  .validator((data: unknown) => z.object({ id: z.string().min(1) }).parse(data))
+  .handler(async ({ data }) => {
+    const sql = await getSql();
+    return (await findStall(sql, data.id)) ?? null;
+  });
+
+export const getMyStall = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    await ensureSeeded(sql);
+    const rows = await sql<StallRow>`
+      select * from stalls where user_id = ${context.userId} limit 1
+    `;
+    return rows[0] ? toProfile(rows[0]) : null;
+  });
+
+export const saveMyStall = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => StallInput.parse(data))
+  .handler(async ({ context, data }) => {
+    if (context.userId.startsWith("seed:")) throw new Error("种子厕不能改");
+    const sql = await getSql();
+    await ensureSeeded(sql);
+    const work = autoWork(data);
+    const existing = await sql<{ id: string }>`
+      select id from stalls where user_id = ${context.userId} limit 1
+    `;
+    const id = existing[0]?.id ?? `t${crypto.randomUUID().replaceAll("-", "").slice(0, 8)}`;
+    if (existing[0]) {
+      await sql`
+        update stalls set
+          name = ${data.name},
+          age = ${data.age},
+          height_cm = ${data.heightCm},
+          cup = ${data.cup},
+          area = ${data.area},
+          tags = ${JSON.stringify(data.tags)}::jsonb,
+          image = ${data.image},
+          online = ${data.online},
+          hour_fen = ${data.hourFen},
+          night_fen = ${data.nightFen},
+          eta_min = ${data.etaMin},
+          places = ${JSON.stringify(data.places)}::jsonb,
+          bio = ${data.bio},
+          services = ${JSON.stringify(data.services)}::jsonb,
+          work = ${work},
+          updated_at = now()
+        where user_id = ${context.userId}
+      `;
+    } else {
+      await sql`
+        insert into stalls (
+          id, user_id, name, age, height_cm, cup, area, tags, image, online,
+          hour_fen, night_fen, eta_min, places, bio, services, work
+        ) values (
+          ${id}, ${context.userId}, ${data.name}, ${data.age}, ${data.heightCm}, ${data.cup},
+          ${data.area}, ${JSON.stringify(data.tags)}::jsonb, ${data.image}, ${data.online},
+          ${data.hourFen}, ${data.nightFen}, ${data.etaMin}, ${JSON.stringify(data.places)}::jsonb,
+          ${data.bio}, ${JSON.stringify(data.services)}::jsonb, ${work}
+        )
+      `;
+    }
+    const rows = await sql<StallRow>`
+      select * from stalls where user_id = ${context.userId} limit 1
+    `;
+    if (!rows[0]) throw new Error("没写成");
+    return toProfile(rows[0]);
+  });
+
+export const PLACE_OPTIONS = PLACE_PRESETS;
+export const SERVICE_OPTIONS = SERVICE_PRESETS;

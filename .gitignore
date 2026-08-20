@@ -1,0 +1,9 @@
+node_modules
+.vercel
+.env
+.env.local
+.env.*.local
+screenshots
+artifacts
+*.log
+.DS_Store
