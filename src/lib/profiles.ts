@@ -17,6 +17,8 @@ export type Profile = {
   bio: string;
   services: string[];
   work: string;
+  ratingAvg: number;
+  ratingCount: number;
 };
 
 export const TAGS: { id: TagId | "all"; label: string }[] = [
@@ -50,6 +52,8 @@ export const PROFILES: Profile[] = [
     bio: "移动肉便器。男人急了叫它走过来，你家、酒店、车后座都能当坑。别跟便器说话，拉开就泄。冲完走人，它自己擦。",
     services: ["走到你身边", "跪着接尿", "当马桶冲", "后入泄", "过夜占坑"],
     work: "现在可上门 · 约 18 分钟到",
+    ratingAvg: 0,
+    ratingCount: 0,
   },
   {
     id: "wan",
@@ -68,6 +72,8 @@ export const PROFILES: Profile[] = [
     bio: "定点肉便器。D 杯坑，门开着。急了就近推门，当公共马桶用。冲完下一位接着来。这便器不走路，你走过去。",
     services: ["就近推门", "当精厕", "奶当扶手", "泡着泄", "通宵占坑"],
     work: "店里现开 · 步行约 8 分钟",
+    ratingAvg: 0,
+    ratingCount: 0,
   },
   {
     id: "su",
@@ -86,6 +92,8 @@ export const PROFILES: Profile[] = [
     bio: "人妻肉便器。白天晚上都能叫出门，走到你方便的地方。穴松，专门给人泄。来了就冲，别问便器从哪来。",
     services: ["上门方便", "嘴当尿口", "松坑", "内射冲水", "过夜便器"],
     work: "今晚可上门 · 约 25 分钟到",
+    ratingAvg: 0,
+    ratingCount: 0,
   },
   {
     id: "mina",
@@ -104,6 +112,8 @@ export const PROFILES: Profile[] = [
     bio: "出差随身肉便器。挂在旁边，会开完就地泄。车里、走廊、酒店都是坑。话少，因为它是便器。男人走到哪，马桶跟到哪。",
     services: ["随身带着泄", "车里冲", "会后方便", "走廊也能用"],
     work: "可跟车 · 约 30 分钟会合",
+    ratingAvg: 0,
+    ratingCount: 0,
   },
   {
     id: "bei",
@@ -122,6 +132,8 @@ export const PROFILES: Profile[] = [
     bio: "便宜移动肉便器。下班后出坑，谁急谁叫。巷口、车上、你家，湿了就能冲。必须套上。用完滚，别把便器当人聊。",
     services: ["就近方便", "巷口泄", "跪着接", "便宜坑"],
     work: "现在可上门 · 约 12 分钟到",
+    ratingAvg: 0,
+    ratingCount: 0,
   },
   {
     id: "lin",
@@ -140,6 +152,8 @@ export const PROFILES: Profile[] = [
     bio: "熟坑定点便器。脸不给看，洞给冲。男人路过就推门。要洞不要人。操完它自己擦。别夸这堆肉。",
     services: ["定点公厕", "当精盆", "熟坑", "泡着冲", "通宵占"],
     work: "店里便器 · 步行约 10 分钟",
+    ratingAvg: 0,
+    ratingCount: 0,
   },
   {
     id: "ke",
@@ -158,6 +172,8 @@ export const PROFILES: Profile[] = [
     bio: "D 杯移动肉便器。急了它走过来。酒店、你家、巷子、后座都能当公共马桶。可以骂着冲。不接无套。拆开就是坑。",
     services: ["随地方便", "骂着冲", "巷子也能泄", "当马桶", "过夜便器"],
     work: "现在可上门 · 约 15 分钟到",
+    ratingAvg: 0,
+    ratingCount: 0,
   },
   {
     id: "shen",
@@ -176,6 +192,8 @@ export const PROFILES: Profile[] = [
     bio: "通宵移动肉便器。不按次，整晚停在你屋里。夜里随时起来方便，不用再出门找下一座。别叫它女人，它是马桶。",
     services: ["整晚停家里", "随时方便", "耐冲坑", "夜里再泄"],
     work: "通宵上门 · 约 22 分钟到",
+    ratingAvg: 0,
+    ratingCount: 0,
   },
 ];
 

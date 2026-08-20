@@ -5,7 +5,7 @@ import { WorkShell } from "@/components/work-shell";
 import { Button } from "@/components/ui/button";
 import { LogoMark } from "@/components/logo";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { listStallInquiries, type Inquiry } from "@/lib/inquiries";
+import { listStallInquiries, actStallInquiry, stallStatusLabel, type Inquiry } from "@/lib/inquiries";
 import { getMyStall, setMyStallOnline } from "@/lib/stalls";
 import type { Profile } from "@/lib/profiles";
 import { formatWhen } from "@/lib/utils";
@@ -37,7 +37,7 @@ function WorkLanding() {
         <div className="mx-auto w-full max-w-lg">
           <div className="flex items-center gap-2 text-fg/70">
             <LogoMark className="size-8" />
-            <span className="text-sm tracking-widest">YEXIANG · STALL</span>
+            <span className="text-sm tracking-widest">XIANGCE · STALL</span>
           </div>
           <h1 className="mt-5 font-display text-5xl font-semibold leading-[1.08] tracking-tight sm:text-6xl">
             便器端
@@ -66,22 +66,27 @@ function WorkBoard() {
   const [stall, setStall] = useState<Profile | null | undefined>(undefined);
   const [rows, setRows] = useState<Inquiry[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const [acting, setActing] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getMyStall(), listStallInquiries()])
-      .then(([mine, list]) => {
+    async function load() {
+      try {
+        const [mine, list] = await Promise.all([getMyStall(), listStallInquiries()]);
         if (cancelled) return;
         setStall(mine);
         setRows(list);
-      })
-      .catch(() => {
+      } catch {
         if (cancelled) return;
         setStall(null);
         setRows([]);
-      });
+      }
+    }
+    void load();
+    const timer = window.setInterval(() => void load(), 8000);
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
     };
   }, []);
 
@@ -96,6 +101,21 @@ function WorkBoard() {
       toast(err instanceof Error ? err.message : "没改成");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function act(id: string, action: "accept" | "reject" | "arrive") {
+    setActing(`${id}:${action}`);
+    try {
+      const next = await actStallInquiry({ data: { id, action } });
+      setRows((cur) => cur?.map((row) => (row.id === id ? next : row)) ?? null);
+      toast(
+        action === "accept" ? "已接，过去给人泄" : action === "reject" ? "已拒" : "已到，等人来用",
+      );
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "没改成");
+    } finally {
+      setActing(null);
     }
   }
 
@@ -149,7 +169,12 @@ function WorkBoard() {
       </button>
 
       <section className="mt-8">
-        <h2 className="text-sm font-medium text-muted">要拿你泄的男人</h2>
+        <h2 className="text-sm font-medium text-muted">
+          要拿你泄的男人
+          {rows && rows.some((r) => r.status === "pending")
+            ? ` · ${rows.filter((r) => r.status === "pending").length} 单待接`
+            : ""}
+        </h2>
         {rows && rows.length === 0 ? (
           <div className="mt-3 rounded-2xl bg-surface px-5 py-10 text-center shadow-border">
             <p className="font-display text-lg">还没人叫</p>
@@ -167,6 +192,43 @@ function WorkBoard() {
                 </div>
                 <p className="mt-1 text-sm text-muted">{row.slot}</p>
                 {row.note ? <p className="mt-2 text-sm text-subtle">{row.note}</p> : null}
+                <p
+                  className={
+                    row.status === "pending" || row.status === "accepted" || row.status === "arrived"
+                      ? "mt-2 text-sm text-live"
+                      : "mt-2 text-sm text-subtle"
+                  }
+                >
+                  {stallStatusLabel(row.status)}
+                </p>
+                {row.status === "pending" && (
+                  <div className="mt-3 flex gap-2">
+                    <Button
+                      className="flex-1"
+                      disabled={acting !== null}
+                      onClick={() => void act(row.id, "accept")}
+                    >
+                      接单
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      variant="secondary"
+                      disabled={acting !== null}
+                      onClick={() => void act(row.id, "reject")}
+                    >
+                      不接
+                    </Button>
+                  </div>
+                )}
+                {row.status === "accepted" && (
+                  <Button
+                    className="mt-3 w-full"
+                    disabled={acting !== null}
+                    onClick={() => void act(row.id, "arrive")}
+                  >
+                    我到了
+                  </Button>
+                )}
               </li>
             ))}
           </ul>

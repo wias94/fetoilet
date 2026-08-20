@@ -25,3 +25,9 @@ export function formatWhen(iso: string) {
   const mm = String(d.getMinutes()).padStart(2, "0");
   return `${hh}:${mm}`;
 }
+
+export function formatRating(avg: number, count: number) {
+  if (count < 1) return "还没人评";
+  const shown = avg % 1 === 0 ? String(avg) : avg.toFixed(1);
+  return `${shown} 分 · ${count}评`;
+}

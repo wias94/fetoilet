@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Heart } from "lucide-react";
 import type { Profile } from "@/lib/profiles";
 import { useFavorites } from "@/lib/favorites";
-import { formatFen } from "@/lib/utils";
+import { formatFen, formatRating } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 export function ProfileCard({ profile: p }: { profile: Profile }) {
@@ -24,7 +24,7 @@ export function ProfileCard({ profile: p }: { profile: Profile }) {
                 <span className="ml-1.5 font-sans text-sm font-normal text-fg/70">{p.age}</span>
               </p>
               <p className="mt-0.5 truncate text-xs text-fg/65">
-                {p.area} · {p.etaMin}分到 · {p.places[0]}
+                {p.area} · {p.etaMin}分到 · {formatRating(p.ratingAvg, p.ratingCount)}
               </p>
             </div>
             <span className="shrink-0 tabular-nums text-sm">{formatFen(p.hourFen)}/冲</span>

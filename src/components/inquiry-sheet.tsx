@@ -37,7 +37,7 @@ export function InquirySheet({
     try {
       await placeInquiry({ data: { profileId: profile.id, slot, note } });
       onOpenChange(false);
-      toast(`已占坑 ${profile.name}`);
+      toast(`已叫 ${profile.name}，等人接`);
       void navigate({ to: "/inbox" });
     } catch (err) {
       const message = err instanceof Error ? err.message : "没发出去";

@@ -22,13 +22,13 @@ export function Splash() {
             style={{ animationDelay: "40ms" }}
           >
             <LogoMark className="size-8" />
-            <span className="text-sm tracking-widest">YEXIANG</span>
+            <span className="text-sm tracking-widest">XIANGCE</span>
           </div>
           <h1
             className="splash-rise mt-5 font-display text-6xl font-semibold leading-[1.05] tracking-tight sm:text-7xl"
             style={{ animationDelay: "120ms" }}
           >
-            夜巷
+            巷厕
           </h1>
           <p
             className="splash-rise mt-4 max-w-sm text-base leading-relaxed text-fg/70"

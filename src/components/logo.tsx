@@ -25,7 +25,7 @@ export function Wordmark({
   return (
     <span className={cn("flex items-center gap-2 text-fg", className)}>
       <LogoMark className="size-7" />
-      <span className="font-display text-lg font-semibold tracking-tight">夜巷</span>
+      <span className="font-display text-lg font-semibold tracking-tight">巷厕</span>
       {side ? <span className="text-xs tracking-widest text-muted">{side}</span> : null}
     </span>
   );

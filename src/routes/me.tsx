@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { AuthSlot, SignOutButton } from "@/components/auth-slot";
 import { ProfileCard } from "@/components/profile-card";
@@ -19,32 +19,30 @@ function MePage() {
   const ids = useFavorites((s) => s.ids);
   const saved = ids.map((id) => getProfile(id, stalls)).filter((p): p is Profile => p != null);
 
+  if (isPending) {
+    return (
+      <AppShell>
+        <div className="h-8 w-24 animate-pulse rounded-lg bg-fg/10" />
+      </AppShell>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" search={{ redirect: "/me" }} />;
+  }
+
   return (
     <AppShell>
       <h1 className="font-display text-3xl font-semibold tracking-tight">我的</h1>
 
       <div className="mt-6 rounded-2xl bg-surface p-5 shadow-border">
-        {isPending ? (
-          <div className="h-10 w-40 animate-pulse rounded-lg bg-fg/10" />
-        ) : user ? (
-          <div className="flex items-center gap-3">
-            <AuthSlot />
-            <div className="min-w-0">
-              <p className="truncate font-medium">{user.displayName ?? "客人"}</p>
-              <p className="truncate text-sm text-muted">{user.primaryEmail}</p>
-            </div>
+        <div className="flex items-center gap-3">
+          <AuthSlot />
+          <div className="min-w-0">
+            <p className="truncate font-medium">{user.displayName ?? "客人"}</p>
+            <p className="truncate text-sm text-muted">{user.primaryEmail}</p>
           </div>
-        ) : (
-          <div>
-            <p className="font-display text-lg">还没登录</p>
-            <p className="mt-1 text-sm text-muted">找肉便器不用号。要冲，再登。</p>
-            <Button className="mt-4" asChild>
-              <Link to="/login" search={{ redirect: "/me" }}>
-                登录
-              </Link>
-            </Button>
-          </div>
-        )}
+        </div>
       </div>
 
       <section className="mt-8">

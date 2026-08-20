@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { ProfileCard } from "@/components/profile-card";
 import { Splash } from "@/components/splash";
 import { Input } from "@/components/ui/input";
 import { useEntry } from "@/lib/entry";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { AREAS, TAGS, type TagId, onlineCount, searchProfiles } from "@/lib/profiles";
 import { listPublicStalls } from "@/lib/stalls";
 import { cn, greetingForHour } from "@/lib/utils";
@@ -17,7 +18,24 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   const entered = useEntry((s) => s.entered);
-  if (!entered) return <Splash />;
+  const { user, isPending } = useCurrentUserState();
+
+  if (isPending) {
+    return (
+      <div className="min-h-dvh bg-bg">
+        <div className="mx-auto max-w-5xl px-4 pt-8">
+          <div className="h-8 w-28 animate-pulse rounded-lg bg-fg/10" />
+          <div className="mt-4 h-40 animate-pulse rounded-2xl bg-fg/10" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    if (!entered) return <Splash />;
+    return <Navigate to="/login" search={{ redirect: "/" }} />;
+  }
+
   return (
     <AppShell>
       <HomeFeed />

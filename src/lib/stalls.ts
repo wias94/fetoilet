@@ -60,6 +60,8 @@ type StallRow = {
   bio: string;
   services: string[] | string;
   work: string;
+  rating_avg?: number;
+  rating_count?: number;
 };
 
 function parseJsonArray<T>(value: T[] | string): T[] {
@@ -90,6 +92,8 @@ function toProfile(row: StallRow): Profile {
     bio: row.bio,
     services: parseJsonArray<string>(row.services),
     work: row.work,
+    ratingAvg: Number(row.rating_avg ?? 0),
+    ratingCount: Number(row.rating_count ?? 0),
   };
 }
 
@@ -131,7 +135,19 @@ async function ensureSeeded(sql: Sql) {
 
 export async function findStall(sql: Sql, id: string) {
   await ensureSeeded(sql);
-  const rows = await sql<StallRow>`select * from stalls where id = ${id} limit 1`;
+  const rows = await sql<StallRow>`
+    select s.*,
+      coalesce(r.avg, 0) as rating_avg,
+      coalesce(r.n, 0) as rating_count
+    from stalls s
+    left join (
+      select profile_id, avg(score)::float as avg, count(*)::int as n
+      from reviews
+      group by profile_id
+    ) r on r.profile_id = s.id
+    where s.id = ${id}
+    limit 1
+  `;
   return rows[0] ? toProfile(rows[0]) : undefined;
 }
 
@@ -139,8 +155,16 @@ export const listPublicStalls = createServerFn({ method: "GET" }).handler(async 
   const sql = await getSql();
   await ensureSeeded(sql);
   const rows = await sql<StallRow>`
-    select * from stalls
-    order by online desc, created_at desc
+    select s.*,
+      coalesce(r.avg, 0) as rating_avg,
+      coalesce(r.n, 0) as rating_count
+    from stalls s
+    left join (
+      select profile_id, avg(score)::float as avg, count(*)::int as n
+      from reviews
+      group by profile_id
+    ) r on r.profile_id = s.id
+    order by s.online desc, s.created_at desc
   `;
   return rows.map(toProfile);
 });

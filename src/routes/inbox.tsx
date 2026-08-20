@@ -1,11 +1,21 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
+import { ReviewForm } from "@/components/review-form";
 import { Button } from "@/components/ui/button";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { listInquiries, type Inquiry } from "@/lib/inquiries";
+import {
+  cancelInquiry,
+  useInquiry,
+  listInquiries,
+  seekerStatusLabel,
+  type Inquiry,
+} from "@/lib/inquiries";
+import { listMyReviewedIds } from "@/lib/reviews";
 import { getProfile } from "@/lib/profiles";
 import { listPublicStalls } from "@/lib/stalls";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/inbox")({
   loader: () => listPublicStalls(),
@@ -16,24 +26,59 @@ function InboxPage() {
   const stalls = Route.useLoaderData();
   const { user, isPending } = useCurrentUserState();
   const [rows, setRows] = useState<Inquiry[] | null>(null);
+  const [reviewed, setReviewed] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [acting, setActing] = useState<string | null>(null);
 
   useEffect(() => {
     if (isPending || !user) return;
     let cancelled = false;
-    listInquiries()
-      .then((list) => {
-        if (!cancelled) setRows(list);
-      })
-      .catch((err: unknown) => {
+    async function load() {
+      try {
+        const [list, ids] = await Promise.all([listInquiries(), listMyReviewedIds()]);
+        if (!cancelled) {
+          setRows(list);
+          setReviewed(ids);
+        }
+      } catch (err: unknown) {
         if (cancelled) return;
         const message = err instanceof Error ? err.message : "加载失败";
         setError(message === "Unauthorized" ? "unauthorized" : message);
-      });
+      }
+    }
+    void load();
+    const timer = window.setInterval(() => void load(), 8000);
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
     };
   }, [isPending, user]);
+
+  async function cancel(id: string) {
+    setActing(id);
+    try {
+      const next = await cancelInquiry({ data: { id } });
+      setRows((cur) => cur?.map((row) => (row.id === id ? next : row)) ?? null);
+      toast("已取消");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "没取消成");
+    } finally {
+      setActing(null);
+    }
+  }
+
+  async function useStall(id: string) {
+    setActing(id);
+    try {
+      const next = await useInquiry({ data: { id } });
+      setRows((cur) => cur?.map((row) => (row.id === id ? next : row)) ?? null);
+      toast("开始用这具公厕");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "没用成");
+    } finally {
+      setActing(null);
+    }
+  }
 
   if (isPending) {
     return (
@@ -51,7 +96,7 @@ function InboxPage() {
   return (
     <AppShell>
       <h1 className="font-display text-3xl font-semibold tracking-tight">已订</h1>
-      <p className="mt-1 text-sm text-muted">叫过来的肉便器，等人开坑</p>
+      <p className="mt-1 text-sm text-muted">叫过来的肉便器。接了会显示在过来。</p>
 
       {error && error !== "unauthorized" && <p className="mt-6 text-sm text-muted">{error}</p>}
 
@@ -69,12 +114,8 @@ function InboxPage() {
         {rows?.map((row) => {
           const profile = getProfile(row.profileId, stalls);
           return (
-            <li key={row.id}>
-              <Link
-                to="/p/$id"
-                params={{ id: row.profileId }}
-                className="flex gap-3 rounded-2xl bg-surface p-3 shadow-border"
-              >
+            <li key={row.id} className="rounded-2xl bg-surface p-3 shadow-border">
+              <Link to="/p/$id" params={{ id: row.profileId }} className="flex gap-3">
                 {profile && (
                   <img
                     src={profile.image}
@@ -86,8 +127,52 @@ function InboxPage() {
                   <p className="font-medium">{row.profileName}</p>
                   <p className="mt-0.5 text-sm text-muted">{row.slot}</p>
                   {row.note && <p className="mt-1 truncate text-sm text-subtle">{row.note}</p>}
+                  <p
+                    className={cn(
+                      "mt-2 text-sm",
+                      row.status === "accepted" || row.status === "arrived" || row.status === "used"
+                        ? "text-live"
+                        : row.status === "pending"
+                          ? "text-fg"
+                          : "text-subtle",
+                    )}
+                  >
+                    {seekerStatusLabel(row.status)}
+                  </p>
                 </div>
               </Link>
+              {row.status === "pending" && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="mt-3"
+                  disabled={acting === row.id}
+                  onClick={() => void cancel(row.id)}
+                >
+                  取消
+                </Button>
+              )}
+              {row.status === "arrived" && (
+                <Button
+                  className="mt-3 w-full"
+                  disabled={acting === row.id}
+                  onClick={() => void useStall(row.id)}
+                >
+                  使用公厕
+                </Button>
+              )}
+              {row.status === "used" && !reviewed.includes(row.profileId) && (
+                <div className="mt-3">
+                  <ReviewForm
+                    profileId={row.profileId}
+                    name={row.profileName}
+                    onDone={() => setReviewed((cur) => [...cur, row.profileId])}
+                  />
+                </div>
+              )}
+              {row.status === "used" && reviewed.includes(row.profileId) && (
+                <p className="mt-3 text-sm text-subtle">已评过这具便器</p>
+              )}
             </li>
           );
         })}

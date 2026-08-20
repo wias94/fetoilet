@@ -1,13 +1,18 @@
-import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { ArrowLeft, Heart } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { InquirySheet } from "@/components/inquiry-sheet";
+import { ReviewForm } from "@/components/review-form";
+import { Stars } from "@/components/stars";
 import { Button } from "@/components/ui/button";
 import { useFavorites } from "@/lib/favorites";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getPublicStall } from "@/lib/stalls";
 import { tagLabel } from "@/lib/profiles";
-import { cn, formatFen } from "@/lib/utils";
+import { listInquiries } from "@/lib/inquiries";
+import { listStallReviews, type Review } from "@/lib/reviews";
+import { cn, formatFen, formatRating } from "@/lib/utils";
 
 export const Route = createFileRoute("/p/$id")({
   loader: ({ params }) => getPublicStall({ data: { id: params.id } }),
@@ -16,9 +21,47 @@ export const Route = createFileRoute("/p/$id")({
 
 function ProfilePage() {
   const profile = Route.useLoaderData();
+  const { user, isPending } = useCurrentUserState();
   const ids = useFavorites((s) => s.ids);
   const toggle = useFavorites((s) => s.toggle);
   const [open, setOpen] = useState(false);
+  const [reviews, setReviews] = useState<Review[] | null>(null);
+  const [canReview, setCanReview] = useState(false);
+
+  useEffect(() => {
+    if (!profile) return;
+    let cancelled = false;
+    Promise.all([listStallReviews({ data: { profileId: profile.id } }), listInquiries()])
+      .then(([list, orders]) => {
+        if (cancelled) return;
+        setReviews(list);
+        setCanReview(orders.some((o) => o.profileId === profile.id && o.status === "used"));
+      })
+      .catch(() => {
+        if (!cancelled) setReviews([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [profile]);
+
+  if (isPending) {
+    return (
+      <AppShell>
+        <div className="h-8 w-24 animate-pulse rounded-lg bg-fg/10" />
+        <div className="mt-4 h-64 animate-pulse rounded-2xl bg-fg/10" />
+      </AppShell>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Navigate
+        to="/login"
+        search={{ redirect: profile ? `/p/${profile.id}` : "/" }}
+      />
+    );
+  }
 
   if (!profile) {
     return (
@@ -34,7 +77,6 @@ function ProfilePage() {
   }
 
   const saved = ids.includes(profile.id);
-
   return (
     <AppShell>
       <Link to="/" className="inline-flex h-10 items-center gap-1 text-sm text-muted hover:text-fg">
@@ -65,6 +107,10 @@ function ProfilePage() {
                 {profile.online ? "现在可冲" : "稍后可冲"} · {profile.etaMin} 分钟到 ·{" "}
                 {profile.places.join(" / ")}
               </p>
+              <div className="mt-2 flex items-center gap-2 text-sm text-muted">
+                <Stars value={profile.ratingAvg} size="sm" />
+                <span>{formatRating(profile.ratingAvg, profile.ratingCount)}</span>
+              </div>
             </div>
             <button
               type="button"
@@ -110,6 +156,33 @@ function ProfilePage() {
           </Button>
         </div>
       </div>
+
+      <section className="mt-8">
+        <h2 className="font-display text-lg font-semibold">男人怎么评这具便器</h2>
+        {canReview && (
+          <div className="mt-3">
+            <ReviewForm
+              profileId={profile.id}
+              name={profile.name}
+              onDone={() => {
+                void listStallReviews({ data: { profileId: profile.id } }).then(setReviews);
+              }}
+            />
+          </div>
+        )}
+        {reviews && reviews.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">还没人评。用完公厕才能打分。</p>
+        ) : (
+          <ul className="mt-3 space-y-3">
+            {reviews?.map((r) => (
+              <li key={r.id} className="rounded-2xl bg-surface p-4 shadow-border">
+                <Stars value={r.score} size="sm" />
+                {r.comment ? <p className="mt-2 text-sm leading-relaxed">{r.comment}</p> : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <InquirySheet profile={profile} open={open} onOpenChange={setOpen} />
     </AppShell>
