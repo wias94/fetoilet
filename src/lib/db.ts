@@ -1,12 +1,7 @@
+import { runtimeEnv } from "@/lib/runtime-env";
+
 /** Which database backend is active. */
 export type DbSource = "neon" | "pglite";
-
-function runtimeEnv(name: string) {
-  const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process
-    ?.env;
-  const value = env?.[name];
-  return value && value.trim() ? value.trim() : undefined;
-}
 
 export function getDatabaseUrl() {
   return runtimeEnv("DATABASE_URL");
@@ -236,7 +231,7 @@ export function ensureDbReady(): Promise<void> {
 const globalBoot = globalThis as typeof globalThis & {
   __pgBootstrapPromise__?: Promise<void>;
 };
-if (typeof window === "undefined" && !getDatabaseUrl()) {
+if (typeof window === "undefined" && !getDatabaseUrl() && !runtimeEnv("RAILWAY_ENVIRONMENT")) {
   globalBoot.__pgBootstrapPromise__ ??= ensureDbReady().catch((err) => {
     globalBoot.__pgBootstrapPromise__ = undefined;
     console.error("[db] PGLite bootstrap failed:", err);

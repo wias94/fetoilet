@@ -35,6 +35,7 @@ import { getCookie } from "@tanstack/react-start/server";
 import { randomBytes } from "node:crypto";
 import { Pool } from "pg";
 import { ensureDbReady, getPglite } from "../db";
+import { runtimeEnv } from "@/lib/runtime-env";
 import { emailAndPasswordEnabled } from "./email-password";
 import { GROK_PROVIDERS } from "./providers";
 import { pgliteDialect } from "./pglite-dialect";
@@ -45,8 +46,8 @@ import {
   PREVIEW_CLIENT_SECRET,
 } from "./preview";
 
-// Kick (and share) PGLite bootstrap as soon as the auth server module loads.
-void ensureDbReady();
+// Only boot PGLite when there is no live DATABASE_URL (preview).
+if (!runtimeEnv("DATABASE_URL")) void ensureDbReady();
 
 /**
  * Preview secret must outlive module reloads: PGLite (and its session rows) is
@@ -63,10 +64,7 @@ function previewAuthSecret(): string {
 }
 
 /** Read an env var, treating empty/whitespace as unset. */
-const env = (key: string): string | undefined => {
-  const value = process.env[key]?.trim();
-  return value ? value : undefined;
-};
+const env = runtimeEnv;
 
 // Explicit off-switch. The deployer sets `VITE_AUTH_ENABLED=true` when it
 // provisions auth; set it to "false" to force auth off everywhere (dev user).

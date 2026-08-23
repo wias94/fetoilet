@@ -43,6 +43,16 @@ async function handle(method: string, request: Request) {
     if (method === "GET" && (path === "" || path === "help")) {
       return json(API_CONTRACT);
     }
+    if (method === "GET" && path === "health") {
+      const { getDbSource, getDatabaseUrl } = await import("@/lib/db");
+      const { runtimeEnv } = await import("@/lib/runtime-env");
+      return json({
+        ok: true,
+        db: getDatabaseUrl() ? getDbSource() : "none",
+        database_url: Boolean(getDatabaseUrl()),
+        railway: Boolean(runtimeEnv("RAILWAY_ENVIRONMENT")),
+      });
+    }
 
     if (path.startsWith("admin/")) {
       await requireApiAdmin();
