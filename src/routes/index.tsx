@@ -9,6 +9,7 @@ import { useEntry } from "@/lib/entry";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { AREAS, TAGS, type TagId, onlineCount, searchProfiles } from "@/lib/profiles";
 import { listPublicStalls } from "@/lib/stalls";
+import { BroadcastBanner } from "@/components/broadcast-banner";
 import { cn, greetingForHour } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -48,25 +49,29 @@ function HomeFeed() {
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState<TagId | "all">("all");
   const [area, setArea] = useState<string>("附近");
+  const [shelf, setShelf] = useState<"all" | "unowned" | "sale">("all");
   const [hello, setHello] = useState("晚上了，去方便");
 
   useEffect(() => {
     setHello(greetingForHour(new Date().getHours()));
   }, []);
 
-  const list = useMemo(
-    () => searchProfiles(stalls, query, tag, area),
-    [stalls, query, tag, area],
-  );
+  const list = useMemo(() => {
+    const rows = searchProfiles(stalls, query, tag, area);
+    if (shelf === "unowned") return rows.filter((p) => p.unowned);
+    if (shelf === "sale") return rows.filter((p) => Boolean(p.listedFen));
+    return rows;
+  }, [stalls, query, tag, area, shelf]);
 
   return (
     <div>
+      <BroadcastBanner audience="seeker" />
       <p className="text-sm text-muted">{hello}</p>
       <h1 className="mt-1 font-display text-3xl font-semibold leading-tight tracking-tight">
         附近的肉便器
       </h1>
       <p className="mt-2 max-w-md text-sm leading-relaxed text-muted">
-        男人急了就近找坑。现在 {onlineCount(stalls)} 具可冲，会走过来当马桶。酒店、车里、你家都能泄。不要跟它说话。
+        男人急了就近找坑。现在 {onlineCount(stalls)} 具可冲，会走过来当马桶。酒店、车里、你家都能灌注。不要跟它说话。
       </p>
 
       <div className="-mx-4 mt-5 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -81,6 +86,28 @@ function HomeFeed() {
             )}
           >
             {a}
+          </button>
+        ))}
+      </div>
+
+      <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {(
+          [
+            ["all", "全部货"],
+            ["unowned", "无主 · 可收编"],
+            ["sale", "挂牌转让"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setShelf(id)}
+            className={cn(
+              "h-9 shrink-0 rounded-full px-3.5 text-sm",
+              shelf === id ? "bg-fg text-bg" : "bg-surface text-fg shadow-border",
+            )}
+          >
+            {label}
           </button>
         ))}
       </div>
@@ -113,7 +140,9 @@ function HomeFeed() {
       </div>
 
       {list.length === 0 ? (
-        <p className="mt-16 text-center text-sm text-muted">这片没有肉便器。换个区再找。</p>
+        <p className="mt-16 text-center text-sm text-muted">
+          {shelf === "sale" ? "没人挂牌。去「我的」把名下货标价。" : "这片没有肉便器。换个区再找。"}
+        </p>
       ) : (
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {list.map((p) => (

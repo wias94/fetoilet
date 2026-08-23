@@ -35,6 +35,16 @@ export function ProfileCard({ profile: p }: { profile: Profile }) {
             可冲
           </span>
         )}
+        {p.unowned && (
+          <span className="absolute left-2.5 top-10 rounded-full bg-bg/70 px-2 py-1 text-xs text-muted">
+            无主
+          </span>
+        )}
+        {p.listedFen ? (
+          <span className="absolute bottom-14 right-2.5 rounded-full bg-bg/70 px-2 py-1 text-xs">
+            卖 {formatFen(p.listedFen)}
+          </span>
+        ) : null}
       </Link>
       <button
         type="button"

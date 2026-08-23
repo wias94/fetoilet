@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { signOut } from "@/lib/auth/client";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 
-export function AuthSlot({ to = "/me" }: { to?: "/me" | "/work/me" }) {
+export function AuthSlot({ to = "/me" }: { to?: "/me" | "/work/me" | "/admin" }) {
   const { user, isPending } = useCurrentUserState();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   if (isPending) {
@@ -12,7 +12,13 @@ export function AuthSlot({ to = "/me" }: { to?: "/me" | "/work/me" }) {
     return (
       <Link
         to="/login"
-        search={{ redirect: pathname.startsWith("/work") ? "/work" : pathname }}
+        search={{
+          redirect: pathname.startsWith("/work")
+            ? "/work"
+            : pathname.startsWith("/admin")
+              ? "/admin"
+              : pathname,
+        }}
         className="inline-flex h-9 items-center rounded-full bg-fg px-3.5 text-sm font-medium text-bg transition-transform duration-150 ease-out active:scale-[0.96]"
       >
         登录

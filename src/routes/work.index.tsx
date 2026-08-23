@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { LogoMark } from "@/components/logo";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { listStallInquiries, actStallInquiry, stallStatusLabel, type Inquiry } from "@/lib/inquiries";
-import { getMyStall, setMyStallOnline } from "@/lib/stalls";
-import type { Profile } from "@/lib/profiles";
+import { getMyStall, setMyStallOnline, type MineStall } from "@/lib/stalls";
+import { requestOwnership } from "@/lib/owners";
 import { formatWhen } from "@/lib/utils";
 
 export const Route = createFileRoute("/work/")({ component: WorkHome });
@@ -31,24 +31,24 @@ function WorkHome() {
 function WorkLanding() {
   return (
     <main className="relative min-h-dvh overflow-hidden bg-bg text-fg">
-      <img src="/profiles/splash.jpg" alt="" className="absolute inset-0 size-full object-cover" />
+      <img src="/profiles/join-poster.jpg" alt="" className="absolute inset-0 size-full object-cover object-top" />
       <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/75 to-bg/30" />
       <div className="relative z-10 flex min-h-dvh flex-col justify-end px-6 pb-10 pt-16 sm:px-10">
         <div className="mx-auto w-full max-w-lg">
           <div className="flex items-center gap-2 text-fg/70">
             <LogoMark className="size-8" />
-            <span className="text-sm tracking-widest">XIANGCE · STALL</span>
+            <span className="text-sm tracking-widest">XIANGCE · TOILET</span>
           </div>
           <h1 className="mt-5 font-display text-5xl font-semibold leading-[1.08] tracking-tight sm:text-6xl">
-            便器端
+            肉厕端
           </h1>
           <p className="mt-4 max-w-sm text-base leading-relaxed text-fg/70">
-            男人那边是找坑。你这边是等着被泄。开着坑，他们把你当移动马桶叫过去。关着，货架上就看不见这具便器。
+            男人那边找坑。这边是货用的后台。开着就会被当移动马桶叫走灌注。无主货灌了没人收钱，把便器口令给男人让他收编。
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Button size="lg" className="h-12 rounded-full px-6" asChild>
               <Link to="/login" search={{ redirect: "/work" }}>
-                登录进便器端
+                登录，把这具挂上去
               </Link>
             </Button>
             <Link to="/" className="text-sm text-fg/70 underline-offset-4 hover:text-fg hover:underline">
@@ -63,7 +63,7 @@ function WorkLanding() {
 }
 
 function WorkBoard() {
-  const [stall, setStall] = useState<Profile | null | undefined>(undefined);
+  const [stall, setStall] = useState<MineStall | null | undefined>(undefined);
   const [rows, setRows] = useState<Inquiry[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [acting, setActing] = useState<string | null>(null);
@@ -95,7 +95,7 @@ function WorkBoard() {
     setBusy(true);
     try {
       const next = await setMyStallOnline({ data: { online: !stall.online } });
-      setStall(next);
+      setStall({ ...stall, ...next });
       toast(next.online ? "已开坑，男人能拿你泄" : "已收坑，货架上先藏着这具便器");
     } catch (err) {
       toast(err instanceof Error ? err.message : "没改成");
@@ -227,6 +227,22 @@ function WorkBoard() {
                     onClick={() => void act(row.id, "arrive")}
                   >
                     我到了
+                  </Button>
+                )}
+                {row.status === "used" && stall && !stall.hasOwner && (
+                  <Button
+                    className="mt-3 w-full"
+                    variant="secondary"
+                    disabled={acting !== null}
+                    onClick={() => {
+                      setActing(`${row.id}:claim`);
+                      void requestOwnership({ data: { inquiryId: row.id } })
+                        .then((res) => toast(res.already ? "已经求过了，等他收" : "已求他收编这具"))
+                        .catch((err) => toast(err instanceof Error ? err.message : "没求成"))
+                        .finally(() => setActing(null));
+                    }}
+                  >
+                    求这个男人收编这具
                   </Button>
                 )}
               </li>

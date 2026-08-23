@@ -13,6 +13,7 @@ import {
   type Inquiry,
 } from "@/lib/inquiries";
 import { listMyReviewedIds } from "@/lib/reviews";
+import { claimAfterUse } from "@/lib/owners";
 import { getProfile } from "@/lib/profiles";
 import { listPublicStalls } from "@/lib/stalls";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ function InboxPage() {
   const [reviewed, setReviewed] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
+  const [claimed, setClaimed] = useState<string[]>([]);
 
   useEffect(() => {
     if (isPending || !user) return;
@@ -159,6 +161,25 @@ function InboxPage() {
                   onClick={() => void useStall(row.id)}
                 >
                   使用公厕
+                </Button>
+              )}
+              {row.status === "used" && profile && profile.unowned && !claimed.includes(row.profileId) && (
+                <Button
+                  className="mt-3 w-full"
+                  variant="secondary"
+                  disabled={acting === row.id}
+                  onClick={() => {
+                    setActing(row.id);
+                    void claimAfterUse({ data: { inquiryId: row.id } })
+                      .then((res) => {
+                        toast(`收编了 ${res.name}`);
+                        setClaimed((cur) => [...cur, res.id]);
+                      })
+                      .catch((err) => toast(err instanceof Error ? err.message : "没收成"))
+                      .finally(() => setActing(null));
+                  }}
+                >
+                  收编这具无主货
                 </Button>
               )}
               {row.status === "used" && !reviewed.includes(row.profileId) && (

@@ -1,30 +1,31 @@
 import type { ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BarChart3, ClipboardList, DoorOpen, UserRound } from "lucide-react";
+import { Megaphone, LayoutGrid, Package, Receipt, Users } from "lucide-react";
 import { Wordmark } from "@/components/logo";
 import { AuthSlot } from "@/components/auth-slot";
 import { cn } from "@/lib/utils";
 
-type WorkPath = "/work" | "/work/stats" | "/work/stall" | "/work/me";
+type AdminPath = "/admin" | "/admin/users" | "/admin/stalls" | "/admin/orders" | "/admin/push";
 
-export function WorkShell({ children }: { children: ReactNode }) {
+export function AdminShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh bg-bg text-fg">
       <header className="sticky top-0 z-30 border-b border-border/70 bg-bg/90 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-          <Link to="/work" className="min-w-0">
-            <Wordmark side="肉厕端" />
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
+          <Link to="/admin" className="min-w-0">
+            <Wordmark side="管事台" />
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
-            <HeaderLink to="/work" label="送坑" exact />
-            <HeaderLink to="/work/stats" label="被灌" />
-            <HeaderLink to="/work/stall" label="货卡" />
-            <HeaderLink to="/work/me" label="这具" />
+            <HeaderLink to="/admin" label="总览" exact />
+            <HeaderLink to="/admin/users" label="用户" />
+            <HeaderLink to="/admin/stalls" label="货" />
+            <HeaderLink to="/admin/orders" label="单" />
+            <HeaderLink to="/admin/push" label="推流" />
           </nav>
-          <AuthSlot to="/work/me" />
+          <AuthSlot to="/admin" />
         </div>
       </header>
-      <div className="mx-auto w-full max-w-5xl px-4 pb-24 pt-5 md:pb-12">{children}</div>
+      <div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-5 md:pb-12">{children}</div>
       <MobileTabBar />
     </div>
   );
@@ -35,7 +36,7 @@ function HeaderLink({
   label,
   exact,
 }: {
-  to: WorkPath;
+  to: AdminPath;
   label: string;
   exact?: boolean;
 }) {
@@ -56,36 +57,16 @@ function HeaderLink({
 
 function MobileTabBar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const tabs: { to: WorkPath; label: string; icon: typeof ClipboardList; active: boolean }[] = [
-    {
-      to: "/work",
-      label: "送坑",
-      icon: ClipboardList,
-      active: pathname === "/work",
-    },
-    {
-      to: "/work/stats",
-      label: "被灌",
-      icon: BarChart3,
-      active: pathname.startsWith("/work/stats"),
-    },
-    {
-      to: "/work/stall",
-      label: "货卡",
-      icon: DoorOpen,
-      active: pathname.startsWith("/work/stall"),
-    },
-    {
-      to: "/work/me",
-      label: "这具",
-      icon: UserRound,
-      active: pathname.startsWith("/work/me"),
-    },
+  const tabs: { to: AdminPath; label: string; icon: typeof Users; active: boolean }[] = [
+    { to: "/admin", label: "总览", icon: LayoutGrid, active: pathname === "/admin" },
+    { to: "/admin/users", label: "用户", icon: Users, active: pathname.startsWith("/admin/users") },
+    { to: "/admin/stalls", label: "货", icon: Package, active: pathname.startsWith("/admin/stalls") },
+    { to: "/admin/orders", label: "单", icon: Receipt, active: pathname.startsWith("/admin/orders") },
+    { to: "/admin/push", label: "推流", icon: Megaphone, active: pathname.startsWith("/admin/push") },
   ];
-
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
-      <ul className="mx-auto grid max-w-lg grid-cols-4">
+      <ul className="mx-auto grid max-w-lg grid-cols-5">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (

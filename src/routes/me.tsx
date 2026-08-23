@@ -1,12 +1,30 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { AuthSlot, SignOutButton } from "@/components/auth-slot";
 import { ProfileCard } from "@/components/profile-card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { useFavorites } from "@/lib/favorites";
+import { getMyWallet, listMyLedger } from "@/lib/economy";
+import {
+  answerClaim,
+  claimByStallToken,
+  getMyOwnerToken,
+  listClaimRequests,
+  type ClaimRow,
+} from "@/lib/owners";
 import { getProfile, type Profile } from "@/lib/profiles";
-import { listPublicStalls } from "@/lib/stalls";
+import { listOwnedStalls, listPublicStalls } from "@/lib/stalls";
+import {
+  actOwnerInquiry,
+  listOwnerInquiries,
+  stallStatusLabel,
+  type Inquiry,
+} from "@/lib/inquiries";
+import { formatFen } from "@/lib/utils";
 
 export const Route = createFileRoute("/me")({
   loader: () => listPublicStalls(),
@@ -18,6 +36,50 @@ function MePage() {
   const { user, isPending } = useCurrentUserState();
   const ids = useFavorites((s) => s.ids);
   const saved = ids.map((id) => getProfile(id, stalls)).filter((p): p is Profile => p != null);
+  const [token, setToken] = useState<string | null>(null);
+  const [owned, setOwned] = useState<Profile[] | null>(null);
+  const [wallet, setWallet] = useState<number | null>(null);
+  const [ledger, setLedger] = useState<{ id: string; fen: number; note: string }[]>([]);
+  const [claims, setClaims] = useState<ClaimRow[]>([]);
+  const [orders, setOrders] = useState<Inquiry[]>([]);
+  const [claimToken, setClaimToken] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+
+  async function refresh() {
+    const [tok, list, w, c, o, led] = await Promise.all([
+      getMyOwnerToken(),
+      listOwnedStalls(),
+      getMyWallet(),
+      listClaimRequests(),
+      listOwnerInquiries(),
+      listMyLedger(),
+    ]);
+    setToken(tok.token);
+    setOwned(list);
+    setWallet(w.fen);
+    setClaims(c);
+    setOrders(o);
+    setLedger(led.map((r) => ({ id: r.id, fen: r.fen, note: r.note })));
+  }
+
+  useEffect(() => {
+    if (isPending || !user) return;
+    let cancelled = false;
+    refresh()
+      .then(() => {
+        if (cancelled) return;
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setToken(null);
+          setOwned([]);
+          setWallet(0);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isPending, user]);
 
   if (isPending) {
     return (
@@ -43,7 +105,212 @@ function MePage() {
             <p className="truncate text-sm text-muted">{user.primaryEmail}</p>
           </div>
         </div>
+        <p className="mt-4 font-display text-2xl font-semibold tabular-nums">
+          {wallet == null ? "……" : formatFen(wallet)}
+        </p>
+        <p className="mt-1 text-sm text-muted">名下肉厕被人灌，钱进这里。无主的货灌了没人收。</p>
+        {ledger.length > 0 && (
+          <ul className="mt-4 space-y-1.5 border-t border-border/70 pt-3">
+            {ledger.slice(0, 6).map((row) => (
+              <li key={row.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate text-muted">{row.note}</span>
+                <span className="shrink-0 tabular-nums">{row.fen > 0 ? "+" : ""}{formatFen(row.fen)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
+
+      <section className="mt-6 rounded-2xl bg-surface p-5 shadow-border">
+        <p className="text-sm text-muted">所属权口令</p>
+        <p className="mt-2 font-display text-2xl font-semibold tracking-widest">{token ?? "……"}</p>
+        <p className="mt-2 text-sm leading-relaxed text-muted">给肉厕选填。填了就归你，冲一次的钱进你口袋。</p>
+        <Button
+          className="mt-4"
+          variant="secondary"
+          type="button"
+          disabled={!token}
+          onClick={() => {
+            if (!token) return;
+            void navigator.clipboard.writeText(token).then(
+              () => toast("口令复制了"),
+              () => toast(token),
+            );
+          }}
+        >
+          复制口令
+        </Button>
+      </section>
+
+      <section className="mt-6 rounded-2xl bg-surface p-5 shadow-border">
+        <p className="text-sm text-muted">用便器口令收编</p>
+        <p className="mt-2 text-sm leading-relaxed text-muted">
+          找到已登记的无主肉厕，让它把 TC- 口令给你。填进去，这具就归你。
+        </p>
+        <div className="mt-3 flex gap-2">
+          <Input
+            value={claimToken}
+            onChange={(e) => setClaimToken(e.target.value)}
+            placeholder="TC-********"
+            autoComplete="off"
+          />
+          <Button
+            type="button"
+            disabled={busy !== null}
+            onClick={() => {
+              setBusy("claim");
+              void claimByStallToken({ data: { token: claimToken } })
+                .then((row) => {
+                  toast(`收编了 ${row.name}`);
+                  setClaimToken("");
+                  return refresh();
+                })
+                .catch((err) => toast(err instanceof Error ? err.message : "没收成"))
+                .finally(() => setBusy(null));
+            }}
+          >
+            收编
+          </Button>
+        </div>
+      </section>
+
+      {claims.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-medium text-muted">求你收编</h2>
+          <ul className="mt-3 space-y-2">
+            {claims.map((c) => (
+              <li key={c.id} className="flex items-center justify-between gap-3 rounded-2xl bg-surface px-4 py-3 shadow-border">
+                <span className="min-w-0 truncate font-medium">{c.stallName}</span>
+                <div className="flex shrink-0 gap-2">
+                  <Button
+                    size="sm"
+                    disabled={busy !== null}
+                    onClick={() => {
+                      setBusy(c.id);
+                      void answerClaim({ data: { id: c.id, accept: true } })
+                        .then(() => {
+                          toast("收编了");
+                          return refresh();
+                        })
+                        .catch((err) => toast(err instanceof Error ? err.message : "没成"))
+                        .finally(() => setBusy(null));
+                    }}
+                  >
+                    收下
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={busy !== null}
+                    onClick={() => {
+                      setBusy(c.id);
+                      void answerClaim({ data: { id: c.id, accept: false } })
+                        .then(() => refresh())
+                        .finally(() => setBusy(null));
+                    }}
+                  >
+                    不要
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="mt-8">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-medium text-muted">名下的肉厕</h2>
+          <Button size="sm" asChild>
+            <Link to="/add">挂身边的女人</Link>
+          </Button>
+        </div>
+        {owned && owned.length === 0 ? (
+          <p className="mt-3 text-sm text-subtle">还没有货。挂妻子、母亲、女友，或用便器口令收编无主的。</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {owned?.map((p) => (
+              <li key={p.id}>
+                <Link
+                  to="/owned/$id"
+                  params={{ id: p.id }}
+                  className="flex items-center justify-between rounded-2xl bg-surface px-4 py-3 shadow-border"
+                >
+                  <span className="min-w-0 truncate font-medium">
+                    {p.name}
+                    {p.relation ? <span className="ml-2 text-sm font-normal text-muted">{p.relation}</span> : null}
+                  </span>
+                  <span className="text-sm text-muted">
+                    {p.listedFen ? `卖 ${formatFen(p.listedFen)}` : p.online ? "可灌" : "收着"}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {orders.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-medium text-muted">名下的单</h2>
+          <ul className="mt-3 space-y-2">
+            {orders.map((row) => (
+              <li key={row.id} className="rounded-2xl bg-surface p-4 shadow-border">
+                <p className="font-medium">{row.profileName}</p>
+                <p className="mt-1 text-sm text-muted">{row.slot}</p>
+                <p className="mt-1 text-sm text-subtle">{stallStatusLabel(row.status)}</p>
+                {row.status === "pending" && (
+                  <div className="mt-3 flex gap-2">
+                    <Button
+                      className="flex-1"
+                      size="sm"
+                      disabled={busy !== null}
+                      onClick={() => {
+                        setBusy(row.id);
+                        void actOwnerInquiry({ data: { id: row.id, action: "accept" } })
+                          .then((next) => setOrders((cur) => cur.map((r) => (r.id === next.id ? next : r))))
+                          .catch((err) => toast(err instanceof Error ? err.message : "没成"))
+                          .finally(() => setBusy(null));
+                      }}
+                    >
+                      把坑送过去
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      size="sm"
+                      variant="secondary"
+                      disabled={busy !== null}
+                      onClick={() => {
+                        setBusy(row.id);
+                        void actOwnerInquiry({ data: { id: row.id, action: "reject" } })
+                          .then((next) => setOrders((cur) => cur.map((r) => (r.id === next.id ? next : r))))
+                          .finally(() => setBusy(null));
+                      }}
+                    >
+                      不给
+                    </Button>
+                  </div>
+                )}
+                {row.status === "accepted" && (
+                  <Button
+                    className="mt-3 w-full"
+                    size="sm"
+                    disabled={busy !== null}
+                    onClick={() => {
+                      setBusy(row.id);
+                      void actOwnerInquiry({ data: { id: row.id, action: "arrive" } })
+                        .then((next) => setOrders((cur) => cur.map((r) => (r.id === next.id ? next : r))))
+                        .finally(() => setBusy(null));
+                    }}
+                  >
+                    这具马桶到了
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="mt-8">
         <h2 className="text-sm font-medium text-muted">占着的坑</h2>
@@ -62,9 +329,9 @@ function MePage() {
         <Button variant="secondary" asChild>
           <Link to="/inbox">我订的便器</Link>
         </Button>
-        {user && <SignOutButton />}
+        <SignOutButton />
         <Link to="/work" className="text-center text-sm text-subtle hover:text-muted">
-          我是肉便器，进便器端
+          我是肉厕，进肉厕端
         </Link>
       </div>
     </AppShell>

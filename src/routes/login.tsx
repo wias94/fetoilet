@@ -20,7 +20,7 @@ function authMessage(raw: string) {
   const text = raw.toLowerCase();
   if (text.includes("invalid email or password")) return "密码不对。忘了就点下面重设密码";
   if (text.includes("already exists")) return "这个邮箱已经注册过了，点邮箱登录。忘了密码就重设";
-  if (text.includes("invalid origin")) return "登录环境不对，从便器端再进一次";
+  if (text.includes("invalid origin")) return "登录环境不对，从肉厕端再进一次";
   return raw;
 }
 
@@ -91,83 +91,92 @@ function Login() {
   }
 
   return (
-    <main className="grid min-h-dvh place-items-center bg-bg px-6 py-12">
-      <div className="w-full max-w-sm">
-        <Link to={stallSide ? "/work" : "/"} className="flex items-center gap-2 text-fg">
-          <LogoMark />
-          <span className="font-display text-lg font-semibold tracking-tight">
-            巷厕{stallSide ? " · 便器端" : ""}
-          </span>
-        </Link>
-        <h1 className="mt-8 font-display text-3xl font-semibold tracking-tight">
-          {stallSide ? "登录进便器端" : "登录后找坑"}
-        </h1>
-        <p className="mt-2 text-sm leading-relaxed text-muted">
-          {stallSide
-            ? "接单、开坑、改坑位要账号。满 18 岁才能把自己登记成肉便器。"
-            : "找坑也要登录。登完才能看附近的肉便器，叫它走过来当马桶。"}
-        </p>
-        <div className="mt-8 space-y-3">
-          {authEnabled ? (
-            GROK_PROVIDERS.map((p) => (
-              <Button
-                key={p.providerId}
-                type="button"
-                variant="secondary"
-                className="w-full"
-                onClick={() => void oauth(p.providerId)}
-              >
-                使用 {p.label} 继续
-              </Button>
-            ))
-          ) : (
-            <p className="text-sm text-muted">登录已关闭</p>
-          )}
-        </div>
-        <p className="mt-3 text-xs text-subtle">Google 会弹窗。被拦了就用邮箱。</p>
+    <main className="relative min-h-dvh overflow-hidden bg-bg text-fg">
+      <img
+        src="/profiles/join-poster.jpg"
+        alt=""
+        className="absolute inset-0 size-full object-cover object-top"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/80 to-bg/25" />
+      <div className="relative z-10 grid min-h-dvh place-items-end px-6 py-12 sm:place-items-center">
+        <div className="w-full max-w-sm rounded-2xl bg-bg/80 p-5 shadow-border backdrop-blur-md sm:p-6">
+          <Link to={stallSide ? "/work" : "/"} className="flex items-center gap-2 text-fg">
+            <LogoMark />
+            <span className="font-display text-lg font-semibold tracking-tight">
+              巷厕{stallSide ? " · 肉厕端" : ""}
+            </span>
+          </Link>
+          <p className="mt-4 text-xs tracking-widest text-subtle">NEW LISTINGS · 入住</p>
+          <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight">
+            {stallSide ? "登录进肉厕端" : "登录后找坑"}
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-muted">
+            {stallSide
+              ? "这边不是给人用的。登进去把身体登记成公共马桶。满 18 岁才能挂成肉厕。"
+              : "找坑也要登录。登完才能看附近的肉便器，叫它走过来当马桶。"}
+          </p>
+          <div className="mt-8 space-y-3">
+            {authEnabled ? (
+              GROK_PROVIDERS.map((p) => (
+                <Button
+                  key={p.providerId}
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => void oauth(p.providerId)}
+                >
+                  使用 {p.label} 继续
+                </Button>
+              ))
+            ) : (
+              <p className="text-sm text-muted">登录已关闭</p>
+            )}
+          </div>
+          <p className="mt-3 text-xs text-subtle">Google 会弹窗。被拦了就用邮箱。</p>
 
-        <div className="mt-8 space-y-3">
-          <Input
-            type="email"
-            autoComplete="email"
-            placeholder="邮箱"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <Input
-            type="password"
-            autoComplete="current-password"
-            placeholder="密码，至少 8 位"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <Button className="w-full" type="button" disabled={busy} onClick={() => void withEmail("in")}>
-            邮箱登录
-          </Button>
-          <Button
-            className="w-full"
-            type="button"
-            variant="secondary"
-            disabled={busy}
-            onClick={() => void withEmail("up")}
+          <div className="mt-8 space-y-3">
+            <Input
+              type="email"
+              autoComplete="email"
+              placeholder="邮箱"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <Input
+              type="password"
+              autoComplete="current-password"
+              placeholder="密码，至少 8 位"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <Button className="w-full" type="button" disabled={busy} onClick={() => void withEmail("in")}>
+              邮箱登录
+            </Button>
+            <Button
+              className="w-full"
+              type="button"
+              variant="secondary"
+              disabled={busy}
+              onClick={() => void withEmail("up")}
+            >
+              注册邮箱
+            </Button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void withEmail("reset")}
+              className="w-full text-center text-sm text-subtle hover:text-muted"
+            >
+              忘记密码，用上面的邮箱设新的
+            </button>
+          </div>
+          <Link
+            to={stallSide ? "/work" : "/"}
+            className="mt-6 inline-block text-sm text-muted hover:text-fg"
           >
-            注册邮箱
-          </Button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void withEmail("reset")}
-            className="w-full text-center text-sm text-subtle hover:text-muted"
-          >
-            忘记密码，用上面的邮箱设新的
-          </button>
+            {stallSide ? "回肉厕端" : "先去找坑"}
+          </Link>
         </div>
-        <Link
-          to={stallSide ? "/work" : "/"}
-          className="mt-6 inline-block text-sm text-muted hover:text-fg"
-        >
-          {stallSide ? "回便器端" : "先去找坑"}
-        </Link>
       </div>
     </main>
   );

@@ -87,7 +87,7 @@ export function InquirySheet({
               className="mt-2"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="在哪泄：你家、酒店、车上、巷口"
+              placeholder="在哪灌注：你家、酒店、车上、巷口"
               maxLength={80}
             />
           </div>

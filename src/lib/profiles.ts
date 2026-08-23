@@ -19,7 +19,14 @@ export type Profile = {
   work: string;
   ratingAvg: number;
   ratingCount: number;
+  owned?: boolean;
+  unowned?: boolean;
+  listedFen?: number | null;
+  relation?: string | null;
 };
+
+export const RELATIONS = ["妻子", "母亲", "女友", "同事", "其他"] as const;
+export type Relation = (typeof RELATIONS)[number];
 
 export const TAGS: { id: TagId | "all"; label: string }[] = [
   { id: "all", label: "全部肉便器" },
@@ -49,8 +56,8 @@ export const PROFILES: Profile[] = [
     nightFen: 24000,
     etaMin: 18,
     places: ["你家", "酒店", "车上"],
-    bio: "移动肉便器。男人急了叫它走过来，你家、酒店、车后座都能当坑。别跟便器说话，拉开就泄。冲完走人，它自己擦。",
-    services: ["走到你身边", "跪着接尿", "当马桶冲", "后入泄", "过夜占坑"],
+    bio: "移动肉便器。C 杯，腿长，会走过来。特技是跪着深喉接尿，后入能整根灌进去。穴中等偏紧，会自己夹。无套内射可以，灌完它把精刮出来吃掉。别跟厕说话。",
+    services: ["走到你身边", "深喉接尿", "后入灌注", "无套内射", "过夜占坑"],
     work: "现在可上门 · 约 18 分钟到",
     ratingAvg: 0,
     ratingCount: 0,
@@ -69,8 +76,8 @@ export const PROFILES: Profile[] = [
     nightFen: 31000,
     etaMin: 8,
     places: ["店里", "附近酒店"],
-    bio: "定点肉便器。D 杯坑，门开着。急了就近推门，当公共马桶用。冲完下一位接着来。这便器不走路，你走过去。",
-    services: ["就近推门", "当精厕", "奶当扶手", "泡着泄", "通宵占坑"],
+    bio: "定点肉便器。D 杯坑，奶当扶手。门开着，你走过去冲。特技是泡着灌、站着后入不倒。穴松热，耐操。无套，内射当冲水。冲完下一位接着来。这厕不走路。",
+    services: ["就近推门", "奶当扶手", "泡着灌注", "无套内射", "通宵占坑"],
     work: "店里现开 · 步行约 8 分钟",
     ratingAvg: 0,
     ratingCount: 0,
@@ -89,8 +96,8 @@ export const PROFILES: Profile[] = [
     nightFen: 28000,
     etaMin: 25,
     places: ["你家", "酒店"],
-    bio: "人妻肉便器。白天晚上都能叫出门，走到你方便的地方。穴松，专门给人泄。来了就冲，别问便器从哪来。",
-    services: ["上门方便", "嘴当尿口", "松坑", "内射冲水", "过夜便器"],
+    bio: "人妻肉便器。穴松，专门给人灌注。特技嘴当尿口，能含着走。白天晚上都能叫出门。无套内射冲水，灌进去它夹着回家。来了就冲，别问厕从哪来。",
+    services: ["上门方便", "嘴当尿口", "松坑", "无套内射", "过夜便器"],
     work: "今晚可上门 · 约 25 分钟到",
     ratingAvg: 0,
     ratingCount: 0,
@@ -109,8 +116,8 @@ export const PROFILES: Profile[] = [
     nightFen: 35000,
     etaMin: 30,
     places: ["车上", "走廊", "酒店", "会后"],
-    bio: "出差随身肉便器。挂在旁边，会开完就地泄。车里、走廊、酒店都是坑。话少，因为它是便器。男人走到哪，马桶跟到哪。",
-    services: ["随身带着泄", "车里冲", "会后方便", "走廊也能用"],
+    bio: "出差随身肉便器。B 杯，话少，会开完就地灌。特技是站着车震、走廊后入不出声。穴紧，适合快冲。必须套上，不接无套。男人走到哪，马桶跟到哪。",
+    services: ["随身带着灌注", "车里冲", "走廊也能用", "必须套上"],
     work: "可跟车 · 约 30 分钟会合",
     ratingAvg: 0,
     ratingCount: 0,
@@ -129,8 +136,8 @@ export const PROFILES: Profile[] = [
     nightFen: 19000,
     etaMin: 12,
     places: ["你家", "巷口", "车上"],
-    bio: "便宜移动肉便器。下班后出坑，谁急谁叫。巷口、车上、你家，湿了就能冲。必须套上。用完滚，别把便器当人聊。",
-    services: ["就近方便", "巷口泄", "跪着接", "便宜坑"],
+    bio: "便宜移动肉便器。下班出坑，巷口十二分钟。特技跪着接、墙上一靠就能用。穴湿得快。必须套上，不接无套。用完滚，别把厕当人聊。",
+    services: ["巷口灌注", "跪着接尿", "便宜坑", "必须套上"],
     work: "现在可上门 · 约 12 分钟到",
     ratingAvg: 0,
     ratingCount: 0,
@@ -149,8 +156,8 @@ export const PROFILES: Profile[] = [
     nightFen: 38000,
     etaMin: 10,
     places: ["店里"],
-    bio: "熟坑定点便器。脸不给看，洞给冲。男人路过就推门。要洞不要人。操完它自己擦。别夸这堆肉。",
-    services: ["定点公厕", "当精盆", "熟坑", "泡着冲", "通宵占"],
+    bio: "熟坑定点便器。脸不给看，洞给冲。特技当精盆：无套内射，精液积在里面给你看。穴熟、软、会吸。无套。要洞不要人。操完它自己擦。",
+    services: ["定点公厕", "当精盆", "无套内射", "熟坑", "通宵占"],
     work: "店里便器 · 步行约 10 分钟",
     ratingAvg: 0,
     ratingCount: 0,
@@ -169,8 +176,8 @@ export const PROFILES: Profile[] = [
     nightFen: 25000,
     etaMin: 15,
     places: ["你家", "酒店", "巷子", "车上"],
-    bio: "D 杯移动肉便器。急了它走过来。酒店、你家、巷子、后座都能当公共马桶。可以骂着冲。不接无套。拆开就是坑。",
-    services: ["随地方便", "骂着冲", "巷子也能泄", "当马桶", "过夜便器"],
+    bio: "D 杯移动肉便器。急了走过来。特技是骂着冲越骂越夹，潮吹当冲水。穴中等，奶大能捂。不接无套，必须套上。拆开就是坑。",
+    services: ["随地方便", "骂着冲", "潮吹冲水", "必须套上", "过夜便器"],
     work: "现在可上门 · 约 15 分钟到",
     ratingAvg: 0,
     ratingCount: 0,
@@ -189,8 +196,8 @@ export const PROFILES: Profile[] = [
     nightFen: 41000,
     etaMin: 22,
     places: ["酒店", "你家"],
-    bio: "通宵移动肉便器。不按次，整晚停在你屋里。夜里随时起来方便，不用再出门找下一座。别叫它女人，它是马桶。",
-    services: ["整晚停家里", "随时方便", "耐冲坑", "夜里再泄"],
+    bio: "通宵移动肉便器。不按次，整晚停屋里。特技是耐冲：夜里起来三次还是湿的，穴不肿。无套内射，灌进去当夜壶夹着。别叫它女人，它是马桶。",
+    services: ["整晚停家里", "耐冲坑", "无套内射", "夜里再灌注"],
     work: "通宵上门 · 约 22 分钟到",
     ratingAvg: 0,
     ratingCount: 0,
@@ -210,12 +217,14 @@ export const PLACE_PRESETS = ["你家", "酒店", "车上", "巷口", "店里", 
 export const SERVICE_PRESETS = [
   "走到你身边",
   "跪着接尿",
+  "深喉接尿",
   "当马桶冲",
-  "随地方便",
+  "无套内射",
+  "必须套上",
   "车里冲",
-  "巷口泄",
-  "通宵占坑",
+  "巷口灌注",
   "骂着冲",
+  "通宵占坑",
   "过夜便器",
 ] as const;
 

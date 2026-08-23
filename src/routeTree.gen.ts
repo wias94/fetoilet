@@ -10,20 +10,40 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AddRouteImport } from './routes/add'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as DeskRouteImport } from './routes/desk'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MeRouteImport } from './routes/me'
 import { Route as WorkRouteImport } from './routes/work'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
+import { Route as AdminPushRouteImport } from './routes/admin.push'
+import { Route as AdminStallsRouteImport } from './routes/admin.stalls'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as OwnedIdRouteImport } from './routes/owned.$id'
 import { Route as PIdRouteImport } from './routes/p.$id'
 import { Route as WorkIndexRouteImport } from './routes/work.index'
 import { Route as WorkMeRouteImport } from './routes/work.me'
 import { Route as WorkStallRouteImport } from './routes/work.stall'
+import { Route as WorkStatsRouteImport } from './routes/work.stats'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiMediaSplatRouteImport } from './routes/api/media/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AddRoute = AddRouteImport.update({
+  id: '/add',
+  path: '/add',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeskRoute = DeskRouteImport.update({
@@ -51,6 +71,36 @@ const WorkRoute = WorkRouteImport.update({
   path: '/work',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOrdersRoute = AdminOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPushRoute = AdminPushRouteImport.update({
+  id: '/push',
+  path: '/push',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminStallsRoute = AdminStallsRouteImport.update({
+  id: '/stalls',
+  path: '/stalls',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
+const OwnedIdRoute = OwnedIdRouteImport.update({
+  id: '/owned/$id',
+  path: '/owned/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PIdRoute = PIdRouteImport.update({
   id: '/p/$id',
   path: '/p/$id',
@@ -71,101 +121,173 @@ const WorkStallRoute = WorkStallRouteImport.update({
   path: '/stall',
   getParentRoute: () => WorkRoute,
 } as any)
+const WorkStatsRoute = WorkStatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
+  getParentRoute: () => WorkRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMediaSplatRoute = ApiMediaSplatRouteImport.update({
+  id: '/api/media/$',
+  path: '/api/media/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/add': typeof AddRoute
+  '/admin': typeof AdminRouteWithChildren
   '/desk': typeof DeskRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/work': typeof WorkRouteWithChildren
+  '/admin/orders': typeof AdminOrdersRoute
+  '/admin/push': typeof AdminPushRoute
+  '/admin/stalls': typeof AdminStallsRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/owned/$id': typeof OwnedIdRoute
   '/p/$id': typeof PIdRoute
   '/work/me': typeof WorkMeRoute
   '/work/stall': typeof WorkStallRoute
+  '/work/stats': typeof WorkStatsRoute
+  '/admin/': typeof AdminIndexRoute
   '/work/': typeof WorkIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/media/$': typeof ApiMediaSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/add': typeof AddRoute
   '/desk': typeof DeskRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
+  '/admin/orders': typeof AdminOrdersRoute
+  '/admin/push': typeof AdminPushRoute
+  '/admin/stalls': typeof AdminStallsRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/owned/$id': typeof OwnedIdRoute
   '/p/$id': typeof PIdRoute
   '/work/me': typeof WorkMeRoute
   '/work/stall': typeof WorkStallRoute
+  '/work/stats': typeof WorkStatsRoute
+  '/admin': typeof AdminIndexRoute
   '/work': typeof WorkIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/media/$': typeof ApiMediaSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/add': typeof AddRoute
+  '/admin': typeof AdminRouteWithChildren
   '/desk': typeof DeskRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
   '/work': typeof WorkRouteWithChildren
+  '/admin/orders': typeof AdminOrdersRoute
+  '/admin/push': typeof AdminPushRoute
+  '/admin/stalls': typeof AdminStallsRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/owned/$id': typeof OwnedIdRoute
   '/p/$id': typeof PIdRoute
   '/work/me': typeof WorkMeRoute
   '/work/stall': typeof WorkStallRoute
+  '/work/stats': typeof WorkStatsRoute
+  '/admin/': typeof AdminIndexRoute
   '/work/': typeof WorkIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/media/$': typeof ApiMediaSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/add'
+    | '/admin'
     | '/desk'
     | '/inbox'
     | '/login'
     | '/me'
     | '/work'
+    | '/admin/orders'
+    | '/admin/push'
+    | '/admin/stalls'
+    | '/admin/users'
+    | '/owned/$id'
     | '/p/$id'
     | '/work/me'
     | '/work/stall'
+    | '/work/stats'
+    | '/admin/'
     | '/work/'
     | '/api/auth/$'
+    | '/api/media/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/add'
     | '/desk'
     | '/inbox'
     | '/login'
     | '/me'
+    | '/admin/orders'
+    | '/admin/push'
+    | '/admin/stalls'
+    | '/admin/users'
+    | '/owned/$id'
     | '/p/$id'
     | '/work/me'
     | '/work/stall'
+    | '/work/stats'
+    | '/admin'
     | '/work'
     | '/api/auth/$'
+    | '/api/media/$'
   id:
     | '__root__'
     | '/'
+    | '/add'
+    | '/admin'
     | '/desk'
     | '/inbox'
     | '/login'
     | '/me'
     | '/work'
+    | '/admin/orders'
+    | '/admin/push'
+    | '/admin/stalls'
+    | '/admin/users'
+    | '/owned/$id'
     | '/p/$id'
     | '/work/me'
     | '/work/stall'
+    | '/work/stats'
+    | '/admin/'
     | '/work/'
     | '/api/auth/$'
+    | '/api/media/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AddRoute: typeof AddRoute
+  AdminRoute: typeof AdminRouteWithChildren
   DeskRoute: typeof DeskRoute
   InboxRoute: typeof InboxRoute
   LoginRoute: typeof LoginRoute
   MeRoute: typeof MeRoute
   WorkRoute: typeof WorkRouteWithChildren
+  OwnedIdRoute: typeof OwnedIdRoute
   PIdRoute: typeof PIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiMediaSplatRoute: typeof ApiMediaSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -175,6 +297,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/add': {
+      id: '/add'
+      path: '/add'
+      fullPath: '/add'
+      preLoaderRoute: typeof AddRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/desk': {
@@ -212,6 +348,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/orders': {
+      id: '/admin/orders'
+      path: '/orders'
+      fullPath: '/admin/orders'
+      preLoaderRoute: typeof AdminOrdersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/push': {
+      id: '/admin/push'
+      path: '/push'
+      fullPath: '/admin/push'
+      preLoaderRoute: typeof AdminPushRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/stalls': {
+      id: '/admin/stalls'
+      path: '/stalls'
+      fullPath: '/admin/stalls'
+      preLoaderRoute: typeof AdminStallsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/owned/$id': {
+      id: '/owned/$id'
+      path: '/owned/$id'
+      fullPath: '/owned/$id'
+      preLoaderRoute: typeof OwnedIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/p/$id': {
       id: '/p/$id'
       path: '/p/$id'
@@ -240,6 +418,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkStallRouteImport
       parentRoute: typeof WorkRoute
     }
+    '/work/stats': {
+      id: '/work/stats'
+      path: '/stats'
+      fullPath: '/work/stats'
+      preLoaderRoute: typeof WorkStatsRouteImport
+      parentRoute: typeof WorkRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -247,18 +432,45 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/media/$': {
+      id: '/api/media/$'
+      path: '/api/media/$'
+      fullPath: '/api/media/$'
+      preLoaderRoute: typeof ApiMediaSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
+
+interface AdminRouteChildren {
+  AdminOrdersRoute: typeof AdminOrdersRoute
+  AdminPushRoute: typeof AdminPushRoute
+  AdminStallsRoute: typeof AdminStallsRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminOrdersRoute: AdminOrdersRoute,
+  AdminPushRoute: AdminPushRoute,
+  AdminStallsRoute: AdminStallsRoute,
+  AdminUsersRoute: AdminUsersRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface WorkRouteChildren {
   WorkMeRoute: typeof WorkMeRoute
   WorkStallRoute: typeof WorkStallRoute
+  WorkStatsRoute: typeof WorkStatsRoute
   WorkIndexRoute: typeof WorkIndexRoute
 }
 
 const WorkRouteChildren: WorkRouteChildren = {
   WorkMeRoute: WorkMeRoute,
   WorkStallRoute: WorkStallRoute,
+  WorkStatsRoute: WorkStatsRoute,
   WorkIndexRoute: WorkIndexRoute,
 }
 
@@ -266,13 +478,17 @@ const WorkRouteWithChildren = WorkRoute._addFileChildren(WorkRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AddRoute: AddRoute,
+  AdminRoute: AdminRouteWithChildren,
   DeskRoute: DeskRoute,
   InboxRoute: InboxRoute,
   LoginRoute: LoginRoute,
   MeRoute: MeRoute,
   WorkRoute: WorkRouteWithChildren,
+  OwnedIdRoute: OwnedIdRoute,
   PIdRoute: PIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiMediaSplatRoute: ApiMediaSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

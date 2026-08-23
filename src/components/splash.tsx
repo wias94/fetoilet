@@ -10,7 +10,7 @@ export function Splash() {
   return (
     <main className="relative min-h-dvh overflow-hidden bg-bg text-fg">
       <img
-        src="/profiles/splash.jpg"
+        src="/profiles/join-poster.jpg"
         alt=""
         className="absolute inset-0 size-full object-cover"
       />
@@ -34,7 +34,7 @@ export function Splash() {
             className="splash-rise mt-4 max-w-sm text-base leading-relaxed text-fg/70"
             style={{ animationDelay: "200ms" }}
           >
-            给男人用的。附近的女人做成移动肉便器。急了打开，它走过来。酒店、车上、你家，随时泄，随地冲。不要把它当人。
+            给男人用的。附近的女人做成移动肉便器。急了打开，它走过来。酒店、车上、你家，随时灌注，随地冲。不要把它当人。
           </p>
           <div
             className="splash-rise mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
@@ -45,7 +45,7 @@ export function Splash() {
               <ArrowRight className="size-4" />
             </Button>
             <Button size="lg" variant="secondary" className="h-12 rounded-full px-6" asChild>
-              <Link to="/work">我是肉便器</Link>
+              <Link to="/work">我是肉厕，去挂货</Link>
             </Button>
           </div>
           <p className="splash-rise mt-4 text-sm text-fg/45" style={{ animationDelay: "340ms" }}>

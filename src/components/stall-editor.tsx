@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
-import { getMyStall, saveMyStall } from "@/lib/stalls";
+import {
+  createOwnedStall,
+  getMyStall,
+  getOwnedStall,
+  saveMyStall,
+  saveOwnedStall,
+  type MineStall,
+} from "@/lib/stalls";
 import { readStallPhoto } from "@/lib/read-photo";
 import {
   AREAS,
@@ -11,7 +18,9 @@ import {
   SERVICE_PRESETS,
   TAGS,
   CUPS,
+  RELATIONS,
   type Profile,
+  type Relation,
   type TagId,
 } from "@/lib/profiles";
 import { cn, formatFen } from "@/lib/utils";
@@ -35,6 +44,8 @@ type Form = {
   bio: string;
   services: string[];
   confirmedAdult: boolean;
+  ownerToken: string;
+  relation: Relation;
 };
 
 const EMPTY: Form = {
@@ -50,9 +61,11 @@ const EMPTY: Form = {
   nightYuan: "240",
   etaMin: "20",
   places: ["你家", "酒店"],
-  bio: "移动肉便器。男人急了叫它走过来。酒店、车上、你家都能当马桶冲。冲完走人。别把它当人。",
-  services: ["走到你身边", "当马桶冲"],
+  bio: "移动肉便器。写清自己：松还是紧、会什么特技、接不接无套。男人急了叫它走过来。冲完走人。别把它当人。",
+  services: ["走到你身边", "当马桶冲", "必须套上"],
   confirmedAdult: false,
+  ownerToken: "",
+  relation: "女友",
 };
 
 function fromProfile(p: Profile): Form {
@@ -72,23 +85,52 @@ function fromProfile(p: Profile): Form {
     bio: p.bio,
     services: p.services,
     confirmedAdult: true,
+    ownerToken: "",
+    relation: (p.relation as Relation) || "女友",
   };
 }
 
-export function StallEditor() {
+function isShownPhoto(image: string) {
+  return (
+    image.startsWith("data:image/") ||
+    image.startsWith("/profiles/") ||
+    image.startsWith("/api/media/") ||
+    image.startsWith("https://")
+  );
+}
+
+export function StallEditor({
+  asOwner = false,
+  stallId,
+  createOwned = false,
+}: {
+  asOwner?: boolean;
+  stallId?: string;
+  createOwned?: boolean;
+}) {
   const [mine, setMine] = useState<Profile | null | undefined>(undefined);
+  const [hasOwner, setHasOwner] = useState(false);
   const [form, setForm] = useState<Form>(EMPTY);
   const [saving, setSaving] = useState(false);
   const [reading, setReading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
+    if (createOwned) {
+      setMine(null);
+      return;
+    }
     let cancelled = false;
-    getMyStall()
+    const load = asOwner && stallId ? getOwnedStall({ data: { id: stallId } }) : getMyStall();
+    load
       .then((row) => {
         if (cancelled) return;
         setMine(row);
-        if (row) setForm(fromProfile(row));
+        if (row) {
+          setForm(fromProfile(row));
+          setHasOwner("hasOwner" in row ? Boolean((row as MineStall).hasOwner) : Boolean(row.owned));
+        }
       })
       .catch(() => {
         if (!cancelled) setMine(null);
@@ -96,15 +138,19 @@ export function StallEditor() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [asOwner, stallId, createOwned]);
 
-  if (mine === undefined) {
+  if (mine === undefined && !createOwned) {
     return (
       <>
         <div className="h-8 w-32 animate-pulse rounded-lg bg-fg/10" />
         <div className="mt-4 h-48 animate-pulse rounded-2xl bg-fg/10" />
       </>
     );
+  }
+
+  if (asOwner && !createOwned && !mine) {
+    return <p className="text-sm text-muted">这具不是你名下的货。</p>;
   }
 
   function toggle<T extends string>(key: "tags" | "places" | "services", value: T) {
@@ -120,33 +166,41 @@ export function StallEditor() {
       toast("先确认自己满 18 岁");
       return;
     }
-    if (!form.image.startsWith("data:image/jpeg")) {
-      toast("先上传这具便器的实拍，不用演示图");
+    if (!isShownPhoto(form.image)) {
+      toast("先上传这具身体的实拍，男人冲的时候就看这张");
       return;
     }
     setSaving(true);
     try {
-      const saved = await saveMyStall({
-        data: {
-          name: form.name,
-          age: Number(form.age),
-          heightCm: Number(form.heightCm),
-          cup: form.cup as "B" | "C" | "D" | "E",
-          area: form.area,
-          tags: form.tags,
-          image: form.image,
-          online: form.online,
-          hourFen: Math.round(Number(form.hourYuan) * 100),
-          nightFen: Math.round(Number(form.nightYuan) * 100),
-          etaMin: Number(form.etaMin),
-          places: form.places,
-          bio: form.bio,
-          services: form.services,
-          confirmedAdult: true as const,
-        },
-      });
+      const payload = {
+        name: form.name,
+        age: Number(form.age),
+        heightCm: Number(form.heightCm),
+        cup: form.cup as "B" | "C" | "D" | "E",
+        area: form.area,
+        tags: form.tags,
+        image: form.image,
+        online: form.online,
+        hourFen: Math.round(Number(form.hourYuan) * 100),
+        nightFen: Math.round(Number(form.nightYuan) * 100),
+        etaMin: Number(form.etaMin),
+        places: form.places,
+        bio: form.bio,
+        services: form.services,
+        confirmedAdult: true as const,
+        ownerToken: form.ownerToken,
+      };
+      const saved = createOwned
+        ? await createOwnedStall({ data: { ...payload, relation: form.relation } })
+        : asOwner && stallId
+          ? await saveOwnedStall({ data: { ...payload, id: stallId } })
+          : await saveMyStall({ data: payload });
       setMine(saved);
-      toast(form.online ? "这具便器已挂上，男人能拿你泄" : "已登记。开着坑才会出现在附近");
+      setHasOwner(Boolean(saved.owned) || createOwned || asOwner);
+      toast(form.online ? "这具货已挂上，男人能拿去灌" : "挂上了。开着才会出现在货架上当马桶");
+      if (createOwned) {
+        void navigate({ to: "/owned/$id", params: { id: saved.id } });
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "没写成";
       toast(message === "Unauthorized" ? "先登录" : message);
@@ -157,22 +211,34 @@ export function StallEditor() {
 
   return (
     <>
-      <p className="text-sm text-muted">便器端 · 坑位</p>
+      <p className="text-sm text-muted">
+        {createOwned ? "男人端 · 把身边的女人挂成肉厕" : asOwner ? "男人端 · 名下的货" : "肉厕端 · 货卡"}
+      </p>
       <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">
-        {mine ? "改这具便器" : "把自己登记成肉便器"}
+        {createOwned
+          ? "把她挂成你的肉厕"
+          : asOwner
+            ? "改这具所属肉厕"
+            : mine
+              ? "改这具马桶的挂牌"
+              : "把这具身体挂成公共肉厕"}
       </h1>
       <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted">
-        男人那边看不见这些设置。填完挂上，他们的「附近的肉便器」才会出现你这具马桶。
+        {createOwned
+          ? "妻子、母亲、女友都可以。挂上归你，别人冲她，钱进你口袋。"
+          : asOwner
+            ? "这具挂在你名下。货卡内容你说了算。也可以挂牌转给别的男人。"
+            : "所有者口令选填。不填就是无主货，被人灌了没人收钱。有主之后钱归主人。"}
       </p>
 
       {mine && (
         <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl bg-surface px-4 py-3 text-sm shadow-border">
           <span className={mine.online ? "text-live" : "text-muted"}>
-            {mine.online ? "已开坑，挂在货架上" : "已登记，坑关着"}
+            {mine.online ? "这具在货架上，可灌" : "挂上了，这具先不给人用"}
           </span>
           <Button asChild size="sm" variant="secondary">
             <Link to="/p/$id" params={{ id: mine.id }}>
-              男人看到的页
+              男人冲的时候看的页
             </Link>
           </Button>
         </div>
@@ -185,15 +251,45 @@ export function StallEditor() {
           void submit();
         }}
       >
-        <Field label="这具便器对外叫什么">
+        <Field label="这具货对外叫什么">
           <Input
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             maxLength={12}
-            placeholder="便器名"
+            placeholder="厕名，不是人名"
             required
           />
         </Field>
+
+        {!asOwner && !createOwned && (
+          <Field label="所有者口令（选填）">
+            {hasOwner ? (
+              <p className="text-sm text-muted">已有主。冲一次的钱进主人口袋。</p>
+            ) : (
+              <>
+                <Input
+                  value={form.ownerToken}
+                  onChange={(e) => setForm((f) => ({ ...f, ownerToken: e.target.value }))}
+                  placeholder="XC-********  不填就是无主"
+                  autoComplete="off"
+                />
+                <p className="mt-1 text-xs text-subtle">填了立刻归他。不填也能挂，只是被人用了没人收钱。</p>
+              </>
+            )}
+          </Field>
+        )}
+
+        {createOwned && (
+          <Field label="她是你的什么">
+            <div className="flex flex-wrap gap-2">
+              {RELATIONS.map((r) => (
+                <Chip key={r} active={form.relation === r} onClick={() => setForm((f) => ({ ...f, relation: r }))}>
+                  {r}
+                </Chip>
+              ))}
+            </div>
+          </Field>
+        )}
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Field label="岁数">
@@ -247,11 +343,7 @@ export function StallEditor() {
         <Field label="这具便器怎么被叫走">
           <div className="flex flex-wrap gap-2">
             {TAG_OPTIONS.map((t) => (
-              <Chip
-                key={t.id}
-                active={form.tags.includes(t.id)}
-                onClick={() => toggle("tags", t.id)}
-              >
+              <Chip key={t.id} active={form.tags.includes(t.id)} onClick={() => toggle("tags", t.id)}>
                 {t.label}
               </Chip>
             ))}
@@ -261,11 +353,7 @@ export function StallEditor() {
         <Field label="男人能在哪冲">
           <div className="flex flex-wrap gap-2">
             {PLACE_PRESETS.map((p) => (
-              <Chip
-                key={p}
-                active={form.places.includes(p)}
-                onClick={() => toggle("places", p)}
-              >
+              <Chip key={p} active={form.places.includes(p)} onClick={() => toggle("places", p)}>
                 {p}
               </Chip>
             ))}
@@ -275,11 +363,7 @@ export function StallEditor() {
         <Field label="这具便器怎么冲">
           <div className="flex flex-wrap gap-2">
             {SERVICE_PRESETS.map((s) => (
-              <Chip
-                key={s}
-                active={form.services.includes(s)}
-                onClick={() => toggle("services", s)}
-              >
+              <Chip key={s} active={form.services.includes(s)} onClick={() => toggle("services", s)}>
                 {s}
               </Chip>
             ))}
@@ -319,7 +403,7 @@ export function StallEditor() {
           </Field>
         </div>
 
-        <Field label="这具便器的实拍">
+        <Field label="这具身体的实拍">
           <input
             ref={fileRef}
             type="file"
@@ -341,7 +425,7 @@ export function StallEditor() {
             onClick={() => fileRef.current?.click()}
             className="relative block w-full overflow-hidden rounded-2xl bg-sunken text-left shadow-border"
           >
-            {form.image.startsWith("data:image/") || form.image.startsWith("/profiles/") ? (
+            {isShownPhoto(form.image) ? (
               <img src={form.image} alt="" className="aspect-[2/3] w-full object-cover object-top sm:max-h-[28rem]" />
             ) : (
               <div className="flex aspect-[2/3] max-h-72 flex-col items-center justify-center gap-2 px-6 text-center sm:max-h-80">
@@ -357,11 +441,11 @@ export function StallEditor() {
             disabled={reading}
             onClick={() => fileRef.current?.click()}
           >
-            {reading ? "在压图…" : form.image ? "换一张实拍" : "从相册选图"}
+            {reading ? "在压图…" : form.image ? "换这具的实拍" : "从相册选这具的图"}
           </Button>
         </Field>
 
-        <Field label="这具便器怎么介绍自己">
+        <Field label="这具货怎么介绍">
           <Textarea
             value={form.bio}
             onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
@@ -377,7 +461,7 @@ export function StallEditor() {
             onChange={(e) => setForm((f) => ({ ...f, online: e.target.checked }))}
             className="size-4 accent-fg"
           />
-          开着坑，把这具马桶挂到附近货架上
+          开着，让男人把这具当马桶从货架上叫走
         </label>
 
         <label className="flex items-start gap-3 text-sm leading-relaxed">
@@ -387,11 +471,11 @@ export function StallEditor() {
             onChange={(e) => setForm((f) => ({ ...f, confirmedAdult: e.target.checked }))}
             className="mt-0.5 size-4 accent-fg"
           />
-          我已满 18 岁。我知道这是把自己登记成公共移动肉便器，男人能按男人那端来叫我当马桶用。
+          我已满 18 岁。我知道这是把这具身体登记成公共移动肉厕。男人按货来叫，拿去灌注。不是人，是马桶。
         </label>
 
         <Button className="w-full" type="submit" disabled={saving}>
-          {saving ? "在挂…" : mine ? "更新这具便器" : "挂上货架"}
+          {saving ? "在挂…" : mine ? "更新这具货卡" : "把这具挂上货架"}
         </Button>
         <p className="text-center text-xs text-subtle">
           冲一次 {formatFen(Math.round(Number(form.hourYuan || 0) * 100))} · 通宵{" "}

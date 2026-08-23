@@ -115,7 +115,8 @@ export const listStallInquiries = createServerFn({ method: "GET" })
           when 'pending' then 0
           when 'accepted' then 1
           when 'arrived' then 2
-          else 3
+          when 'used' then 3
+          else 4
         end,
         created_at desc
       limit 40
@@ -127,6 +128,66 @@ const StallAction = z.object({
   id: z.string().min(1),
   action: z.enum(["accept", "reject", "arrive"]),
 });
+
+export const listOwnerInquiries = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    const rows = await sql<Row>`
+      select i.id, i.profile_id, i.profile_name, i.slot, i.note,
+        coalesce(i.status, 'pending') as status, i.created_at,
+        coalesce(i.updated_at, i.created_at) as updated_at
+      from inquiries i
+      join stalls s on s.id = i.profile_id
+      where s.owner_id = ${context.userId}
+      order by
+        case coalesce(i.status, 'pending')
+          when 'pending' then 0
+          when 'accepted' then 1
+          when 'arrived' then 2
+          when 'used' then 3
+          else 4
+        end,
+        i.created_at desc
+      limit 40
+    `;
+    return rows.map(toInquiry);
+  });
+
+export const actOwnerInquiry = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => StallAction.parse(data))
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    const current = await sql<{ status: string; profile_id: string }>`
+      select coalesce(i.status, 'pending') as status, i.profile_id
+      from inquiries i
+      join stalls s on s.id = i.profile_id
+      where i.id = ${data.id} and s.owner_id = ${context.userId}
+      limit 1
+    `;
+    if (!current[0]) throw new Error("没这单");
+    const from = toStatus(current[0].status);
+    const next =
+      data.action === "accept"
+        ? "accepted"
+        : data.action === "reject"
+          ? "rejected"
+          : "arrived";
+    if (data.action === "accept" || data.action === "reject") {
+      if (from !== "pending") throw new Error("这单已经动过了");
+    } else if (from !== "accepted") {
+      throw new Error("先接单才能到");
+    }
+    const rows = await sql<Row>`
+      update inquiries
+      set status = ${next}, updated_at = now()
+      where id = ${data.id}
+      returning id, profile_id, profile_name, slot, note, status, created_at, updated_at
+    `;
+    if (!rows[0]) throw new Error("没改成");
+    return toInquiry(rows[0]);
+  });
 
 export const actStallInquiry = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
@@ -209,6 +270,19 @@ export const useInquiry = createServerFn({ method: "POST" })
       returning id, profile_id, profile_name, slot, note, status, created_at, updated_at
     `;
     if (!rows[0]) throw new Error("没用成");
+    const stall = await sql<{ owner_id: string | null; hour_fen: number; name: string }>`
+      select owner_id, hour_fen, name from stalls where id = ${rows[0].profile_id} limit 1
+    `;
+    if (stall[0]) {
+      const { creditOwner } = await import("@/lib/economy");
+      await creditOwner(
+        sql,
+        stall[0].owner_id,
+        Number(stall[0].hour_fen),
+        rows[0].id,
+        `灌 ${stall[0].name}`,
+      );
+    }
     return toInquiry(rows[0]);
   });
 
@@ -232,16 +306,16 @@ export function seekerStatusLabel(status: InquiryStatus) {
 export function stallStatusLabel(status: InquiryStatus) {
   switch (status) {
     case "pending":
-      return "待接";
+      return "等人来用这具";
     case "accepted":
-      return "在过去";
+      return "这具货在送过去";
     case "arrived":
-      return "已到，等人来用";
+      return "马桶到了，等人来灌";
     case "used":
-      return "客人用完了";
+      return "这具被灌完了";
     case "rejected":
-      return "你拒了";
+      return "这具没给人用";
     case "cancelled":
-      return "客人取消了";
+      return "男的不要了";
   }
 }

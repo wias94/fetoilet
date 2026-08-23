@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate, useRouter } from "@tanstack/react-router";
 import { ArrowLeft, Heart } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { InquirySheet } from "@/components/inquiry-sheet";
@@ -9,6 +9,10 @@ import { Button } from "@/components/ui/button";
 import { useFavorites } from "@/lib/favorites";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getPublicStall } from "@/lib/stalls";
+import { buyStall } from "@/lib/economy";
+import { claimByStallToken } from "@/lib/owners";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { tagLabel } from "@/lib/profiles";
 import { listInquiries } from "@/lib/inquiries";
 import { listStallReviews, type Review } from "@/lib/reviews";
@@ -21,12 +25,15 @@ export const Route = createFileRoute("/p/$id")({
 
 function ProfilePage() {
   const profile = Route.useLoaderData();
+  const router = useRouter();
   const { user, isPending } = useCurrentUserState();
   const ids = useFavorites((s) => s.ids);
   const toggle = useFavorites((s) => s.toggle);
   const [open, setOpen] = useState(false);
   const [reviews, setReviews] = useState<Review[] | null>(null);
   const [canReview, setCanReview] = useState(false);
+  const [claimToken, setClaimToken] = useState("");
+  const [tradeBusy, setTradeBusy] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -154,6 +161,55 @@ function ProfilePage() {
           <Button className="mt-6 w-full" onClick={() => setOpen(true)}>
             叫这具便器过来
           </Button>
+          {!profile.owned && profile.unowned && (
+            <div className="mt-4 rounded-2xl bg-sunken p-4">
+              <p className="text-sm text-muted">无主货。灌了没人收钱。填它的便器口令就能收编。</p>
+              <div className="mt-3 flex gap-2">
+                <Input
+                  value={claimToken}
+                  onChange={(e) => setClaimToken(e.target.value)}
+                  placeholder="TC-********"
+                  autoComplete="off"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={tradeBusy}
+                  onClick={() => {
+                    setTradeBusy(true);
+                    void claimByStallToken({ data: { token: claimToken } })
+                      .then((row) => {
+                        toast(`收编了 ${row.name}`);
+                        return router.invalidate();
+                      })
+                      .catch((err) => toast(err instanceof Error ? err.message : "没收成"))
+                      .finally(() => setTradeBusy(false));
+                  }}
+                >
+                  收编
+                </Button>
+              </div>
+            </div>
+          )}
+          {profile.owned && profile.listedFen ? (
+            <Button
+              className="mt-3 w-full"
+              variant="secondary"
+              disabled={tradeBusy}
+              onClick={() => {
+                setTradeBusy(true);
+                void buyStall({ data: { id: profile.id } })
+                  .then((r) => {
+                    toast(`买下了，付 ${formatFen(r.paid)}`);
+                    return router.invalidate();
+                  })
+                  .catch((err) => toast(err instanceof Error ? err.message : "没买成"))
+                  .finally(() => setTradeBusy(false));
+              }}
+            >
+              买下这具 · {formatFen(profile.listedFen)}
+            </Button>
+          ) : null}
         </div>
       </div>
 
