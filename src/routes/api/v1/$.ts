@@ -46,11 +46,16 @@ async function handle(method: string, request: Request) {
     if (method === "GET" && path === "health") {
       const { getDbSource, getDatabaseUrl } = await import("@/lib/db");
       const { runtimeEnv } = await import("@/lib/runtime-env");
+      const { env } = await import("node:process");
+      const keys = Object.keys(env)
+        .filter((k) => /DATABASE|POSTGRES|NEON|^PG|RAILWAY|BETTER|R2_|ADMIN_API/i.test(k))
+        .sort();
       return json({
         ok: true,
         db: getDatabaseUrl() ? getDbSource() : "none",
         database_url: Boolean(getDatabaseUrl()),
         railway: Boolean(runtimeEnv("RAILWAY_ENVIRONMENT")),
+        env_keys: keys,
       });
     }
 
