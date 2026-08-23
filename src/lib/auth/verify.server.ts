@@ -12,7 +12,11 @@ import { auth, authConfigured } from "./server";
  */
 
 /** True when a real database is configured server-side. */
-const databaseConfigured = Boolean(process.env.DATABASE_URL?.trim());
+const databaseConfigured = Boolean(
+  (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[
+    "DATABASE_URL"
+  ]?.trim(),
+);
 
 /** Re-export so callers can branch on it without importing `server.ts`. */
 export { authConfigured };
