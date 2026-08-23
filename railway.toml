@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "npm ci && NITRO_PRESET=node-server npx vite build && npm run db:migrate"
+buildCommand = "NITRO_PRESET=node-server npx vite build && npm run db:migrate"
 
 [deploy]
 startCommand = "node .output/server/index.mjs"
