@@ -22,6 +22,7 @@ import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminPushRouteImport } from './routes/admin.push'
 import { Route as AdminStallsRouteImport } from './routes/admin.stalls'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as ApiV1RouteImport } from './routes/api/v1'
 import { Route as OwnedIdRouteImport } from './routes/owned.$id'
 import { Route as PIdRouteImport } from './routes/p.$id'
 import { Route as WorkIndexRouteImport } from './routes/work.index'
@@ -30,6 +31,7 @@ import { Route as WorkStallRouteImport } from './routes/work.stall'
 import { Route as WorkStatsRouteImport } from './routes/work.stats'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiMediaSplatRouteImport } from './routes/api/media/$'
+import { Route as ApiV1SplatRouteImport } from './routes/api/v1/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -96,6 +98,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiV1Route = ApiV1RouteImport.update({
+  id: '/api/v1',
+  path: '/api/v1',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OwnedIdRoute = OwnedIdRouteImport.update({
   id: '/owned/$id',
   path: '/owned/$id',
@@ -136,6 +143,11 @@ const ApiMediaSplatRoute = ApiMediaSplatRouteImport.update({
   path: '/api/media/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1SplatRoute = ApiV1SplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => ApiV1Route,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -150,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/admin/push': typeof AdminPushRoute
   '/admin/stalls': typeof AdminStallsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/v1': typeof ApiV1RouteWithChildren
   '/owned/$id': typeof OwnedIdRoute
   '/p/$id': typeof PIdRoute
   '/work/me': typeof WorkMeRoute
@@ -159,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/work/': typeof WorkIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
+  '/api/v1/$': typeof ApiV1SplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -171,6 +185,7 @@ export interface FileRoutesByTo {
   '/admin/push': typeof AdminPushRoute
   '/admin/stalls': typeof AdminStallsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/v1': typeof ApiV1RouteWithChildren
   '/owned/$id': typeof OwnedIdRoute
   '/p/$id': typeof PIdRoute
   '/work/me': typeof WorkMeRoute
@@ -180,6 +195,7 @@ export interface FileRoutesByTo {
   '/work': typeof WorkIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
+  '/api/v1/$': typeof ApiV1SplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -195,6 +211,7 @@ export interface FileRoutesById {
   '/admin/push': typeof AdminPushRoute
   '/admin/stalls': typeof AdminStallsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/v1': typeof ApiV1RouteWithChildren
   '/owned/$id': typeof OwnedIdRoute
   '/p/$id': typeof PIdRoute
   '/work/me': typeof WorkMeRoute
@@ -204,6 +221,7 @@ export interface FileRoutesById {
   '/work/': typeof WorkIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
+  '/api/v1/$': typeof ApiV1SplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -220,6 +238,7 @@ export interface FileRouteTypes {
     | '/admin/push'
     | '/admin/stalls'
     | '/admin/users'
+    | '/api/v1'
     | '/owned/$id'
     | '/p/$id'
     | '/work/me'
@@ -229,6 +248,7 @@ export interface FileRouteTypes {
     | '/work/'
     | '/api/auth/$'
     | '/api/media/$'
+    | '/api/v1/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -241,6 +261,7 @@ export interface FileRouteTypes {
     | '/admin/push'
     | '/admin/stalls'
     | '/admin/users'
+    | '/api/v1'
     | '/owned/$id'
     | '/p/$id'
     | '/work/me'
@@ -250,6 +271,7 @@ export interface FileRouteTypes {
     | '/work'
     | '/api/auth/$'
     | '/api/media/$'
+    | '/api/v1/$'
   id:
     | '__root__'
     | '/'
@@ -264,6 +286,7 @@ export interface FileRouteTypes {
     | '/admin/push'
     | '/admin/stalls'
     | '/admin/users'
+    | '/api/v1'
     | '/owned/$id'
     | '/p/$id'
     | '/work/me'
@@ -273,6 +296,7 @@ export interface FileRouteTypes {
     | '/work/'
     | '/api/auth/$'
     | '/api/media/$'
+    | '/api/v1/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -284,6 +308,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MeRoute: typeof MeRoute
   WorkRoute: typeof WorkRouteWithChildren
+  ApiV1Route: typeof ApiV1RouteWithChildren
   OwnedIdRoute: typeof OwnedIdRoute
   PIdRoute: typeof PIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -383,6 +408,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/api/v1': {
+      id: '/api/v1'
+      path: '/api/v1'
+      fullPath: '/api/v1'
+      preLoaderRoute: typeof ApiV1RouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/owned/$id': {
       id: '/owned/$id'
       path: '/owned/$id'
@@ -439,6 +471,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMediaSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/$': {
+      id: '/api/v1/$'
+      path: '/$'
+      fullPath: '/api/v1/$'
+      preLoaderRoute: typeof ApiV1SplatRouteImport
+      parentRoute: typeof ApiV1Route
+    }
   }
 }
 
@@ -476,6 +515,16 @@ const WorkRouteChildren: WorkRouteChildren = {
 
 const WorkRouteWithChildren = WorkRoute._addFileChildren(WorkRouteChildren)
 
+interface ApiV1RouteChildren {
+  ApiV1SplatRoute: typeof ApiV1SplatRoute
+}
+
+const ApiV1RouteChildren: ApiV1RouteChildren = {
+  ApiV1SplatRoute: ApiV1SplatRoute,
+}
+
+const ApiV1RouteWithChildren = ApiV1Route._addFileChildren(ApiV1RouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AddRoute: AddRoute,
@@ -485,6 +534,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MeRoute: MeRoute,
   WorkRoute: WorkRouteWithChildren,
+  ApiV1Route: ApiV1RouteWithChildren,
   OwnedIdRoute: OwnedIdRoute,
   PIdRoute: PIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

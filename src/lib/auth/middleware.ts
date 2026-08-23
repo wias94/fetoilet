@@ -42,5 +42,15 @@ export const authMiddleware = createMiddleware({ type: "function" })
     // Reject scripted cross-site/sibling requests before touching per-user data.
     assertSameSiteRequest();
     const userId = await requireUserId(context.bearerToken);
+    try {
+      const { isBanned } = await import("@/lib/behavior");
+      if (await isBanned(userId)) {
+        const err = new Error("Banned");
+        (err as Error & { status: number }).status = 403;
+        throw err;
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message === "Banned") throw err;
+    }
     return next({ context: { userId } });
   });

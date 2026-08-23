@@ -322,6 +322,12 @@ export const setMyStallOnline = createServerFn({ method: "POST" })
       set online = ${data.online}, work = ${work}, updated_at = now()
       where user_id = ${context.userId}
     `;
+    const { recordEvent } = await import("@/lib/behavior");
+    await recordEvent({
+      userId: context.userId,
+      kind: data.online ? "stall_online" : "stall_offline",
+      targetId: current.id,
+    });
     return { ...current, online: data.online, work };
   });
 

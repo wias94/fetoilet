@@ -77,6 +77,13 @@ export const placeInquiry = createServerFn({ method: "POST" })
       returning id, profile_id, profile_name, slot, note, status, created_at, updated_at
     `;
     if (!rows[0]) throw new Error("没叫成");
+    const { recordEvent } = await import("@/lib/behavior");
+    await recordEvent({
+      userId: context.userId,
+      kind: "inquiry_place",
+      targetId: profile.id,
+      payload: { slot: data.slot },
+    });
     return toInquiry(rows[0]);
   });
 
@@ -224,6 +231,17 @@ export const actStallInquiry = createServerFn({ method: "POST" })
       returning id, profile_id, profile_name, slot, note, status, created_at, updated_at
     `;
     if (!rows[0]) throw new Error("没改成");
+    const { recordEvent } = await import("@/lib/behavior");
+    await recordEvent({
+      userId: context.userId,
+      kind:
+        data.action === "accept"
+          ? "inquiry_accept"
+          : data.action === "arrive"
+            ? "inquiry_arrive"
+            : "inquiry_cancel",
+      targetId: rows[0].id,
+    });
     return toInquiry(rows[0]);
   });
 
@@ -283,6 +301,12 @@ export const useInquiry = createServerFn({ method: "POST" })
         `灌 ${stall[0].name}`,
       );
     }
+    const { recordEvent } = await import("@/lib/behavior");
+    await recordEvent({
+      userId: context.userId,
+      kind: "inquiry_use",
+      targetId: rows[0].profile_id,
+    });
     return toInquiry(rows[0]);
   });
 
