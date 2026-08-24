@@ -112,8 +112,8 @@ function Login() {
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-muted">
             {stallSide
-              ? "肉厕端用于将身体登记为公共肉厕、办理挂牌与接单。仅接受已满十八周岁。"
-              : "客户登录后方可查阅在册肉厕并提交点单。使用即视为接受本所挂牌条款。"}
+              ? "肉厕端用于将身体登记为公共肉厕、办理挂牌与接单。一个邮箱只能作为肉厕或客户之一。仅接受已满十八周岁。"
+              : "客户登录后方可查阅在册肉厕并提交点单。一个邮箱只能作为客户或肉厕之一。"}
           </p>
           <div className="mt-8 space-y-3">
             {authEnabled ? (

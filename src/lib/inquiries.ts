@@ -66,6 +66,8 @@ export const placeInquiry = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: unknown) => Input.parse(data))
   .handler(async ({ context, data }) => {
+    const { assertRole } = await import("@/lib/roles");
+    await assertRole(context.userId, "male");
     const sql = await getSql();
     const profile = await findStall(sql, data.profileId);
     if (!profile) throw new Error("没这具肉便器");

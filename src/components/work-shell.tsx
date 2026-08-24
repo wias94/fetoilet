@@ -3,6 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { BarChart3, ClipboardList, MessageCircle, Radio, UserRound } from "lucide-react";
 import { Wordmark } from "@/components/logo";
 import { AuthSlot } from "@/components/auth-slot";
+import { RoleGate } from "@/components/role-gate";
 import { cn } from "@/lib/utils";
 
 type WorkPath = "/work" | "/work/feed" | "/work/mail" | "/work/stats" | "/work/stall" | "/work/me";
@@ -10,6 +11,7 @@ type WorkPath = "/work" | "/work/feed" | "/work/mail" | "/work/stats" | "/work/s
 export function WorkShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh bg-bg text-fg">
+      <RoleGate side="stall" />
       <header className="sticky top-0 z-30 border-b border-border/70 bg-bg/90 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
           <Link to="/work" className="min-w-0">

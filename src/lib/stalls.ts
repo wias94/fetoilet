@@ -284,6 +284,8 @@ export const saveMyStall = createServerFn({ method: "POST" })
   .validator((data: unknown) => StallInput.parse(data))
   .handler(async ({ context, data }) => {
     if (context.userId.startsWith("seed:")) throw new Error("种子便器不能改");
+    const { assertRole } = await import("@/lib/roles");
+    await assertRole(context.userId, "stall");
     const sql = await getSql();
     await ensureSeeded(sql);
     const work = autoWork(data);
@@ -505,6 +507,8 @@ export const createOwnedStall = createServerFn({ method: "POST" })
   .validator((data: unknown) => OwnedCreate.parse(data))
   .handler(async ({ context, data }) => {
     if (context.userId.startsWith("seed:")) throw new Error("种子号不能挂");
+    const { assertRole } = await import("@/lib/roles");
+    await assertRole(context.userId, "male");
     if (data.age < 18) throw new Error("必须满 18 岁");
     if (data.relation === "女儿" && data.age < 18) throw new Error("女儿必须满 18 岁");
     const sql = await getSql();
