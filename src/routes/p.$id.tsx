@@ -11,6 +11,7 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getPublicStall } from "@/lib/stalls";
 import { buyStall } from "@/lib/economy";
 import { claimByStallToken } from "@/lib/owners";
+import { openThread } from "@/lib/messages";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { tagLabel } from "@/lib/profiles";
@@ -160,6 +161,20 @@ function ProfilePage() {
           </div>
           <Button className="mt-6 w-full" onClick={() => setOpen(true)}>
             叫这具便器过来
+          </Button>
+          <Button
+            className="mt-3 w-full"
+            variant="secondary"
+            disabled={tradeBusy}
+            onClick={() => {
+              setTradeBusy(true);
+              void openThread({ data: { stallId: profile.id } })
+                .then((row) => router.navigate({ to: "/mail/$id", params: { id: row.id } }))
+                .catch((err) => toast(err instanceof Error ? err.message : "没打开"))
+                .finally(() => setTradeBusy(false));
+            }}
+          >
+            私信
           </Button>
           {!profile.owned && profile.unowned && (
             <div className="mt-4 rounded-2xl bg-sunken p-4">

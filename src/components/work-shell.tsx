@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BarChart3, ClipboardList, DoorOpen, UserRound } from "lucide-react";
+import { BarChart3, ClipboardList, MessageCircle, Radio, UserRound } from "lucide-react";
 import { Wordmark } from "@/components/logo";
 import { AuthSlot } from "@/components/auth-slot";
 import { cn } from "@/lib/utils";
 
-type WorkPath = "/work" | "/work/stats" | "/work/stall" | "/work/me";
+type WorkPath = "/work" | "/work/feed" | "/work/mail" | "/work/stats" | "/work/stall" | "/work/me";
 
 export function WorkShell({ children }: { children: ReactNode }) {
   return (
@@ -17,8 +17,9 @@ export function WorkShell({ children }: { children: ReactNode }) {
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
             <HeaderLink to="/work" label="送坑" exact />
+            <HeaderLink to="/work/feed" label="动态" />
+            <HeaderLink to="/work/mail" label="私信" />
             <HeaderLink to="/work/stats" label="被灌" />
-            <HeaderLink to="/work/stall" label="货卡" />
             <HeaderLink to="/work/me" label="这具" />
           </nav>
           <AuthSlot to="/work/me" />
@@ -64,16 +65,22 @@ function MobileTabBar() {
       active: pathname === "/work",
     },
     {
+      to: "/work/feed",
+      label: "动态",
+      icon: Radio,
+      active: pathname.startsWith("/work/feed"),
+    },
+    {
+      to: "/work/mail",
+      label: "私信",
+      icon: MessageCircle,
+      active: pathname.startsWith("/work/mail"),
+    },
+    {
       to: "/work/stats",
       label: "被灌",
       icon: BarChart3,
       active: pathname.startsWith("/work/stats"),
-    },
-    {
-      to: "/work/stall",
-      label: "货卡",
-      icon: DoorOpen,
-      active: pathname.startsWith("/work/stall"),
     },
     {
       to: "/work/me",
@@ -85,7 +92,7 @@ function MobileTabBar() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
-      <ul className="mx-auto grid max-w-lg grid-cols-4">
+      <ul className="mx-auto grid max-w-lg grid-cols-5">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (

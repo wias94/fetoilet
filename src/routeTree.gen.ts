@@ -13,8 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AddRouteImport } from './routes/add'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as DeskRouteImport } from './routes/desk'
+import { Route as FeedRouteImport } from './routes/feed'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MailRouteImport } from './routes/mail'
 import { Route as MeRouteImport } from './routes/me'
 import { Route as WorkRouteImport } from './routes/work'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
@@ -23,15 +25,19 @@ import { Route as AdminPushRouteImport } from './routes/admin.push'
 import { Route as AdminStallsRouteImport } from './routes/admin.stalls'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as ApiV1RouteImport } from './routes/api/v1'
+import { Route as MailIdRouteImport } from './routes/mail.$id'
 import { Route as OwnedIdRouteImport } from './routes/owned.$id'
 import { Route as PIdRouteImport } from './routes/p.$id'
 import { Route as WorkIndexRouteImport } from './routes/work.index'
+import { Route as WorkFeedRouteImport } from './routes/work.feed'
+import { Route as WorkMailRouteImport } from './routes/work.mail'
 import { Route as WorkMeRouteImport } from './routes/work.me'
 import { Route as WorkStallRouteImport } from './routes/work.stall'
 import { Route as WorkStatsRouteImport } from './routes/work.stats'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiMediaSplatRouteImport } from './routes/api/media/$'
 import { Route as ApiV1SplatRouteImport } from './routes/api/v1/$'
+import { Route as WorkMailIdRouteImport } from './routes/work.mail.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -53,6 +59,11 @@ const DeskRoute = DeskRouteImport.update({
   path: '/desk',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FeedRoute = FeedRouteImport.update({
+  id: '/feed',
+  path: '/feed',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InboxRoute = InboxRouteImport.update({
   id: '/inbox',
   path: '/inbox',
@@ -61,6 +72,11 @@ const InboxRoute = InboxRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MailRoute = MailRouteImport.update({
+  id: '/mail',
+  path: '/mail',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MeRoute = MeRouteImport.update({
@@ -103,6 +119,11 @@ const ApiV1Route = ApiV1RouteImport.update({
   path: '/api/v1',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MailIdRoute = MailIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => MailRoute,
+} as any)
 const OwnedIdRoute = OwnedIdRouteImport.update({
   id: '/owned/$id',
   path: '/owned/$id',
@@ -116,6 +137,16 @@ const PIdRoute = PIdRouteImport.update({
 const WorkIndexRoute = WorkIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => WorkRoute,
+} as any)
+const WorkFeedRoute = WorkFeedRouteImport.update({
+  id: '/feed',
+  path: '/feed',
+  getParentRoute: () => WorkRoute,
+} as any)
+const WorkMailRoute = WorkMailRouteImport.update({
+  id: '/mail',
+  path: '/mail',
   getParentRoute: () => WorkRoute,
 } as any)
 const WorkMeRoute = WorkMeRouteImport.update({
@@ -148,14 +179,21 @@ const ApiV1SplatRoute = ApiV1SplatRouteImport.update({
   path: '/$',
   getParentRoute: () => ApiV1Route,
 } as any)
+const WorkMailIdRoute = WorkMailIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => WorkMailRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/add': typeof AddRoute
   '/admin': typeof AdminRouteWithChildren
   '/desk': typeof DeskRoute
+  '/feed': typeof FeedRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
+  '/mail': typeof MailRouteWithChildren
   '/me': typeof MeRoute
   '/work': typeof WorkRouteWithChildren
   '/admin/orders': typeof AdminOrdersRoute
@@ -163,8 +201,11 @@ export interface FileRoutesByFullPath {
   '/admin/stalls': typeof AdminStallsRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/v1': typeof ApiV1RouteWithChildren
+  '/mail/$id': typeof MailIdRoute
   '/owned/$id': typeof OwnedIdRoute
   '/p/$id': typeof PIdRoute
+  '/work/feed': typeof WorkFeedRoute
+  '/work/mail': typeof WorkMailRouteWithChildren
   '/work/me': typeof WorkMeRoute
   '/work/stall': typeof WorkStallRoute
   '/work/stats': typeof WorkStatsRoute
@@ -173,21 +214,27 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/api/v1/$': typeof ApiV1SplatRoute
+  '/work/mail/$id': typeof WorkMailIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/add': typeof AddRoute
   '/desk': typeof DeskRoute
+  '/feed': typeof FeedRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
+  '/mail': typeof MailRouteWithChildren
   '/me': typeof MeRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/push': typeof AdminPushRoute
   '/admin/stalls': typeof AdminStallsRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/v1': typeof ApiV1RouteWithChildren
+  '/mail/$id': typeof MailIdRoute
   '/owned/$id': typeof OwnedIdRoute
   '/p/$id': typeof PIdRoute
+  '/work/feed': typeof WorkFeedRoute
+  '/work/mail': typeof WorkMailRouteWithChildren
   '/work/me': typeof WorkMeRoute
   '/work/stall': typeof WorkStallRoute
   '/work/stats': typeof WorkStatsRoute
@@ -196,6 +243,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/api/v1/$': typeof ApiV1SplatRoute
+  '/work/mail/$id': typeof WorkMailIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -203,8 +251,10 @@ export interface FileRoutesById {
   '/add': typeof AddRoute
   '/admin': typeof AdminRouteWithChildren
   '/desk': typeof DeskRoute
+  '/feed': typeof FeedRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
+  '/mail': typeof MailRouteWithChildren
   '/me': typeof MeRoute
   '/work': typeof WorkRouteWithChildren
   '/admin/orders': typeof AdminOrdersRoute
@@ -212,8 +262,11 @@ export interface FileRoutesById {
   '/admin/stalls': typeof AdminStallsRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/v1': typeof ApiV1RouteWithChildren
+  '/mail/$id': typeof MailIdRoute
   '/owned/$id': typeof OwnedIdRoute
   '/p/$id': typeof PIdRoute
+  '/work/feed': typeof WorkFeedRoute
+  '/work/mail': typeof WorkMailRouteWithChildren
   '/work/me': typeof WorkMeRoute
   '/work/stall': typeof WorkStallRoute
   '/work/stats': typeof WorkStatsRoute
@@ -222,6 +275,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/api/v1/$': typeof ApiV1SplatRoute
+  '/work/mail/$id': typeof WorkMailIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -230,8 +284,10 @@ export interface FileRouteTypes {
     | '/add'
     | '/admin'
     | '/desk'
+    | '/feed'
     | '/inbox'
     | '/login'
+    | '/mail'
     | '/me'
     | '/work'
     | '/admin/orders'
@@ -239,8 +295,11 @@ export interface FileRouteTypes {
     | '/admin/stalls'
     | '/admin/users'
     | '/api/v1'
+    | '/mail/$id'
     | '/owned/$id'
     | '/p/$id'
+    | '/work/feed'
+    | '/work/mail'
     | '/work/me'
     | '/work/stall'
     | '/work/stats'
@@ -249,21 +308,27 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/media/$'
     | '/api/v1/$'
+    | '/work/mail/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/add'
     | '/desk'
+    | '/feed'
     | '/inbox'
     | '/login'
+    | '/mail'
     | '/me'
     | '/admin/orders'
     | '/admin/push'
     | '/admin/stalls'
     | '/admin/users'
     | '/api/v1'
+    | '/mail/$id'
     | '/owned/$id'
     | '/p/$id'
+    | '/work/feed'
+    | '/work/mail'
     | '/work/me'
     | '/work/stall'
     | '/work/stats'
@@ -272,14 +337,17 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/media/$'
     | '/api/v1/$'
+    | '/work/mail/$id'
   id:
     | '__root__'
     | '/'
     | '/add'
     | '/admin'
     | '/desk'
+    | '/feed'
     | '/inbox'
     | '/login'
+    | '/mail'
     | '/me'
     | '/work'
     | '/admin/orders'
@@ -287,8 +355,11 @@ export interface FileRouteTypes {
     | '/admin/stalls'
     | '/admin/users'
     | '/api/v1'
+    | '/mail/$id'
     | '/owned/$id'
     | '/p/$id'
+    | '/work/feed'
+    | '/work/mail'
     | '/work/me'
     | '/work/stall'
     | '/work/stats'
@@ -297,6 +368,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/media/$'
     | '/api/v1/$'
+    | '/work/mail/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -304,8 +376,10 @@ export interface RootRouteChildren {
   AddRoute: typeof AddRoute
   AdminRoute: typeof AdminRouteWithChildren
   DeskRoute: typeof DeskRoute
+  FeedRoute: typeof FeedRoute
   InboxRoute: typeof InboxRoute
   LoginRoute: typeof LoginRoute
+  MailRoute: typeof MailRouteWithChildren
   MeRoute: typeof MeRoute
   WorkRoute: typeof WorkRouteWithChildren
   ApiV1Route: typeof ApiV1RouteWithChildren
@@ -345,6 +419,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DeskRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/feed': {
+      id: '/feed'
+      path: '/feed'
+      fullPath: '/feed'
+      preLoaderRoute: typeof FeedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/inbox': {
       id: '/inbox'
       path: '/inbox'
@@ -357,6 +438,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mail': {
+      id: '/mail'
+      path: '/mail'
+      fullPath: '/mail'
+      preLoaderRoute: typeof MailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/me': {
@@ -415,6 +503,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1RouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mail/$id': {
+      id: '/mail/$id'
+      path: '/$id'
+      fullPath: '/mail/$id'
+      preLoaderRoute: typeof MailIdRouteImport
+      parentRoute: typeof MailRoute
+    }
     '/owned/$id': {
       id: '/owned/$id'
       path: '/owned/$id'
@@ -434,6 +529,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/work/'
       preLoaderRoute: typeof WorkIndexRouteImport
+      parentRoute: typeof WorkRoute
+    }
+    '/work/feed': {
+      id: '/work/feed'
+      path: '/feed'
+      fullPath: '/work/feed'
+      preLoaderRoute: typeof WorkFeedRouteImport
+      parentRoute: typeof WorkRoute
+    }
+    '/work/mail': {
+      id: '/work/mail'
+      path: '/mail'
+      fullPath: '/work/mail'
+      preLoaderRoute: typeof WorkMailRouteImport
       parentRoute: typeof WorkRoute
     }
     '/work/me': {
@@ -478,6 +587,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1SplatRouteImport
       parentRoute: typeof ApiV1Route
     }
+    '/work/mail/$id': {
+      id: '/work/mail/$id'
+      path: '/$id'
+      fullPath: '/work/mail/$id'
+      preLoaderRoute: typeof WorkMailIdRouteImport
+      parentRoute: typeof WorkMailRoute
+    }
   }
 }
 
@@ -499,7 +615,31 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface MailRouteChildren {
+  MailIdRoute: typeof MailIdRoute
+}
+
+const MailRouteChildren: MailRouteChildren = {
+  MailIdRoute: MailIdRoute,
+}
+
+const MailRouteWithChildren = MailRoute._addFileChildren(MailRouteChildren)
+
+interface WorkMailRouteChildren {
+  WorkMailIdRoute: typeof WorkMailIdRoute
+}
+
+const WorkMailRouteChildren: WorkMailRouteChildren = {
+  WorkMailIdRoute: WorkMailIdRoute,
+}
+
+const WorkMailRouteWithChildren = WorkMailRoute._addFileChildren(
+  WorkMailRouteChildren,
+)
+
 interface WorkRouteChildren {
+  WorkFeedRoute: typeof WorkFeedRoute
+  WorkMailRoute: typeof WorkMailRouteWithChildren
   WorkMeRoute: typeof WorkMeRoute
   WorkStallRoute: typeof WorkStallRoute
   WorkStatsRoute: typeof WorkStatsRoute
@@ -507,6 +647,8 @@ interface WorkRouteChildren {
 }
 
 const WorkRouteChildren: WorkRouteChildren = {
+  WorkFeedRoute: WorkFeedRoute,
+  WorkMailRoute: WorkMailRouteWithChildren,
   WorkMeRoute: WorkMeRoute,
   WorkStallRoute: WorkStallRoute,
   WorkStatsRoute: WorkStatsRoute,
@@ -530,8 +672,10 @@ const rootRouteChildren: RootRouteChildren = {
   AddRoute: AddRoute,
   AdminRoute: AdminRouteWithChildren,
   DeskRoute: DeskRoute,
+  FeedRoute: FeedRoute,
   InboxRoute: InboxRoute,
   LoginRoute: LoginRoute,
+  MailRoute: MailRouteWithChildren,
   MeRoute: MeRoute,
   WorkRoute: WorkRouteWithChildren,
   ApiV1Route: ApiV1RouteWithChildren,
