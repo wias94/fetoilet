@@ -63,15 +63,15 @@ export function ChatThread({
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-9.5rem)] flex-col">
-      <Link to={backTo} className="inline-flex h-10 items-center gap-1 text-sm text-muted hover:text-fg">
+    <div className="flex h-[calc(100dvh-4.5rem)] flex-col">
+      <Link to={backTo} className="inline-flex h-10 shrink-0 items-center gap-1 text-sm text-muted hover:text-fg">
         <ArrowLeft className="size-4" />
         {backLabel}
       </Link>
-      <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight">
+      <h1 className="mt-1 shrink-0 font-display text-2xl font-semibold tracking-tight">
         {thread?.peerName ?? "私信"}
       </h1>
-      <div className="mt-4 flex-1 space-y-2 overflow-y-auto">
+      <div className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto">
         {messages.length === 0 && <p className="py-8 text-center text-sm text-muted">还没有话。下面输入发出去。</p>}
         {messages.map((m) => (
           <div key={m.id} className={cn("flex", m.mine ? "justify-end" : "justify-start")}>
@@ -87,13 +87,14 @@ export function ChatThread({
         ))}
         <div ref={bottom} />
       </div>
-      <div className="sticky bottom-0 z-20 -mx-4 mt-3 border-t border-border bg-bg px-4 py-3">
+      <div className="shrink-0 border-t border-border bg-bg pt-3 pb-[env(safe-area-inset-bottom)]">
         <div className="flex gap-2">
           <Input
             value={text}
             maxLength={2000}
             placeholder="写一句"
             enterKeyHint="send"
+            autoFocus
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 type WorkPath = "/work" | "/work/feed" | "/work/mail" | "/work/stats" | "/work/stall" | "/work/me";
 
-export function WorkShell({ children }: { children: ReactNode }) {
+export function WorkShell({ children, bare }: { children: ReactNode; bare?: boolean }) {
   return (
     <div className="min-h-dvh bg-bg text-fg">
       <RoleGate side="stall" />
@@ -27,8 +27,10 @@ export function WorkShell({ children }: { children: ReactNode }) {
           <AuthSlot to="/work/me" />
         </div>
       </header>
-      <div className="mx-auto w-full max-w-5xl px-4 pb-24 pt-5 md:pb-12">{children}</div>
-      <MobileTabBar />
+      <div className={cn("mx-auto w-full max-w-5xl px-4 pt-5", bare ? "pb-3" : "pb-24 md:pb-12")}>
+        {children}
+      </div>
+      {!bare && <MobileTabBar />}
     </div>
   );
 }

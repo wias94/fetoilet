@@ -17,7 +17,7 @@ function WorkMailChatPage() {
   }
   if (!user) return <Navigate to="/login" search={{ redirect: `/work/mail/${id}` }} />;
   return (
-    <WorkShell>
+    <WorkShell bare>
       <ChatThread id={id} backTo="/work/mail" backLabel="私信" />
     </WorkShell>
   );

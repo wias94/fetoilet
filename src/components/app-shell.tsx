@@ -6,7 +6,7 @@ import { AuthSlot } from "@/components/auth-slot";
 import { RoleGate } from "@/components/role-gate";
 import { cn } from "@/lib/utils";
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, bare }: { children: ReactNode; bare?: boolean }) {
   return (
     <div className="min-h-dvh bg-bg text-fg">
       <RoleGate side="male" />
@@ -25,8 +25,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           <AuthSlot />
         </div>
       </header>
-      <div className="mx-auto w-full max-w-5xl px-4 pb-24 pt-5 md:pb-12">{children}</div>
-      <MobileTabBar />
+      <div className={cn("mx-auto w-full max-w-5xl px-4 pt-5", bare ? "pb-3" : "pb-24 md:pb-12")}>
+        {children}
+      </div>
+      {!bare && <MobileTabBar />}
     </div>
   );
 }

@@ -41,7 +41,7 @@ function MailPage() {
 
   return (
     <AppShell>
-      <p className="text-sm text-muted">与在册肉厕的往来函件</p>
+      <p className="text-sm text-muted">与在册肉厕的往来函件。点开对话就能打字。</p>
       <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">私信</h1>
       <ul className="mt-5 space-y-2">
         {rows === null && <li className="h-20 animate-pulse rounded-2xl bg-fg/10" />}
@@ -61,7 +61,7 @@ function MailPage() {
                     <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-primary-fg">{t.unread}</span>
                   )}
                 </div>
-                <p className="truncate text-sm text-muted">{t.lastBody || "还没说话"}</p>
+                <p className="truncate text-sm text-muted">{t.lastBody || "点进去说话"}</p>
               </div>
             </Link>
           </li>

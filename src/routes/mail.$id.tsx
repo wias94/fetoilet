@@ -17,7 +17,7 @@ function MailChatPage() {
   }
   if (!user) return <Navigate to="/login" search={{ redirect: `/mail/${id}` }} />;
   return (
-    <AppShell>
+    <AppShell bare>
       <ChatThread id={id} backTo="/mail" backLabel="私信" />
     </AppShell>
   );
