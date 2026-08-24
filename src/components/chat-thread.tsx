@@ -47,22 +47,23 @@ export function ChatThread({
   }, [messages.length]);
 
   async function send() {
-    const body = text.trim();
-    if (!body) return;
+    const next = text.trim();
+    if (!next || busy) return;
     setBusy(true);
     try {
-      const msg = await sendMessage({ data: { id, body } });
-      setMessages((cur) => [...cur, msg]);
+      const msg = await sendMessage({ data: { id, text: next } });
+      setMessages((cur) => (cur.some((m) => m.id === msg.id) ? cur : [...cur, msg]));
       setText("");
     } catch (err) {
-      toast(err instanceof Error ? err.message : "没发出去");
+      const message = err instanceof Error ? err.message : "没发出去";
+      toast(message.startsWith("[") ? "没发出去" : message);
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <>
+    <div className="flex min-h-[calc(100dvh-8rem)] flex-col">
       <Link to={backTo} className="inline-flex h-10 items-center gap-1 text-sm text-muted hover:text-fg">
         <ArrowLeft className="size-4" />
         {backLabel}
@@ -70,7 +71,8 @@ export function ChatThread({
       <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight">
         {thread?.peerName ?? "私信"}
       </h1>
-      <div className="mt-4 flex max-h-[calc(100dvh-16rem)] flex-col gap-2 overflow-y-auto">
+      <div className="mt-4 flex-1 space-y-2 overflow-y-auto pb-24">
+        {messages.length === 0 && <p className="py-8 text-center text-sm text-muted">还没有话。下面输入发出去。</p>}
         {messages.map((m) => (
           <div key={m.id} className={cn("flex", m.mine ? "justify-end" : "justify-start")}>
             <p
@@ -86,22 +88,25 @@ export function ChatThread({
         <div ref={bottom} />
       </div>
       <form
-        className="mt-4 flex gap-2"
+        className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 border-t border-border bg-bg/95 px-4 py-3 backdrop-blur-md md:bottom-0"
         onSubmit={(e) => {
           e.preventDefault();
           void send();
         }}
       >
-        <Input
-          value={text}
-          maxLength={500}
-          placeholder="写一句"
-          onChange={(e) => setText(e.target.value)}
-        />
-        <Button type="submit" disabled={busy || !text.trim()}>
-          发送
-        </Button>
+        <div className="mx-auto flex max-w-5xl gap-2">
+          <Input
+            value={text}
+            maxLength={2000}
+            placeholder="写一句"
+            enterKeyHint="send"
+            onChange={(e) => setText(e.target.value)}
+          />
+          <Button type="submit" disabled={busy || !text.trim()}>
+            {busy ? "在发…" : "发送"}
+          </Button>
+        </div>
       </form>
-    </>
+    </div>
   );
 }

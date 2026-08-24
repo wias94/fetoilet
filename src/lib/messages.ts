@@ -28,6 +28,16 @@ async function stallIdFor(userId: string) {
   return rows[0]?.id ?? null;
 }
 
+function pgMessage(err: unknown) {
+  if (err instanceof Error) {
+    if (err.message === "没这对话" || err.message === "不是你的对话" || err.message === "没这人" || err.message === "不能给自己发") {
+      return err.message;
+    }
+    return `没发出去：${err.message}`;
+  }
+  return "没发出去";
+}
+
 export const openThread = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: unknown) => z.object({ stallId: z.string().min(1) }).parse(data))
@@ -45,11 +55,21 @@ export const openThread = createServerFn({ method: "POST" })
     `;
     if (existing[0]) return { id: existing[0].id };
     const id = crypto.randomUUID();
-    await sql`
-      insert into conversations (id, stall_id, seeker_id)
-      values (${id}, ${data.stallId}, ${context.userId})
-    `;
-    return { id };
+    try {
+      await sql`
+        insert into conversations (id, stall_id, seeker_id)
+        values (${id}, ${data.stallId}, ${context.userId})
+      `;
+      return { id };
+    } catch {
+      const again = await sql<{ id: string }>`
+        select id from conversations
+        where stall_id = ${data.stallId} and seeker_id = ${context.userId}
+        limit 1
+      `;
+      if (again[0]) return { id: again[0].id };
+      throw new Error("没打开对话");
+    }
   });
 
 export const listThreads = createServerFn({ method: "GET" })
@@ -107,7 +127,7 @@ export const listThreads = createServerFn({ method: "GET" })
     }));
   });
 
-export const listMessages = createServerFn({ method: "GET" })
+export const listMessages = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: unknown) => z.object({ id: z.string().min(1) }).parse(data))
   .handler(async ({ context, data }): Promise<{ thread: Thread; messages: ChatMessage[] }> => {
@@ -144,10 +164,10 @@ export const listMessages = createServerFn({ method: "GET" })
     const msgs = await sql<{
       id: string;
       sender_id: string;
-      body: string;
+      text: string;
       created_at: string;
     }>`
-      select id, sender_id, body, created_at
+      select id, sender_id, body as text, created_at
       from messages
       where conversation_id = ${data.id}
       order by created_at asc
@@ -168,7 +188,7 @@ export const listMessages = createServerFn({ method: "GET" })
       messages: msgs.map((m) => ({
         id: m.id,
         senderId: m.sender_id,
-        body: m.body,
+        body: m.text,
         createdAt: m.created_at,
         mine: m.sender_id === context.userId,
       })),
@@ -178,41 +198,48 @@ export const listMessages = createServerFn({ method: "GET" })
 export const sendMessage = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: unknown) =>
-    z.object({ id: z.string().min(1), body: z.string().trim().min(1).max(500) }).parse(data),
+    z.object({ id: z.string().min(1), text: z.string().trim().min(1).max(2000) }).parse(data),
   )
   .handler(async ({ context, data }) => {
-    const sql = await getSql();
-    const mineStall = await stallIdFor(context.userId);
-    const conv = await sql<{ id: string; stall_id: string; seeker_id: string }>`
-      select id, stall_id, seeker_id from conversations where id = ${data.id} limit 1
-    `;
-    if (!conv[0]) throw new Error("没这对话");
-    const isSeeker = conv[0].seeker_id === context.userId;
-    const isStall = mineStall === conv[0].stall_id;
-    if (!isSeeker && !isStall) throw new Error("不是你的对话");
-    const id = crypto.randomUUID();
-    await sql`
-      insert into messages (id, conversation_id, sender_id, body)
-      values (${id}, ${data.id}, ${context.userId}, ${data.body})
-    `;
-    if (isSeeker) {
-      await sql`
-        update conversations
-        set last_body = ${data.body}, last_at = now(), unread_stall = unread_stall + 1
-        where id = ${data.id}
+    try {
+      const sql = await getSql();
+      const mineStall = await stallIdFor(context.userId);
+      const conv = await sql<{ id: string; stall_id: string; seeker_id: string }>`
+        select id, stall_id, seeker_id from conversations where id = ${data.id} limit 1
       `;
-    } else {
-      await sql`
-        update conversations
-        set last_body = ${data.body}, last_at = now(), unread_seeker = unread_seeker + 1
-        where id = ${data.id}
+      if (!conv[0]) throw new Error("没这对话");
+      const isSeeker = conv[0].seeker_id === context.userId;
+      const isStall = mineStall === conv[0].stall_id;
+      if (!isSeeker && !isStall) throw new Error("不是你的对话");
+      const id = crypto.randomUUID();
+      const text = data.text;
+      const rows = await sql<{ id: string; sender_id: string; text: string; created_at: string }>`
+        insert into messages (id, conversation_id, sender_id, body)
+        values (${id}, ${data.id}, ${context.userId}, ${text})
+        returning id, sender_id, body as text, created_at
       `;
+      if (isSeeker) {
+        await sql`
+          update conversations
+          set last_body = ${text}, last_at = now(), unread_stall = unread_stall + 1
+          where id = ${data.id}
+        `;
+      } else {
+        await sql`
+          update conversations
+          set last_body = ${text}, last_at = now(), unread_seeker = unread_seeker + 1
+          where id = ${data.id}
+        `;
+      }
+      const row = rows[0];
+      return {
+        id: row?.id ?? id,
+        senderId: context.userId,
+        body: text,
+        createdAt: row?.created_at ?? new Date().toISOString(),
+        mine: true,
+      } satisfies ChatMessage;
+    } catch (err) {
+      throw new Error(pgMessage(err));
     }
-    return {
-      id,
-      senderId: context.userId,
-      body: data.body,
-      createdAt: new Date().toISOString(),
-      mine: true,
-    } satisfies ChatMessage;
   });
