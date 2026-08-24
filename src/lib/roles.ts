@@ -6,6 +6,10 @@ import { ensureUserState } from "@/lib/behavior";
 
 export type AccountRole = "male" | "stall";
 
+export function homeForRole(role: AccountRole | null | undefined) {
+  return role === "stall" ? "/work" : "/";
+}
+
 export async function isAdminUser(userId: string) {
   const sql = await getSql();
   const users = await sql<{ email: string | null }>`
@@ -38,6 +42,13 @@ export async function resolveRole(userId: string): Promise<AccountRole | null> {
     await sql`update user_state set role = 'stall', updated_at = now() where user_id = ${userId}`;
     return "stall";
   }
+  const owned = await sql<{ id: string }>`
+    select id from stalls where owner_id = ${userId} limit 1
+  `;
+  if (owned[0]) {
+    await sql`update user_state set role = 'male', updated_at = now() where user_id = ${userId}`;
+    return "male";
+  }
   return null;
 }
 
@@ -45,18 +56,30 @@ export async function assertRole(userId: string, wanted: AccountRole) {
   if (await isAdminUser(userId)) throw new Error("管理号请走管理台");
   const current = await resolveRole(userId);
   if (!current) {
-    const sql = await getSql();
-    await sql`update user_state set role = ${wanted}, updated_at = now() where user_id = ${userId}`;
-    return wanted;
+    throw new Error(wanted === "stall" ? "先在肉厕端登录" : "先在客户端登录");
   }
   if (current !== wanted) {
     throw new Error(
       current === "stall"
-        ? "这个邮箱已是肉厕账号，请另用邮箱登录客户端"
-        : "这个邮箱已是客户账号，请另用邮箱登录肉厕端",
+        ? "这个邮箱已是肉厕账号，请走肉厕端"
+        : "这个邮箱已是客户账号，请走客户端",
     );
   }
   return current;
+}
+
+export async function finishLoginFor(userId: string, intended?: AccountRole) {
+  if (await isAdminUser(userId)) {
+    return { role: null as AccountRole | null, admin: true, to: "/admin" };
+  }
+  const existing = await resolveRole(userId);
+  if (existing) {
+    return { role: existing, admin: false, to: homeForRole(existing) };
+  }
+  const next = intended ?? "male";
+  const sql = await getSql();
+  await sql`update user_state set role = ${next}, updated_at = now() where user_id = ${userId}`;
+  return { role: next, admin: false, to: homeForRole(next) };
 }
 
 export const getMyRole = createServerFn({ method: "GET" })
@@ -67,11 +90,9 @@ export const getMyRole = createServerFn({ method: "GET" })
     return { role, admin };
   });
 
-export const claimMyRole = createServerFn({ method: "POST" })
+export const finishLogin = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((data: unknown) => z.object({ role: z.enum(["male", "stall"]) }).parse(data))
-  .handler(async ({ context, data }) => {
-    if (await isAdminUser(context.userId)) return { role: null as AccountRole | null, admin: true };
-    const role = await assertRole(context.userId, data.role);
-    return { role, admin: false };
-  });
+  .validator((data: unknown) =>
+    z.object({ intended: z.enum(["male", "stall"]).optional() }).parse(data),
+  )
+  .handler(async ({ context, data }) => finishLoginFor(context.userId, data.intended));

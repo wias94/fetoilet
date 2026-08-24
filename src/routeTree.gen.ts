@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AddRouteImport } from './routes/add'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as DeskRouteImport } from './routes/desk'
+import { Route as EnterRouteImport } from './routes/enter'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as LoginRouteImport } from './routes/login'
@@ -24,6 +25,7 @@ import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminPushRouteImport } from './routes/admin.push'
 import { Route as AdminStallsRouteImport } from './routes/admin.stalls'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as ApiMeRouteImport } from './routes/api/me'
 import { Route as ApiV1RouteImport } from './routes/api/v1'
 import { Route as MailIndexRouteImport } from './routes/mail.index'
 import { Route as MailIdRouteImport } from './routes/mail.$id'
@@ -61,6 +63,11 @@ const AdminRoute = AdminRouteImport.update({
 const DeskRoute = DeskRouteImport.update({
   id: '/desk',
   path: '/desk',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnterRoute = EnterRouteImport.update({
+  id: '/enter',
+  path: '/enter',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FeedRoute = FeedRouteImport.update({
@@ -117,6 +124,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
   getParentRoute: () => AdminRoute,
+} as any)
+const ApiMeRoute = ApiMeRouteImport.update({
+  id: '/api/me',
+  path: '/api/me',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiV1Route = ApiV1RouteImport.update({
   id: '/api/v1',
@@ -214,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/add': typeof AddRoute
   '/admin': typeof AdminRouteWithChildren
   '/desk': typeof DeskRoute
+  '/enter': typeof EnterRoute
   '/feed': typeof FeedRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
@@ -224,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/admin/push': typeof AdminPushRoute
   '/admin/stalls': typeof AdminStallsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/me': typeof ApiMeRoute
   '/api/v1': typeof ApiV1RouteWithChildren
   '/mail/$id': typeof MailIdRoute
   '/owned/$id': typeof OwnedIdRoute
@@ -248,6 +262,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/add': typeof AddRoute
   '/desk': typeof DeskRoute
+  '/enter': typeof EnterRoute
   '/feed': typeof FeedRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
@@ -256,6 +271,7 @@ export interface FileRoutesByTo {
   '/admin/push': typeof AdminPushRoute
   '/admin/stalls': typeof AdminStallsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/me': typeof ApiMeRoute
   '/api/v1': typeof ApiV1RouteWithChildren
   '/mail/$id': typeof MailIdRoute
   '/owned/$id': typeof OwnedIdRoute
@@ -281,6 +297,7 @@ export interface FileRoutesById {
   '/add': typeof AddRoute
   '/admin': typeof AdminRouteWithChildren
   '/desk': typeof DeskRoute
+  '/enter': typeof EnterRoute
   '/feed': typeof FeedRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
@@ -291,6 +308,7 @@ export interface FileRoutesById {
   '/admin/push': typeof AdminPushRoute
   '/admin/stalls': typeof AdminStallsRoute
   '/admin/users': typeof AdminUsersRoute
+  '/api/me': typeof ApiMeRoute
   '/api/v1': typeof ApiV1RouteWithChildren
   '/mail/$id': typeof MailIdRoute
   '/owned/$id': typeof OwnedIdRoute
@@ -318,6 +336,7 @@ export interface FileRouteTypes {
     | '/add'
     | '/admin'
     | '/desk'
+    | '/enter'
     | '/feed'
     | '/inbox'
     | '/login'
@@ -328,6 +347,7 @@ export interface FileRouteTypes {
     | '/admin/push'
     | '/admin/stalls'
     | '/admin/users'
+    | '/api/me'
     | '/api/v1'
     | '/mail/$id'
     | '/owned/$id'
@@ -352,6 +372,7 @@ export interface FileRouteTypes {
     | '/'
     | '/add'
     | '/desk'
+    | '/enter'
     | '/feed'
     | '/inbox'
     | '/login'
@@ -360,6 +381,7 @@ export interface FileRouteTypes {
     | '/admin/push'
     | '/admin/stalls'
     | '/admin/users'
+    | '/api/me'
     | '/api/v1'
     | '/mail/$id'
     | '/owned/$id'
@@ -384,6 +406,7 @@ export interface FileRouteTypes {
     | '/add'
     | '/admin'
     | '/desk'
+    | '/enter'
     | '/feed'
     | '/inbox'
     | '/login'
@@ -394,6 +417,7 @@ export interface FileRouteTypes {
     | '/admin/push'
     | '/admin/stalls'
     | '/admin/users'
+    | '/api/me'
     | '/api/v1'
     | '/mail/$id'
     | '/owned/$id'
@@ -420,12 +444,14 @@ export interface RootRouteChildren {
   AddRoute: typeof AddRoute
   AdminRoute: typeof AdminRouteWithChildren
   DeskRoute: typeof DeskRoute
+  EnterRoute: typeof EnterRoute
   FeedRoute: typeof FeedRoute
   InboxRoute: typeof InboxRoute
   LoginRoute: typeof LoginRoute
   MailRoute: typeof MailRouteWithChildren
   MeRoute: typeof MeRoute
   WorkRoute: typeof WorkRouteWithChildren
+  ApiMeRoute: typeof ApiMeRoute
   ApiV1Route: typeof ApiV1RouteWithChildren
   OwnedIdRoute: typeof OwnedIdRoute
   PIdRoute: typeof PIdRoute
@@ -463,6 +489,13 @@ declare module '@tanstack/react-router' {
       path: '/desk'
       fullPath: '/desk'
       preLoaderRoute: typeof DeskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/enter': {
+      id: '/enter'
+      path: '/enter'
+      fullPath: '/enter'
+      preLoaderRoute: typeof EnterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/feed': {
@@ -541,6 +574,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/users'
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/api/me': {
+      id: '/api/me'
+      path: '/api/me'
+      fullPath: '/api/me'
+      preLoaderRoute: typeof ApiMeRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/v1': {
       id: '/api/v1'
@@ -750,12 +790,14 @@ const rootRouteChildren: RootRouteChildren = {
   AddRoute: AddRoute,
   AdminRoute: AdminRouteWithChildren,
   DeskRoute: DeskRoute,
+  EnterRoute: EnterRoute,
   FeedRoute: FeedRoute,
   InboxRoute: InboxRoute,
   LoginRoute: LoginRoute,
   MailRoute: MailRouteWithChildren,
   MeRoute: MeRoute,
   WorkRoute: WorkRouteWithChildren,
+  ApiMeRoute: ApiMeRoute,
   ApiV1Route: ApiV1RouteWithChildren,
   OwnedIdRoute: OwnedIdRoute,
   PIdRoute: PIdRoute,

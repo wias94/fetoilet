@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { GROK_PROVIDERS, authClient, authEnabled, signIn } from "@/lib/auth/client";
 import { resetEmailPassword } from "@/lib/auth/reset-password";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { LogoMark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,9 +28,15 @@ function authMessage(raw: string) {
 function Login() {
   const { redirect } = Route.useSearch();
   const stallSide = (redirect ?? "/").startsWith("/work");
+  const { user, isPending } = useCurrentUserState();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (isPending || !user) return;
+    window.location.replace(`/enter?side=${stallSide ? "stall" : "male"}`);
+  }, [user, isPending, stallSide]);
 
   function cleanEmail() {
     return email.trim().toLowerCase();
@@ -38,7 +45,7 @@ function Login() {
   async function oauth(providerId: string) {
     try {
       await signIn(providerId, {
-        callbackURL: redirect ?? "/",
+        callbackURL: `/enter?side=${stallSide ? "stall" : "male"}`,
         errorCallbackURL: "/login",
       });
     } catch (err) {
@@ -66,7 +73,7 @@ function Login() {
           toast(authMessage(error.message ?? "重设了，再点一次邮箱登录"));
           return;
         }
-        window.location.href = redirect ?? "/";
+        window.location.href = `/enter?side=${stallSide ? "stall" : "male"}`;
         return;
       }
       const fn =
@@ -82,7 +89,7 @@ function Login() {
         toast(authMessage(error.message ?? "没登上"));
         return;
       }
-      window.location.href = redirect ?? "/";
+      window.location.href = `/enter?side=${stallSide ? "stall" : "male"}`;
     } catch (err) {
       toast(err instanceof Error ? authMessage(err.message) : "没登上");
     } finally {
@@ -112,8 +119,8 @@ function Login() {
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-muted">
             {stallSide
-              ? "肉厕端用于将身体登记为公共肉厕、办理挂牌与接单。一个邮箱只能作为肉厕或客户之一。仅接受已满十八周岁。"
-              : "客户登录后方可查阅在册肉厕并提交点单。一个邮箱只能作为客户或肉厕之一。"}
+              ? "用肉厕邮箱登录。客户邮箱会自动回到客户端。"
+              : "用客户邮箱登录。肉厕邮箱会自动回到肉厕端。"}
           </p>
           <div className="mt-8 space-y-3">
             {authEnabled ? (

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "@tanstack/react-router";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { claimMyRole, type AccountRole } from "@/lib/roles";
+import { fetchMyRole } from "@/lib/me-api";
+import { homeForRole, type AccountRole } from "@/lib/roles";
 
 export function RoleGate({ side }: { side: AccountRole }) {
   const { user, isPending } = useCurrentUserState();
@@ -14,7 +14,7 @@ export function RoleGate({ side }: { side: AccountRole }) {
       return;
     }
     let cancelled = false;
-    void claimMyRole({ data: { role: side } })
+    void fetchMyRole()
       .then((row) => {
         if (cancelled) return;
         if (row.admin) {
@@ -22,13 +22,12 @@ export function RoleGate({ side }: { side: AccountRole }) {
           return;
         }
         setRole(row.role);
+        if (row.role && row.role !== side) {
+          window.location.replace(homeForRole(row.role));
+        }
       })
-      .catch((err) => {
-        if (cancelled) return;
-        const message = err instanceof Error ? err.message : "";
-        if (message.includes("肉厕账号")) setRole("stall");
-        else if (message.includes("客户账号")) setRole("male");
-        else setRole(side);
+      .catch(() => {
+        if (!cancelled) setRole(null);
       });
     return () => {
       cancelled = true;
@@ -36,7 +35,5 @@ export function RoleGate({ side }: { side: AccountRole }) {
   }, [user, isPending, side]);
 
   if (!user || isPending || role === undefined) return null;
-  if (role === "stall" && side === "male") return <Navigate to="/work" />;
-  if (role === "male" && side === "stall") return <Navigate to="/" />;
   return null;
 }
