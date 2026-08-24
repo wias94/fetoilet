@@ -17,7 +17,7 @@ function WorkFeedPage() {
   if (!user) return <Navigate to="/login" search={{ redirect: "/work/feed" }} />;
   return (
     <WorkShell>
-      <p className="text-sm text-muted">给男性看的近况</p>
+      <p className="text-sm text-muted">面向客户展示的本厕近况</p>
       <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">动态</h1>
       <div className="mt-5">
         <FeedList compose />

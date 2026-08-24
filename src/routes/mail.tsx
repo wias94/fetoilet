@@ -40,7 +40,7 @@ function MailPage() {
 
   return (
     <AppShell>
-      <p className="text-sm text-muted">和女性的对话</p>
+      <p className="text-sm text-muted">与在册肉厕的往来函件</p>
       <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">私信</h1>
       <ul className="mt-5 space-y-2">
         {rows === null && <li className="h-20 animate-pulse rounded-2xl bg-fg/10" />}

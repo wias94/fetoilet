@@ -13,7 +13,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 border-b border-border/70 bg-bg/90 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <Link to="/admin" className="min-w-0">
-            <Wordmark side="管事台" />
+            <Wordmark side="管理台" />
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
             <HeaderLink to="/admin" label="总览" exact />

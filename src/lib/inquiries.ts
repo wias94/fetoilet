@@ -313,33 +313,33 @@ export const useInquiry = createServerFn({ method: "POST" })
 export function seekerStatusLabel(status: InquiryStatus) {
   switch (status) {
     case "pending":
-      return "等人接";
+      return "待接单";
     case "accepted":
-      return "便器在过来";
+      return "肉厕已接单，正在前往";
     case "arrived":
-      return "便器到了，点使用公厕";
+      return "肉厕已到位，请确认使用";
     case "used":
-      return "已冲完";
+      return "使用已完成";
     case "rejected":
-      return "它拒了";
+      return "已拒绝";
     case "cancelled":
-      return "你取消了";
+      return "已取消";
   }
 }
 
 export function stallStatusLabel(status: InquiryStatus) {
   switch (status) {
     case "pending":
-      return "等人来用这具";
+      return "待本厕接单";
     case "accepted":
-      return "这具货在送过去";
+      return "已接单，正在履约";
     case "arrived":
-      return "马桶到了，等人来灌";
+      return "已到位，待客户确认使用";
     case "used":
-      return "这具被灌完了";
+      return "本单已灌注完成";
     case "rejected":
-      return "这具没给人用";
+      return "已拒单";
     case "cancelled":
-      return "男的不要了";
+      return "客户已取消";
   }
 }

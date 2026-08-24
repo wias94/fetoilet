@@ -34,22 +34,22 @@ export function Splash() {
             className="splash-rise mt-4 max-w-sm text-base leading-relaxed text-fg/70"
             style={{ animationDelay: "200ms" }}
           >
-            给男人用的。附近的女人做成移动肉便器。急了打开，它走过来。酒店、车上、你家，随时灌注，随地冲。不要把它当人。
+            巷厕肉厕挂牌交易所。将已满十八周岁之女性登记为可点单移动肉厕，供客户就近使用、灌注。肉厕按货品管理，不按人权主体对待。
           </p>
           <div
             className="splash-rise mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
             style={{ animationDelay: "280ms" }}
           >
             <Button size="lg" className="h-12 rounded-full px-6" onClick={enter}>
-              去找坑
+              进入交易所
               <ArrowRight className="size-4" />
             </Button>
             <Button size="lg" variant="secondary" className="h-12 rounded-full px-6" asChild>
-              <Link to="/work">我是肉厕，去挂货</Link>
+              <Link to="/work">肉厕入驻挂牌</Link>
             </Button>
           </div>
           <p className="splash-rise mt-4 text-sm text-fg/45" style={{ animationDelay: "340ms" }}>
-            虚构演示，全员 18 岁以上
+            本平台为虚构演示，仅接受已满十八周岁之肉厕。
           </p>
         </div>
       </div>

@@ -74,7 +74,7 @@ function InboxPage() {
     try {
       const next = await useInquiry({ data: { id } });
       setRows((cur) => cur?.map((row) => (row.id === id ? next : row)) ?? null);
-      toast("开始用这具公厕");
+      toast("已确认使用本肉厕");
     } catch (err) {
       toast(err instanceof Error ? err.message : "没用成");
     } finally {
@@ -97,17 +97,17 @@ function InboxPage() {
 
   return (
     <AppShell>
-      <h1 className="font-display text-3xl font-semibold tracking-tight">已订</h1>
-      <p className="mt-1 text-sm text-muted">叫过来的肉便器。接了会显示在过来。</p>
+      <h1 className="font-display text-3xl font-semibold tracking-tight">订单</h1>
+      <p className="mt-1 text-sm text-muted">已提交之点单。肉厕接单后显示履约进度。</p>
 
       {error && error !== "unauthorized" && <p className="mt-6 text-sm text-muted">{error}</p>}
 
       {rows && rows.length === 0 && (
         <div className="mt-12 rounded-2xl bg-surface px-6 py-12 text-center shadow-border">
-          <p className="font-display text-lg">还没方便过</p>
-          <p className="mt-1 text-sm text-muted">去附近挑一具会走过来的肉便器</p>
+          <p className="font-display text-lg">暂无订单</p>
+          <p className="mt-1 text-sm text-muted">请从在册肉厕中提交点单</p>
           <Button className="mt-5" asChild>
-            <Link to="/">去找坑</Link>
+            <Link to="/">前往选厕</Link>
           </Button>
         </div>
       )}
@@ -160,7 +160,7 @@ function InboxPage() {
                   disabled={acting === row.id}
                   onClick={() => void useStall(row.id)}
                 >
-                  使用公厕
+                  确认使用本肉厕
                 </Button>
               )}
               {row.status === "used" && profile && profile.unowned && !claimed.includes(row.profileId) && (
@@ -179,7 +179,7 @@ function InboxPage() {
                       .finally(() => setActing(null));
                   }}
                 >
-                  收编这具无主货
+                  收编该无主肉厕
                 </Button>
               )}
               {row.status === "used" && !reviewed.includes(row.profileId) && (

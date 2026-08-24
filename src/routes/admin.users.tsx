@@ -25,9 +25,9 @@ function AdminUsers() {
 
   return (
     <AdminGate>
-      <p className="text-sm text-muted">管事台</p>
+      <p className="text-sm text-muted">管理台</p>
       <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">用户</h1>
-      {error && <p className="mt-4 text-sm text-muted">{error === "Forbidden" ? "这个号不是管事的。" : error}</p>}
+      {error && <p className="mt-4 text-sm text-muted">{error === "Forbidden" ? "本账号无管理权限。" : error}</p>}
       <div className="mt-6 overflow-x-auto rounded-2xl bg-surface shadow-border">
         <table className="w-full min-w-[40rem] text-left text-sm">
           <thead className="text-muted">

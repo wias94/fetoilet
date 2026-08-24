@@ -99,7 +99,7 @@ const EMPTY: Form = {
   nightYuan: "240",
   etaMin: "20",
   places: ["你家", "酒店"],
-  bio: "移动肉便器。写清松还是紧、会什么、接不接无套。男人急了叫它走过来。冲完走人。",
+  bio: "在册肉厕。请如实填写可提供之服务、是否接受无套灌注及到达时效。客户点单后按货品使用。",
   services: ["走到你身边", "当马桶冲", "必须套上"],
   confirmedAdult: false,
   ownerToken: "",

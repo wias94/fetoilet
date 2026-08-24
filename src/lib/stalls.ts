@@ -182,9 +182,9 @@ function toProfile(row: StallRow): Profile {
 }
 
 function autoWork(data: { online: boolean; tags: TagId[]; etaMin: number }) {
-  if (!data.online) return "这具便器暂时关着";
-  if (data.tags.includes("visit")) return `现在可上门 · 约 ${data.etaMin} 分钟到`;
-  return `定点坑 · 步行约 ${data.etaMin} 分钟`;
+  if (!data.online) return "本厕暂停接单";
+  if (data.tags.includes("visit")) return `可上门 · 约 ${data.etaMin} 分钟抵达`;
+  return `定点肉厕 · 步行约 ${data.etaMin} 分钟`;
 }
 
 async function ensureSeeded(sql: Sql) {

@@ -46,9 +46,9 @@ function AdminOrders() {
 
   return (
     <AdminGate>
-      <p className="text-sm text-muted">管事台</p>
+      <p className="text-sm text-muted">管理台</p>
       <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">单和评价</h1>
-      {error && <p className="mt-4 text-sm text-muted">{error === "Forbidden" ? "这个号不是管事的。" : error}</p>}
+      {error && <p className="mt-4 text-sm text-muted">{error === "Forbidden" ? "本账号无管理权限。" : error}</p>}
 
       <h2 className="mt-6 text-sm font-medium text-muted">最近的单</h2>
       <ul className="mt-3 space-y-2">

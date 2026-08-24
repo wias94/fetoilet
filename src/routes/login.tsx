@@ -74,7 +74,7 @@ function Login() {
           ? authClient.signUp.email({
               email: mail,
               password,
-              name: stallSide ? "肉便器" : "客人",
+              name: stallSide ? "肉厕" : "客户",
             })
           : authClient.signIn.email({ email: mail, password });
       const { error } = await fn;
@@ -108,12 +108,12 @@ function Login() {
           </Link>
           <p className="mt-4 text-xs tracking-widest text-subtle">NEW LISTINGS · 入住</p>
           <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight">
-            {stallSide ? "登录进肉厕端" : "登录后找坑"}
+            {stallSide ? "登录肉厕端" : "登录客户端"}
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-muted">
             {stallSide
-              ? "这边不是给人用的。登进去把身体登记成公共马桶。满 18 岁才能挂成肉厕。"
-              : "找坑也要登录。登完才能看附近的肉便器，叫它走过来当马桶。"}
+              ? "肉厕端用于将身体登记为公共肉厕、办理挂牌与接单。仅接受已满十八周岁。"
+              : "客户登录后方可查阅在册肉厕并提交点单。使用即视为接受本所挂牌条款。"}
           </p>
           <div className="mt-8 space-y-3">
             {authEnabled ? (
@@ -174,7 +174,7 @@ function Login() {
             to={stallSide ? "/work" : "/"}
             className="mt-6 inline-block text-sm text-muted hover:text-fg"
           >
-            {stallSide ? "回肉厕端" : "先去找坑"}
+            {stallSide ? "返回肉厕端" : "返回交易所"}
           </Link>
         </div>
       </div>

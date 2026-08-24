@@ -43,19 +43,19 @@ function WorkLanding() {
             肉厕端
           </h1>
           <p className="mt-4 max-w-sm text-base leading-relaxed text-fg/70">
-            男人那边找坑。这边是货用的后台。开着就会被当移动马桶叫走灌注。无主货灌了没人收钱，把便器口令给男人让他收编。
+            供肉厕及所属人办理挂牌、接单与履约。开启后即作为移动肉厕接受点单灌注。无主肉厕被使用后收益为零；可将便器口令交付客户办理收编。
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Button size="lg" className="h-12 rounded-full px-6" asChild>
               <Link to="/login" search={{ redirect: "/work" }}>
-                登录，把这具挂上去
+                登录并办理挂牌
               </Link>
             </Button>
             <Link to="/" className="text-sm text-fg/70 underline-offset-4 hover:text-fg hover:underline">
-              我是男人，去找坑
+              我是客户，前往交易所
             </Link>
           </div>
-          <p className="mt-4 text-sm text-fg/45">虚构演示，登记需满 18 岁</p>
+          <p className="mt-4 text-sm text-fg/45">本平台为虚构演示，挂牌须满十八周岁</p>
         </div>
       </div>
     </main>
@@ -160,7 +160,7 @@ function WorkBoard() {
         <div>
           <p className="font-display text-lg font-semibold">{stall.online ? "开着坑" : "收着坑"}</p>
           <p className="mt-0.5 text-sm text-muted">
-            {stall.online ? "男人能从附近把你当马桶叫走" : "休息。货架上先不露这具便器"}
+            {stall.online ? "本厕已上架，客户可从附近点单灌注" : "本厕休息中，货架暂不展示"}
           </p>
         </div>
         <span className={stall.online ? "text-sm text-live" : "text-sm text-subtle"}>

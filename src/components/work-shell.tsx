@@ -16,11 +16,11 @@ export function WorkShell({ children }: { children: ReactNode }) {
             <Wordmark side="肉厕端" />
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
-            <HeaderLink to="/work" label="送坑" exact />
+            <HeaderLink to="/work" label="接单" exact />
             <HeaderLink to="/work/feed" label="动态" />
             <HeaderLink to="/work/mail" label="私信" />
-            <HeaderLink to="/work/stats" label="被灌" />
-            <HeaderLink to="/work/me" label="这具" />
+            <HeaderLink to="/work/stats" label="数据" />
+            <HeaderLink to="/work/me" label="本厕" />
           </nav>
           <AuthSlot to="/work/me" />
         </div>
@@ -60,7 +60,7 @@ function MobileTabBar() {
   const tabs: { to: WorkPath; label: string; icon: typeof ClipboardList; active: boolean }[] = [
     {
       to: "/work",
-      label: "送坑",
+      label: "接单",
       icon: ClipboardList,
       active: pathname === "/work",
     },
@@ -78,13 +78,13 @@ function MobileTabBar() {
     },
     {
       to: "/work/stats",
-      label: "被灌",
+      label: "数据",
       icon: BarChart3,
       active: pathname.startsWith("/work/stats"),
     },
     {
       to: "/work/me",
-      label: "这具",
+      label: "本厕",
       icon: UserRound,
       active: pathname.startsWith("/work/me"),
     },

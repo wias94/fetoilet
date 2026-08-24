@@ -14,11 +14,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Wordmark />
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
-            <HeaderLink to="/" label="找坑" />
+            <HeaderLink to="/" label="选厕" />
             <HeaderLink to="/feed" label="动态" />
-            <HeaderLink to="/inbox" label="已订" />
+            <HeaderLink to="/inbox" label="订单" />
             <HeaderLink to="/mail" label="私信" />
-            <HeaderLink to="/me" label="我的" />
+            <HeaderLink to="/me" label="账户" />
           </nav>
           <AuthSlot />
         </div>
@@ -48,11 +48,11 @@ function HeaderLink({ to, label }: { to: "/" | "/feed" | "/inbox" | "/mail" | "/
 function MobileTabBar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const tabs = [
-    { to: "/" as const, label: "找坑", icon: Compass, active: pathname === "/" },
+    { to: "/" as const, label: "选厕", icon: Compass, active: pathname === "/" },
     { to: "/feed" as const, label: "动态", icon: Radio, active: pathname.startsWith("/feed") },
-    { to: "/inbox" as const, label: "已订", icon: Inbox, active: pathname.startsWith("/inbox") },
+    { to: "/inbox" as const, label: "订单", icon: Inbox, active: pathname.startsWith("/inbox") },
     { to: "/mail" as const, label: "私信", icon: MessageCircle, active: pathname.startsWith("/mail") },
-    { to: "/me" as const, label: "我的", icon: UserRound, active: pathname.startsWith("/me") },
+    { to: "/me" as const, label: "账户", icon: UserRound, active: pathname.startsWith("/me") },
   ];
 
   return (

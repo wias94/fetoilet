@@ -50,7 +50,7 @@ function HomeFeed() {
   const [tag, setTag] = useState<TagId | "all">("all");
   const [area, setArea] = useState<string>("附近");
   const [shelf, setShelf] = useState<"all" | "unowned" | "sale">("all");
-  const [hello, setHello] = useState("晚上了，去方便");
+  const [hello, setHello] = useState("本所营业中");
 
   useEffect(() => {
     setHello(greetingForHour(new Date().getHours()));
@@ -68,10 +68,10 @@ function HomeFeed() {
       <BroadcastBanner audience="seeker" />
       <p className="text-sm text-muted">{hello}</p>
       <h1 className="mt-1 font-display text-3xl font-semibold leading-tight tracking-tight">
-        附近的肉便器
+        在册肉厕
       </h1>
       <p className="mt-2 max-w-md text-sm leading-relaxed text-muted">
-        男人急了就近找坑。现在 {onlineCount(stalls)} 具可冲，会走过来当马桶。酒店、车里、你家都能灌注。不要跟它说话。
+        当前可点单 {onlineCount(stalls)} 具。客户按挂牌条件使用本平台肉厕，就地灌注。请勿将其视为民事主体。
       </p>
 
       <div className="-mx-4 mt-5 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

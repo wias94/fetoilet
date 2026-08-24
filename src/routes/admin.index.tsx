@@ -27,13 +27,13 @@ function AdminHome() {
 
   return (
     <AdminGate>
-      <p className="text-sm text-muted">管事台</p>
+      <p className="text-sm text-muted">管理台</p>
       <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">总览</h1>
-      <p className="mt-2 max-w-lg text-sm text-muted">看用户、货、单，往货架和肉厕端推流。</p>
+      <p className="mt-2 max-w-lg text-sm text-muted">查阅用户、在册肉厕与订单，并向货架及肉厕端推送公告。</p>
       {error === "Unauthorized" ? (
         <p className="mt-6 text-sm text-muted">先登录。</p>
       ) : error === "Forbidden" ? (
-        <p className="mt-6 text-sm text-muted">这个号不是管事的。</p>
+        <p className="mt-6 text-sm text-muted">本账号无管理权限。</p>
       ) : error ? (
         <p className="mt-6 text-sm text-muted">{error}</p>
       ) : null}

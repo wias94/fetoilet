@@ -44,11 +44,11 @@ function WorkStatsPage() {
   if (!stats) {
     return (
       <WorkShell>
-        <p className="text-sm text-muted">肉厕端 · 这具被灌了多少</p>
-        <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">这具货还没挂</h1>
-        <p className="mt-2 text-sm text-muted">先把身体挂成马桶。男人灌进去多少、用了几次，才会记在这具上。</p>
+        <p className="text-sm text-muted">肉厕端 · 使用与灌注数据</p>
+        <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">尚未办理挂牌</h1>
+        <p className="mt-2 text-sm text-muted">请先将身体登记为公共肉厕。被点单、灌注次数将记入本厕档案。</p>
         <Button className="mt-6" asChild>
-          <Link to="/work/stall">把这具身体挂成公厕</Link>
+          <Link to="/work/stall">办理肉厕挂牌</Link>
         </Button>
       </WorkShell>
     );
@@ -58,22 +58,22 @@ function WorkStatsPage() {
 
   return (
     <WorkShell>
-      <p className="text-sm text-muted">肉厕端 · 这具被灌了多少</p>
+      <p className="text-sm text-muted">肉厕端 · 使用与灌注数据</p>
       <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">{stats.stallName}</h1>
       <p className="mt-1 text-sm text-muted">
-        {stats.online ? "这具开着，随时能被当马桶叫走" : "这具收着，货架上当废坑"}
-        {stats.hasOwner ? " · 有主，钱进主人口袋" : " · 无主，灌了没人收钱"}
+        {stats.online ? "本厕已上架，可供点单灌注" : "本厕已下架，货架暂不展示"}
+        {stats.hasOwner ? " · 有所属人，收益归所属人" : " · 无主，被使用后收益为零"}
       </p>
 
       <section className="mt-5 rounded-2xl bg-surface px-5 py-6 shadow-border">
-        <p className="text-sm text-muted">今天被灌</p>
+        <p className="text-sm text-muted">今日被灌注</p>
         <p className="mt-1 font-display text-4xl font-semibold tracking-tight tabular-nums">
           {stats.todayUsed} 次
         </p>
         <p className="mt-2 text-sm text-muted">
           {stats.hasOwner
-            ? "钱进主人口袋，这具自己没账。"
-            : "无主货。被人灌了，没人收钱。把便器口令给男人，求他收编。"}
+            ? "收益计入所属人账户，本厕不单独结算。"
+            : "无主肉厕。被使用后收益为零。可将便器口令交付客户申请收编。"}
         </p>
       </section>
 

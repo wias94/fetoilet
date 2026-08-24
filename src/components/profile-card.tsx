@@ -28,12 +28,12 @@ export function ProfileCard({ profile: p }: { profile: Profile }) {
                 {p.area} · {p.etaMin}分到 · {formatRating(p.ratingAvg, p.ratingCount)}
               </p>
             </div>
-            <span className="shrink-0 tabular-nums text-sm">{formatFen(p.hourFen)}/冲</span>
+            <span className="shrink-0 tabular-nums text-sm">{formatFen(p.hourFen)}/次</span>
           </div>
         </div>
         {p.online && (
           <span className="absolute left-2.5 top-2.5 rounded-full bg-bg/70 px-2 py-1 text-xs text-live">
-            可冲
+            可点单
           </span>
         )}
         {p.unowned && (

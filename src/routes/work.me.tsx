@@ -43,12 +43,12 @@ function WorkMePage() {
 
   return (
     <WorkShell>
-      <h1 className="font-display text-3xl font-semibold tracking-tight">肉厕端 · 这具货</h1>
+      <h1 className="font-display text-3xl font-semibold tracking-tight">肉厕端 · 本厕档案</h1>
       <div className="mt-6 rounded-2xl bg-surface p-5 shadow-border">
         <div className="flex items-center gap-3">
           <AuthSlot to="/work/me" />
           <div className="min-w-0">
-            <p className="truncate font-medium">{user.displayName ?? "这具马桶"}</p>
+            <p className="truncate font-medium">{user.displayName ?? "在册肉厕"}</p>
             <p className="truncate text-sm text-muted">{user.primaryEmail}</p>
           </div>
         </div>
@@ -56,16 +56,16 @@ function WorkMePage() {
 
       {stall ? (
         <div className="mt-4 rounded-2xl bg-surface p-5 shadow-border">
-          <p className="text-sm text-muted">正在出货的这具</p>
+          <p className="text-sm text-muted">当前挂牌</p>
           <p className="mt-1 font-display text-xl font-semibold">{stall.name}</p>
           <p className="mt-1 text-sm text-muted">
-            {stall.area} · 灌一次 {formatFen(stall.hourFen)} · {stall.online ? "可灌" : "不给用"}
-            {stall.hasOwner ? " · 有主，钱归主人" : " · 无主，灌了没人收钱"}
+            {stall.area} · 单次 {formatFen(stall.hourFen)} · {stall.online ? "可点单" : "已下架"}
+            {stall.hasOwner ? " · 有所属人，收益归所属人" : " · 无主，被使用后收益为零"}
           </p>
           {stall.stallToken && (
             <p className="mt-3 font-display text-xl font-semibold tracking-widest">{stall.stallToken}</p>
           )}
-          <p className="mt-1 text-xs text-subtle">便器口令。给男人，他能收编这具。有主之后不能再用这串抢。</p>
+          <p className="mt-1 text-xs text-subtle">便器口令。交付客户后可用于收编本厕。一经有所属人，本口令即失效。</p>
           {stall.stallToken && (
             <Button
               className="mt-3"
@@ -82,27 +82,27 @@ function WorkMePage() {
             </Button>
           )}
           <Button className="mt-3" variant="secondary" asChild>
-            <Link to="/work/stall">改这具马桶的挂牌</Link>
+            <Link to="/work/stall">修订本厕挂牌</Link>
           </Button>
         </div>
       ) : stall === null ? (
         <div className="mt-4 rounded-2xl bg-surface p-5 shadow-border">
-          <p className="font-display text-lg">这具货还没挂</p>
+          <p className="font-display text-lg">尚未办理挂牌</p>
           <Button className="mt-4" asChild>
-            <Link to="/work/stall">把身体登记成公厕</Link>
+            <Link to="/work/stall">将身体登记为公共肉厕</Link>
           </Button>
         </div>
       ) : null}
 
       <div className="mt-8 flex flex-col gap-3">
         <Button variant="secondary" asChild>
-          <Link to="/work/stats">看这具马桶被男人灌了多少</Link>
+          <Link to="/work/stats">查阅本厕被使用与灌注数据</Link>
         </Button>
         <Button variant="secondary" asChild>
-          <Link to="/">去男人那端找坑</Link>
+          <Link to="/">前往客户交易所</Link>
         </Button>
         <Link to="/admin" className="text-center text-sm text-subtle hover:text-muted">
-          管事台
+          管理台
         </Link>
         <SignOutButton home="/work" />
       </div>

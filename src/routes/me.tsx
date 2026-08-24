@@ -95,7 +95,7 @@ function MePage() {
 
   return (
     <AppShell>
-      <h1 className="font-display text-3xl font-semibold tracking-tight">我的</h1>
+      <h1 className="font-display text-3xl font-semibold tracking-tight">账户</h1>
 
       <div className="mt-6 rounded-2xl bg-surface p-5 shadow-border">
         <div className="flex items-center gap-3">
@@ -108,7 +108,7 @@ function MePage() {
         <p className="mt-4 font-display text-2xl font-semibold tabular-nums">
           {wallet == null ? "……" : formatFen(wallet)}
         </p>
-        <p className="mt-1 text-sm text-muted">名下肉厕被人灌，钱进这里。无主的货灌了没人收。</p>
+        <p className="mt-1 text-sm text-muted">名下肉厕被使用后，收益结算至此。无主肉厕被使用后收益为零。</p>
         {ledger.length > 0 && (
           <ul className="mt-4 space-y-1.5 border-t border-border/70 pt-3">
             {ledger.slice(0, 6).map((row) => (
@@ -124,7 +124,7 @@ function MePage() {
       <section className="mt-6 rounded-2xl bg-surface p-5 shadow-border">
         <p className="text-sm text-muted">所属权口令</p>
         <p className="mt-2 font-display text-2xl font-semibold tracking-widest">{token ?? "……"}</p>
-        <p className="mt-2 text-sm leading-relaxed text-muted">给肉厕选填。填了就归你，冲一次的钱进你口袋。</p>
+        <p className="mt-2 text-sm leading-relaxed text-muted">交付肉厕选填。一经填写，该肉厕即归入您名下，使用收益计入本账户。</p>
         <Button
           className="mt-4"
           variant="secondary"
@@ -143,9 +143,9 @@ function MePage() {
       </section>
 
       <section className="mt-6 rounded-2xl bg-surface p-5 shadow-border">
-        <p className="text-sm text-muted">用便器口令收编</p>
+        <p className="text-sm text-muted">以便器口令收编无主肉厕</p>
         <p className="mt-2 text-sm leading-relaxed text-muted">
-          找到已登记的无主肉厕，让它把 TC- 口令给你。填进去，这具就归你。
+          无主肉厕出示 TC- 口令后，填写即可完成收编，该肉厕归入您名下。
         </p>
         <div className="mt-3 flex gap-2">
           <Input
@@ -222,11 +222,11 @@ function MePage() {
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-sm font-medium text-muted">名下的肉厕</h2>
           <Button size="sm" asChild>
-            <Link to="/add">挂身边的女人</Link>
+            <Link to="/add">登记身边的女性为肉厕</Link>
           </Button>
         </div>
         {owned && owned.length === 0 ? (
-          <p className="mt-3 text-sm text-subtle">还没有货。挂妻子、母亲、已满18岁的女儿、女友，或用便器口令收编无主的。</p>
+          <p className="mt-3 text-sm text-subtle">名下暂无肉厕。可将妻子、母亲、已满十八岁的女儿、女友登记挂牌，或以便器口令收编无主肉厕。</p>
         ) : (
           <ul className="mt-3 space-y-2">
             {owned?.map((p) => (
@@ -303,7 +303,7 @@ function MePage() {
                         .finally(() => setBusy(null));
                     }}
                   >
-                    这具马桶到了
+                    肉厕已到位
                   </Button>
                 )}
               </li>

@@ -12,10 +12,10 @@ export function formatFen(fen: number) {
 }
 
 export function greetingForHour(hour: number) {
-  if (hour < 5) return "肉便器还开着";
-  if (hour < 12) return "白天也能方便";
-  if (hour < 18) return "黄昏了，就近找坑";
-  return "晚上了，去方便";
+  if (hour < 5) return "深夜仍有在册肉厕可供点单";
+  if (hour < 12) return "日间营业 · 在册肉厕可查";
+  if (hour < 18) return "下午场 · 就近选用肉厕";
+  return "夜间营业 · 请选用在册肉厕";
 }
 
 export function formatWhen(iso: string) {
@@ -27,7 +27,7 @@ export function formatWhen(iso: string) {
 }
 
 export function formatRating(avg: number, count: number) {
-  if (count < 1) return "还没人评";
+  if (count < 1) return "暂无评价";
   const shown = avg % 1 === 0 ? String(avg) : avg.toFixed(1);
   return `${shown} 分 · ${count}评`;
 }

@@ -17,7 +17,7 @@ function FeedPage() {
   if (!user) return <Navigate to="/login" search={{ redirect: "/feed" }} />;
   return (
     <AppShell>
-      <p className="text-sm text-muted">女性发的近况</p>
+      <p className="text-sm text-muted">在册肉厕发布的近况</p>
       <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">动态</h1>
       <div className="mt-5">
         <FeedList />

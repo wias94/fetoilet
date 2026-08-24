@@ -33,7 +33,7 @@ export function ReviewForm({
 
   return (
     <div className="rounded-2xl bg-sunken p-3">
-      <p className="text-sm">这具便器冲得怎么样</p>
+      <p className="text-sm">请为本肉厕的使用体验评分</p>
       <div className="mt-2">
         <Stars value={score} onPick={setScore} />
       </div>

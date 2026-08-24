@@ -46,17 +46,17 @@ export const RELATIONS = ["妻子", "母亲", "女儿", "女友", "同事", "其
 export type Relation = (typeof RELATIONS)[number];
 
 export const TAGS: { id: TagId | "all"; label: string }[] = [
-  { id: "all", label: "全部肉便器" },
-  { id: "visit", label: "会走过来" },
-  { id: "incall", label: "定点公厕" },
-  { id: "night", label: "通宵便器" },
-  { id: "parttime", label: "下班尿坑" },
-  { id: "business", label: "随身马桶" },
+  { id: "all", label: "全部在册肉厕" },
+  { id: "visit", label: "上门肉厕" },
+  { id: "incall", label: "定点肉厕" },
+  { id: "night", label: "通宵肉厕" },
+  { id: "parttime", label: "下班肉厕" },
+  { id: "business", label: "随身肉厕" },
 ];
 
 export const AREAS = ["附近", "徐汇", "静安", "黄浦", "长宁", "浦东"] as const;
 
-export const SLOTS = ["现在就冲", "今晚方便", "明天随时", "周末占坑"] as const;
+export const SLOTS = ["即刻使用", "今晚使用", "明日预约", "周末占用"] as const;
 
 export const PROFILES: Profile[] = [
   {

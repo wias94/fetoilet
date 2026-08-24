@@ -41,10 +41,10 @@ function AdminStalls() {
 
   return (
     <AdminGate>
-      <p className="text-sm text-muted">管事台</p>
+      <p className="text-sm text-muted">管理台</p>
       <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">货</h1>
       <p className="mt-2 text-sm text-muted">置顶就是推到货架前面。藏起来男人端看不见。</p>
-      {error && <p className="mt-4 text-sm text-muted">{error === "Forbidden" ? "这个号不是管事的。" : error}</p>}
+      {error && <p className="mt-4 text-sm text-muted">{error === "Forbidden" ? "本账号无管理权限。" : error}</p>}
       <ul className="mt-6 space-y-3">
         {rows?.map((row) => (
           <li key={row.id} className="rounded-2xl bg-surface p-4 shadow-border">

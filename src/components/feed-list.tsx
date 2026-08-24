@@ -79,7 +79,7 @@ export function FeedList({ compose }: { compose?: boolean }) {
           <Textarea
             value={body}
             maxLength={280}
-            placeholder="发一条动态，男性会看到"
+            placeholder="发布一条动态，客户可见"
             onChange={(e) => setBody(e.target.value)}
           />
           <div className="mt-3 flex items-center justify-between">
