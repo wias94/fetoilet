@@ -104,7 +104,7 @@ const EMPTY: Form = {
   confirmedAdult: false,
   ownerToken: "",
   stallEmail: "",
-  relation: "女友",
+  relation: "母亲",
   identity: LISTING_DEFAULTS.identity,
   marriage: LISTING_DEFAULTS.marriage,
   demeanor: LISTING_DEFAULTS.demeanor,
@@ -395,7 +395,7 @@ export function StallEditor({
             <div className="space-y-3 rounded-2xl bg-surface p-4 text-sm leading-relaxed text-muted shadow-border">
               <p>欢迎进入肉厕挂牌交易所。</p>
               <p>
-                妻子、母亲、已满 18 岁的女儿、女友可以在这里登记挂牌。同事核验更严。未满 18
+                母亲优先，其次妻子、已满 18 岁的女儿、女友、兄妹、朋友同事。未满 18
                 岁一律不收。
               </p>
               <p>
@@ -404,7 +404,7 @@ export function StallEditor({
             </div>
             {createOwned && (
               <>
-                <Field label="她是你的什么（妻子、母亲、成年女儿核验简单；同事较复杂）">
+                <Field label="她是你的什么（母亲优先；女儿、兄妹须满 18 岁）">
                   <div className="flex flex-wrap gap-2">
                     {RELATIONS.map((r) => (
                       <Chip key={r} active={form.relation === r} onClick={() => setForm((f) => ({ ...f, relation: r }))}>

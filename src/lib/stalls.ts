@@ -5,6 +5,7 @@ import { getSql, type Sql } from "@/lib/db";
 import {
   PLACE_PRESETS,
   PROFILES,
+  RELATIONS,
   SERVICE_PRESETS,
   type ExtraFee,
   type Profile,
@@ -220,18 +221,20 @@ async function ensureSeeded(sql: Sql) {
         )
       `;
     }
-    return;
+  } else {
+    for (const p of PROFILES) {
+      await sql`
+        update stalls set
+          name = ${p.name},
+          bio = ${p.bio},
+          services = ${JSON.stringify(p.services)}::jsonb,
+          work = ${p.work}
+        where user_id = ${`seed:${p.id}`}
+      `;
+    }
   }
-  for (const p of PROFILES) {
-    await sql`
-      update stalls set
-        name = ${p.name},
-        bio = ${p.bio},
-        services = ${JSON.stringify(p.services)}::jsonb,
-        work = ${p.work}
-      where user_id = ${`seed:${p.id}`}
-    `;
-  }
+  const { ensureMotherSon } = await import("@/lib/seed-family");
+  await ensureMotherSon(sql);
 }
 
 export async function findStall(sql: Sql, id: string) {
@@ -514,7 +517,7 @@ export const saveOwnedStall = createServerFn({ method: "POST" })
   });
 
 const OwnedCreate = StallInput.extend({
-  relation: z.enum(["妻子", "母亲", "女儿", "女友", "同事", "其他"]),
+  relation: z.enum(RELATIONS),
   stallEmail: z.string().trim().email("请填写肉厕登录邮箱").transform((v) => v.toLowerCase()),
 });
 
@@ -526,7 +529,9 @@ export const createOwnedStall = createServerFn({ method: "POST" })
     const { assertRole } = await import("@/lib/roles");
     await assertRole(context.userId, "male");
     if (data.age < 18) throw new Error("必须满 18 岁");
-    if (data.relation === "女儿" && data.age < 18) throw new Error("女儿必须满 18 岁");
+    if ((data.relation === "女儿" || data.relation === "兄妹") && data.age < 18) {
+      throw new Error("女儿、兄妹必须满 18 岁");
+    }
     const sql = await getSql();
     const id = `t${crypto.randomUUID().replaceAll("-", "").slice(0, 8)}`;
     let image = data.image;
