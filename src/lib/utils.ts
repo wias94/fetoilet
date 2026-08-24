@@ -6,9 +6,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatFen(fen: number) {
-  const yuan = fen / 100;
-  if (yuan >= 10000) return `¥${yuan / 10000}万`;
-  return yuan % 1 === 0 ? `¥${yuan}` : `¥${yuan.toFixed(1)}`;
+  const cad = fen / 100;
+  const shown = cad % 1 === 0 ? String(cad) : cad.toFixed(2);
+  return `C$${shown}`;
 }
 
 export function greetingForHour(hour: number) {

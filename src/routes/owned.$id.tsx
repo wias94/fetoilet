@@ -87,7 +87,7 @@ function OwnedStallPage() {
           <Input
             type="number"
             min={0}
-            placeholder="转让价 ¥"
+            placeholder="转让价 C$"
             value={yuan}
             onChange={(e) => setYuan(e.target.value)}
           />

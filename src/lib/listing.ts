@@ -1,9 +1,9 @@
 import type { ExtraFee } from "@/lib/profiles";
 
 export const DEPOSITS = [
-  { fen: 50000, label: "500元" },
-  { fen: 100000, label: "1000元" },
-  { fen: 300000, label: "3000元" },
+  { fen: 5000, label: "C$50" },
+  { fen: 10000, label: "C$100" },
+  { fen: 30000, label: "C$300" },
 ] as const;
 
 export const IDENTITIES = ["在校（仅18+）", "在职", "自由职业"] as const;
@@ -101,7 +101,7 @@ export const LISTING_DEFAULTS: Listing = {
   condom: "必须带套",
   extras: [],
   reviewPref: "可以接受",
-  depositFen: 50000,
+  depositFen: 5000,
 };
 
 export const NAME_PRESETS = ["阿绮", "晚晚", "苏苏", "米娜", "小林", "阿晚", "小满", "南南"] as const;

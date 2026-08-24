@@ -61,7 +61,7 @@ export const listMyLedger = createServerFn({ method: "GET" })
 export const setStallListed = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: unknown) =>
-    z.object({ id: z.string().min(1), fen: z.number().int().min(0).max(800000).nullable() }).parse(data),
+    z.object({ id: z.string().min(1), fen: z.number().int().min(0).max(80000).nullable() }).parse(data),
   )
   .handler(async ({ context, data }) => {
     const sql = await getSql();

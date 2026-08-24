@@ -95,8 +95,8 @@ const EMPTY: Form = {
   tags: ["visit"],
   image: "",
   online: true,
-  hourYuan: "60",
-  nightYuan: "240",
+  hourYuan: "6",
+  nightYuan: "24",
   etaMin: "20",
   places: ["你家", "酒店"],
   bio: "在册肉厕。请如实填写可提供之服务、是否接受无套灌注及到达时效。客户点单后按货品使用。",
@@ -298,9 +298,10 @@ export function StallEditor({
       const hour = Number(form.hourYuan);
       const night = Number(form.nightYuan);
       if (!Number.isInteger(eta) || eta < 5 || eta > 90) return false;
-      if (!Number.isInteger(hour) || hour < 20 || hour > 2000) return false;
-      if (!Number.isInteger(night) || night < 80 || night > 8000) return false;
-      return form.places.length > 0 && form.services.length > 0 && form.tags.length > 0;
+      if (!Number.isInteger(hour) || hour < 1 || hour > 200) return false;
+      if (!Number.isInteger(night) || night < 4 || night > 800) return false;
+      if (form.places.length === 0 || form.services.length === 0) return false;
+      return true;
     }
     if (step === 4) return isShownPhoto(form.image) && form.bio.trim().length >= 8;
     return true;
@@ -608,7 +609,7 @@ export function StallEditor({
                       placeholder="加价"
                     />
                   </div>
-                  <span className="pb-3 text-sm text-muted">元</span>
+                  <span className="pb-3 text-sm text-muted">加元</span>
                   <Button
                     type="button"
                     variant="secondary"
@@ -620,7 +621,7 @@ export function StallEditor({
                         return;
                       }
                       if (!Number.isInteger(yuan) || yuan < 1) {
-                        toast("加价至少 1 元");
+                        toast("加价至少 1 加元");
                         return;
                       }
                       setForm((f) => ({ ...f, extras: [...f.extras, { name, fen: yuan * 100 }] }));
@@ -663,17 +664,17 @@ export function StallEditor({
               />
               <NumField
                 label="单次"
-                unit="元"
-                min={20}
-                max={2000}
+                unit="加元"
+                min={1}
+                max={200}
                 value={form.hourYuan}
                 onValue={(hourYuan) => setForm((f) => ({ ...f, hourYuan }))}
               />
               <NumField
                 label="通宵"
-                unit="元"
-                min={80}
-                max={8000}
+                unit="加元"
+                min={4}
+                max={800}
                 value={form.nightYuan}
                 onValue={(nightYuan) => setForm((f) => ({ ...f, nightYuan }))}
               />
@@ -783,8 +784,16 @@ export function StallEditor({
               className="flex-1"
               disabled={!canNext()}
               onClick={() => {
+                if (step === 3 && form.tags.length === 0) {
+                  setForm((f) => ({ ...f, tags: ["visit"] }));
+                }
                 if (!canNext()) {
-                  toast(step === 0 ? "先确认满 18 岁" : "先把这页填完");
+                  if (step === 0) toast(createOwned && !form.stallEmail ? "先填肉厕邮箱并确认已满 18 岁" : "先确认满 18 岁");
+                  else if (step === 3) {
+                    if (form.places.length === 0) toast("先选能在哪");
+                    else if (form.services.length === 0) toast("先选提供服务");
+                    else toast("抵达和价格请填加元数字");
+                  } else toast("先把这页填完");
                   return;
                 }
                 setStep((s) => s + 1);
