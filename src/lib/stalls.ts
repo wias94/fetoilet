@@ -66,7 +66,7 @@ const StallInput = z.object({
   orgasm: z.enum(ORGASMS).default(LISTING_DEFAULTS.orgasm),
   feel: z.enum(FEELS).default(LISTING_DEFAULTS.feel),
   persona: z.enum(PERSONAS).default(LISTING_DEFAULTS.persona),
-  sellingPoints: z.array(z.string().min(1).max(16)).max(30).default([]),
+  sellingPoints: z.array(z.string().min(1).max(16)).max(5).default([]),
   hoursTag: z.enum(HOURS_TAGS).default(LISTING_DEFAULTS.hoursTag),
   dailyQuota: z.enum(DAILY_QUOTAS).default(LISTING_DEFAULTS.dailyQuota),
   travel: z.enum(TRAVELS).default(LISTING_DEFAULTS.travel),

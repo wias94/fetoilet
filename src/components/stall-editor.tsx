@@ -151,7 +151,7 @@ function fromProfile(p: Profile): Form {
     orgasm: (p.orgasm as Form["orgasm"]) || LISTING_DEFAULTS.orgasm,
     feel: (p.feel as Form["feel"]) || LISTING_DEFAULTS.feel,
     persona: (p.persona as Form["persona"]) || LISTING_DEFAULTS.persona,
-    sellingPoints: p.sellingPoints ?? [],
+    sellingPoints: (p.sellingPoints ?? []).slice(0, 5),
     hoursTag: (p.hoursTag as Form["hoursTag"]) || LISTING_DEFAULTS.hoursTag,
     dailyQuota: (p.dailyQuota as Form["dailyQuota"]) || LISTING_DEFAULTS.dailyQuota,
     travel: (p.travel as Form["travel"]) || LISTING_DEFAULTS.travel,
@@ -231,6 +231,7 @@ export function StallEditor({
   function toggle<T extends string>(key: "tags" | "places" | "services" | "sellingPoints", value: T) {
     setForm((f) => {
       const cur = f[key] as T[];
+      if (key === "sellingPoints" && !cur.includes(value) && cur.length >= 5) return f;
       const next = cur.includes(value) ? cur.filter((x) => x !== value) : [...cur, value];
       if (key === "services") {
         const names = next as string[];
@@ -546,7 +547,7 @@ export function StallEditor({
             <Pick label="高潮难度" options={ORGASMS} value={form.orgasm} onPick={(v) => setForm((f) => ({ ...f, orgasm: v }))} />
             <Pick label="使用感受" options={FEELS} value={form.feel} onPick={(v) => setForm((f) => ({ ...f, feel: v }))} />
             <Pick label="最贴切的标签" options={PERSONAS} value={form.persona} onPick={(v) => setForm((f) => ({ ...f, persona: v }))} />
-            <Field label="卖点（可多选，别夸张）">
+            <Field label="卖点（最多 5 个，别夸张）">
               <div className="flex flex-wrap gap-2">
                 {SELLING_POINTS.map((s) => (
                   <Chip key={s} active={form.sellingPoints.includes(s)} onClick={() => toggle("sellingPoints", s)}>{s}</Chip>
