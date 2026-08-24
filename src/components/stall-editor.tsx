@@ -344,7 +344,8 @@ export function StallEditor({
       toast(form.online ? "已挂牌，开始接询" : "挂上了。开着才会出现在货架上");
     } catch (err) {
       const message = err instanceof Error ? err.message : "没写成";
-      toast(message === "Unauthorized" ? "先登录" : message);
+      if (message.includes("too_big") && message.includes("services")) toast("服务可以全选，请再提交一次");
+      else toast(message === "Unauthorized" ? "先登录" : message);
     } finally {
       setSaving(false);
     }
