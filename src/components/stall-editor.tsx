@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input, Textarea } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
 import {
   createOwnedStall,
   getMyStall,
@@ -35,12 +35,15 @@ import {
   LISTING_DEFAULTS,
   MARRIAGES,
   MOANS,
+  NAME_PRESETS,
   ORGASMS,
   PERSONAS,
   REVIEW_PREFS,
   SELLING_POINTS,
   SKILLS,
   TRAVELS,
+  composeListingBio,
+  digitsOnly,
 } from "@/lib/listing";
 import { cn, formatFen } from "@/lib/utils";
 
@@ -247,7 +250,25 @@ export function StallEditor({
       nightFen: Math.round(Number(form.nightYuan) * 100),
       etaMin: Number(form.etaMin),
       places: form.places,
-      bio: form.bio,
+      bio: composeListingBio({
+        persona: form.persona,
+        age: Number(form.age),
+        heightCm: Number(form.heightCm),
+        weightKg: Number(form.weightKg),
+        cup: form.cup,
+        identity: form.identity,
+        marriage: form.marriage,
+        demeanor: form.demeanor,
+        moan: form.moan,
+        skillLevel: form.skillLevel,
+        orgasm: form.orgasm,
+        feel: form.feel,
+        condom: form.condom,
+        hoursTag: form.hoursTag,
+        dailyQuota: form.dailyQuota,
+        travel: form.travel,
+        sellingPoints: form.sellingPoints,
+      }),
       services: form.services,
       confirmedAdult: true as const,
       ownerToken: form.ownerToken,
@@ -274,10 +295,23 @@ export function StallEditor({
   function canNext() {
     if (step === 0) return form.confirmedAdult;
     if (step === 1) {
+      const age = Number(form.age);
+      const height = Number(form.heightCm);
+      const weight = Number(form.weightKg);
       if (form.name.trim().length === 0) return false;
-      if (Number(form.age) < 18) return false;
-      if (form.relation === "女儿" && Number(form.age) < 18) return false;
+      if (!Number.isInteger(age) || age < 18 || age > 55) return false;
+      if (!Number.isInteger(height) || height < 150 || height > 185) return false;
+      if (!Number.isInteger(weight) || weight < 35 || weight > 120) return false;
       return true;
+    }
+    if (step === 3) {
+      const eta = Number(form.etaMin);
+      const hour = Number(form.hourYuan);
+      const night = Number(form.nightYuan);
+      if (!Number.isInteger(eta) || eta < 5 || eta > 90) return false;
+      if (!Number.isInteger(hour) || hour < 20 || hour > 2000) return false;
+      if (!Number.isInteger(night) || night < 80 || night > 8000) return false;
+      return form.places.length > 0 && form.services.length > 0 && form.tags.length > 0;
     }
     if (step === 4) return isShownPhoto(form.image);
     return true;
@@ -404,12 +438,21 @@ export function StallEditor({
 
         {step === 1 && (
           <>
-            <Field label="对外称呼">
+            <Field label="对外称呼（点选或填写汉字）">
+              <div className="mb-2 flex flex-wrap gap-2">
+                {NAME_PRESETS.map((n) => (
+                  <Chip key={n} active={form.name === n} onClick={() => setForm((f) => ({ ...f, name: n }))}>
+                    {n}
+                  </Chip>
+                ))}
+              </div>
               <Input
                 value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value.replace(/[^\u4e00-\u9fa5A-Za-z]/g, "").slice(0, 12) }))
+                }
                 maxLength={12}
-                placeholder="挂牌名"
+                placeholder="点选上方或填写"
                 required
               />
             </Field>
@@ -428,21 +471,38 @@ export function StallEditor({
               </Field>
             )}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <Field label="年龄">
-                <Input type="number" min={18} max={55} value={form.age} onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))} />
-              </Field>
-              <Field label="身高 cm">
-                <Input type="number" min={150} max={185} value={form.heightCm} onChange={(e) => setForm((f) => ({ ...f, heightCm: e.target.value }))} />
-              </Field>
-              <Field label="体重 kg">
-                <Input type="number" min={35} max={120} value={form.weightKg} onChange={(e) => setForm((f) => ({ ...f, weightKg: e.target.value }))} />
-              </Field>
-              <Field label="杯">
-                <select value={form.cup} onChange={(e) => setForm((f) => ({ ...f, cup: e.target.value }))} className="h-11 w-full rounded-xl bg-surface px-3 text-base shadow-border">
+              <NumField
+                label="年龄"
+                unit="岁"
+                min={18}
+                max={55}
+                value={form.age}
+                onValue={(age) => setForm((f) => ({ ...f, age }))}
+              />
+              <NumField
+                label="身高"
+                unit="cm"
+                min={150}
+                max={185}
+                value={form.heightCm}
+                onValue={(heightCm) => setForm((f) => ({ ...f, heightCm }))}
+              />
+              <NumField
+                label="体重"
+                unit="kg"
+                min={35}
+                max={120}
+                value={form.weightKg}
+                onValue={(weightKg) => setForm((f) => ({ ...f, weightKg }))}
+              />
+              <Field label="罩杯">
+                <div className="flex flex-wrap gap-2">
                   {CUPS.map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                    <Chip key={c} active={form.cup === c} onClick={() => setForm((f) => ({ ...f, cup: c }))}>
+                      {c}
+                    </Chip>
                   ))}
-                </select>
+                </div>
               </Field>
             </div>
             <Field label="区">
@@ -523,15 +583,30 @@ export function StallEditor({
             </Field>
             <Pick label="公开点评" options={REVIEW_PREFS} value={form.reviewPref} onPick={(v) => setForm((f) => ({ ...f, reviewPref: v }))} />
             <div className="grid grid-cols-3 gap-3">
-              <Field label="几分钟到">
-                <Input type="number" min={5} max={90} value={form.etaMin} onChange={(e) => setForm((f) => ({ ...f, etaMin: e.target.value }))} />
-              </Field>
-              <Field label="一次 ¥">
-                <Input type="number" min={20} max={2000} value={form.hourYuan} onChange={(e) => setForm((f) => ({ ...f, hourYuan: e.target.value }))} />
-              </Field>
-              <Field label="通宵 ¥">
-                <Input type="number" min={80} max={8000} value={form.nightYuan} onChange={(e) => setForm((f) => ({ ...f, nightYuan: e.target.value }))} />
-              </Field>
+              <NumField
+                label="抵达"
+                unit="分钟"
+                min={5}
+                max={90}
+                value={form.etaMin}
+                onValue={(etaMin) => setForm((f) => ({ ...f, etaMin }))}
+              />
+              <NumField
+                label="单次"
+                unit="元"
+                min={20}
+                max={2000}
+                value={form.hourYuan}
+                onValue={(hourYuan) => setForm((f) => ({ ...f, hourYuan }))}
+              />
+              <NumField
+                label="通宵"
+                unit="元"
+                min={80}
+                max={8000}
+                value={form.nightYuan}
+                onValue={(nightYuan) => setForm((f) => ({ ...f, nightYuan }))}
+              />
             </div>
           </>
         )}
@@ -573,8 +648,28 @@ export function StallEditor({
                 {reading ? "在压图…" : form.image ? "换一张" : "从相册选"}
               </Button>
             </Field>
-            <Field label="简介">
-              <Textarea value={form.bio} onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))} maxLength={280} required />
+            <Field label="档案预览（由选项生成，不可手改）">
+              <p className="rounded-2xl bg-sunken p-4 text-sm leading-relaxed text-muted">
+                {composeListingBio({
+                  persona: form.persona,
+                  age: Number(form.age) || 18,
+                  heightCm: Number(form.heightCm) || 165,
+                  weightKg: Number(form.weightKg) || 50,
+                  cup: form.cup,
+                  identity: form.identity,
+                  marriage: form.marriage,
+                  demeanor: form.demeanor,
+                  moan: form.moan,
+                  skillLevel: form.skillLevel,
+                  orgasm: form.orgasm,
+                  feel: form.feel,
+                  condom: form.condom,
+                  hoursTag: form.hoursTag,
+                  dailyQuota: form.dailyQuota,
+                  travel: form.travel,
+                  sellingPoints: form.sellingPoints,
+                })}
+              </p>
             </Field>
             <label className="flex items-center gap-3 text-sm">
               <input type="checkbox" checked={form.online} onChange={(e) => setForm((f) => ({ ...f, online: e.target.checked }))} className="size-4 accent-fg" />
@@ -625,6 +720,42 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       <p className="mb-2 text-sm text-muted">{label}</p>
       {children}
     </div>
+  );
+}
+
+function NumField({
+  label,
+  unit,
+  value,
+  min,
+  max,
+  onValue,
+}: {
+  label: string;
+  unit: string;
+  value: string;
+  min: number;
+  max: number;
+  onValue: (v: string) => void;
+}) {
+  return (
+    <Field label={`${label}（${unit}）`}>
+      <div className="flex items-center gap-2">
+        <Input
+          inputMode="numeric"
+          pattern="[0-9]*"
+          min={min}
+          max={max}
+          value={value}
+          onChange={(e) => onValue(digitsOnly(e.target.value))}
+          className="tabular-nums"
+        />
+        <span className="w-10 shrink-0 text-sm text-muted">{unit}</span>
+      </div>
+      <p className="mt-1 text-[11px] text-subtle">
+        {min}–{max} {unit}，仅数字
+      </p>
+    </Field>
   );
 }
 

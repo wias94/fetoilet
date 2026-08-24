@@ -114,3 +114,42 @@ export const LISTING_DEFAULTS: Listing = {
   reviewPref: "可以接受",
   depositFen: 50000,
 };
+
+export const NAME_PRESETS = ["阿绮", "晚晚", "苏苏", "米娜", "小林", "阿晚", "小满", "南南"] as const;
+
+export function digitsOnly(raw: string) {
+  return raw.replace(/\D/g, "");
+}
+
+export function composeListingBio(input: {
+  persona: string;
+  age: number;
+  heightCm: number;
+  weightKg: number;
+  cup: string;
+  identity: string;
+  marriage: string;
+  demeanor: string;
+  moan: string;
+  skillLevel: string;
+  orgasm: string;
+  feel: string;
+  condom: string;
+  hoursTag: string;
+  dailyQuota: string;
+  travel: string;
+  sellingPoints: string[];
+}) {
+  const points = input.sellingPoints.length ? input.sellingPoints.join("、") : "未标注卖点";
+  const text = [
+    `${input.persona}。`,
+    `${input.age}岁，${input.heightCm}cm，${input.weightKg}kg，${input.cup}杯。`,
+    `${input.identity}，${input.marriage}。`,
+    `表现${input.demeanor}，${input.moan}，技术${input.skillLevel}，${input.orgasm}。`,
+    `使用感受：${input.feel}。${input.condom}。`,
+    `${input.hoursTag}，${input.dailyQuota}，${input.travel}。`,
+    points,
+  ].join("");
+  return text.slice(0, 280);
+}
+
