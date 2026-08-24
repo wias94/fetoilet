@@ -166,8 +166,8 @@ function ProfilePage() {
               </li>
             ))}
             {profile.extras?.map((s) => (
-              <li key={s} className="rounded-full bg-sunken px-3 py-2 text-sm">
-                {s}
+              <li key={s.name} className="rounded-full bg-sunken px-3 py-2 text-sm">
+                {s.name} +{formatFen(s.fen)}
               </li>
             ))}
           </ul>

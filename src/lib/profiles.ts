@@ -37,7 +37,7 @@ export type Profile = {
   dailyQuota?: string;
   travel?: string;
   condom?: string;
-  extras?: string[];
+  extras?: ExtraFee[];
   reviewPref?: string;
   depositFen?: number;
 };
@@ -229,21 +229,22 @@ export const STOCK_COVERS = PROFILES.map((p) => ({
   label: p.name,
 }));
 
-export const PLACE_PRESETS = ["你家", "酒店", "车上", "巷口", "店里", "走廊"] as const;
+export const PLACE_PRESETS = ["你家", "酒店", "她家", "车上", "巷口"] as const;
 
 export const SERVICE_PRESETS = [
-  "走到你身边",
-  "跪着接尿",
-  "深喉接尿",
-  "当马桶冲",
-  "无套内射",
-  "必须套上",
-  "车里冲",
-  "巷口灌注",
-  "骂着冲",
-  "通宵占坑",
-  "过夜便器",
+  "口交",
+  "性交",
+  "乳交",
+  "肛交",
+  "深喉",
+  "内射",
+  "颜射",
+  "拍照",
+  "录像",
+  "性虐",
 ] as const;
+
+export type ExtraFee = { name: string; fen: number };
 
 export function tagLabel(id: TagId) {
   return TAGS.find((t) => t.id === id)?.label ?? id;

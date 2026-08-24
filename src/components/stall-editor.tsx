@@ -19,6 +19,7 @@ import {
   TAGS,
   CUPS,
   RELATIONS,
+  type ExtraFee,
   type Profile,
   type Relation,
   type TagId,
@@ -28,7 +29,6 @@ import {
   DAILY_QUOTAS,
   DEMEANORS,
   DEPOSITS,
-  EXTRAS,
   FEELS,
   HOURS_TAGS,
   IDENTITIES,
@@ -84,7 +84,7 @@ type Form = {
   dailyQuota: (typeof DAILY_QUOTAS)[number];
   travel: (typeof TRAVELS)[number];
   condom: (typeof CONDOMS)[number];
-  extras: string[];
+  extras: ExtraFee[];
   reviewPref: (typeof REVIEW_PREFS)[number];
   depositFen: number;
 };
@@ -104,7 +104,7 @@ const EMPTY: Form = {
   etaMin: "20",
   places: ["你家", "酒店"],
   bio: "在册肉厕。请如实填写可提供之服务、是否接受无套灌注及到达时效。客户点单后按货品使用。",
-  services: ["走到你身边", "当马桶冲", "必须套上"],
+  services: ["口交", "性交"],
   confirmedAdult: false,
   ownerToken: "",
   stallEmail: "",
@@ -191,6 +191,8 @@ export function StallEditor({
   const [saving, setSaving] = useState(false);
   const [reading, setReading] = useState(false);
   const [step, setStep] = useState(0);
+  const [extraName, setExtraName] = useState("");
+  const [extraYuan, setExtraYuan] = useState("50");
   const fileRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -231,10 +233,14 @@ export function StallEditor({
     return <p className="text-sm text-muted">这具不是你名下的货。</p>;
   }
 
-  function toggle<T extends string>(key: "tags" | "places" | "services" | "sellingPoints" | "extras", value: T) {
+  function toggle<T extends string>(key: "tags" | "places" | "services" | "sellingPoints", value: T) {
     setForm((f) => {
       const cur = f[key] as T[];
       const next = cur.includes(value) ? cur.filter((x) => x !== value) : [...cur, value];
+      if (key === "services") {
+        const names = next as string[];
+        return { ...f, services: names, extras: f.extras.filter((e) => names.includes(e.name)) };
+      }
       return { ...f, [key]: next };
     });
   }
@@ -578,19 +584,82 @@ export function StallEditor({
                 ))}
               </div>
             </Field>
-            <Field label="基础服务">
+            <Field label="提供服务">
               <div className="flex flex-wrap gap-2">
                 {SERVICE_PRESETS.map((s) => (
                   <Chip key={s} active={form.services.includes(s)} onClick={() => toggle("services", s)}>{s}</Chip>
                 ))}
               </div>
             </Field>
-            <Field label="可加价项目">
-              <div className="flex flex-wrap gap-2">
-                {EXTRAS.map((s) => (
-                  <Chip key={s} active={form.extras.includes(s)} onClick={() => toggle("extras", s)}>{s}</Chip>
-                ))}
-              </div>
+            <Field label="加价项目（从已选服务里选，填加价金额）">
+              {form.services.length === 0 ? (
+                <p className="text-sm text-subtle">先勾选上方服务</p>
+              ) : (
+                <div className="flex flex-wrap items-end gap-2">
+                  <select
+                    value={extraName}
+                    onChange={(e) => setExtraName(e.target.value)}
+                    className="h-11 min-w-32 flex-1 rounded-xl bg-surface px-3 text-sm shadow-border"
+                  >
+                    <option value="">选择服务</option>
+                    {form.services
+                      .filter((s) => !form.extras.some((e) => e.name === s))
+                      .map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                  </select>
+                  <div className="w-28">
+                    <Input
+                      inputMode="numeric"
+                      value={extraYuan}
+                      onChange={(e) => setExtraYuan(digitsOnly(e.target.value))}
+                      placeholder="加价"
+                    />
+                  </div>
+                  <span className="pb-3 text-sm text-muted">元</span>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      const name = extraName || form.services.find((s) => !form.extras.some((e) => e.name === s)) || "";
+                      const yuan = Number(extraYuan);
+                      if (!name) {
+                        toast("先选一项服务");
+                        return;
+                      }
+                      if (!Number.isInteger(yuan) || yuan < 1) {
+                        toast("加价至少 1 元");
+                        return;
+                      }
+                      setForm((f) => ({ ...f, extras: [...f.extras, { name, fen: yuan * 100 }] }));
+                      setExtraName("");
+                    }}
+                  >
+                    加入
+                  </Button>
+                </div>
+              )}
+              {form.extras.length > 0 && (
+                <ul className="mt-3 space-y-2">
+                  {form.extras.map((e) => (
+                    <li key={e.name} className="flex items-center justify-between rounded-xl bg-sunken px-3 py-2 text-sm">
+                      <span>
+                        {e.name}
+                        <span className="ml-2 tabular-nums text-muted">+{formatFen(e.fen)}</span>
+                      </span>
+                      <button
+                        type="button"
+                        className="text-subtle hover:text-fg"
+                        onClick={() => setForm((f) => ({ ...f, extras: f.extras.filter((x) => x.name !== e.name) }))}
+                      >
+                        去掉
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </Field>
             <Pick label="公开点评" options={REVIEW_PREFS} value={form.reviewPref} onPick={(v) => setForm((f) => ({ ...f, reviewPref: v }))} />
             <div className="grid grid-cols-3 gap-3">

@@ -7,6 +7,7 @@ import {
   PLACE_PRESETS,
   PROFILES,
   SERVICE_PRESETS,
+  type ExtraFee,
   type Profile,
   type TagId,
 } from "@/lib/profiles";
@@ -73,7 +74,15 @@ const StallInput = z.object({
   dailyQuota: z.enum(DAILY_QUOTAS).default(LISTING_DEFAULTS.dailyQuota),
   travel: z.enum(TRAVELS).default(LISTING_DEFAULTS.travel),
   condom: z.enum(CONDOMS).default(LISTING_DEFAULTS.condom),
-  extras: z.array(z.string().min(1).max(12)).max(11).default([]),
+  extras: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(12),
+        fen: z.number().int().min(100).max(500000),
+      }),
+    )
+    .max(10)
+    .default([]),
   reviewPref: z.enum(REVIEW_PREFS).default(LISTING_DEFAULTS.reviewPref),
   depositFen: z.number().int().min(50000).max(300000).default(LISTING_DEFAULTS.depositFen),
 });
@@ -120,7 +129,7 @@ type StallRow = {
   daily_quota?: string | null;
   travel?: string | null;
   condom?: string | null;
-  extras?: string[] | string | null;
+  extras?: ExtraFee[] | string[] | string | null;
   review_pref?: string | null;
   deposit_fen?: number | null;
 };
@@ -135,6 +144,19 @@ function parseJsonArray<T>(value: T[] | string): T[] {
   } catch {
     return [];
   }
+}
+
+function parseExtras(value: ExtraFee[] | string[] | string | null | undefined): ExtraFee[] {
+  const rows = parseJsonArray<ExtraFee | string>(value ?? []);
+  const out: ExtraFee[] = [];
+  for (const row of rows) {
+    if (typeof row === "string") continue;
+    if (!row || typeof row.name !== "string") continue;
+    const fen = Number(row.fen);
+    if (!Number.isFinite(fen) || fen < 100) continue;
+    out.push({ name: row.name, fen });
+  }
+  return out;
 }
 
 function toProfile(row: StallRow): Profile {
@@ -175,7 +197,7 @@ function toProfile(row: StallRow): Profile {
     dailyQuota: row.daily_quota || LISTING_DEFAULTS.dailyQuota,
     travel: row.travel || LISTING_DEFAULTS.travel,
     condom: row.condom || LISTING_DEFAULTS.condom,
-    extras: parseJsonArray<string>(row.extras ?? []),
+    extras: parseExtras(row.extras),
     reviewPref: row.review_pref || LISTING_DEFAULTS.reviewPref,
     depositFen: Number(row.deposit_fen ?? LISTING_DEFAULTS.depositFen),
   };

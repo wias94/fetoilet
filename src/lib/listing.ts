@@ -1,3 +1,5 @@
+import type { ExtraFee } from "@/lib/profiles";
+
 export const DEPOSITS = [
   { fen: 50000, label: "500元" },
   { fen: 100000, label: "1000元" },
@@ -60,19 +62,6 @@ export const HOURS_TAGS = ["仅晚上可接", "仅白天可接", "全天可接",
 export const DAILY_QUOTAS = ["一天一客", "一天两客", "一天三客", "不限"] as const;
 export const TRAVELS = ["本地客人", "周边可接", "全国空降"] as const;
 export const CONDOMS = ["必须带套", "看人可无套", "加钱可无套", "均可无套"] as const;
-export const EXTRAS = [
-  "舔脚",
-  "毒龙",
-  "多人",
-  "无套",
-  "吞精",
-  "内射",
-  "肛交",
-  "户外",
-  "圣水",
-  "拍照",
-  "录像",
-] as const;
 export const REVIEW_PREFS = ["不需要", "可以接受", "非常需要"] as const;
 
 export type Listing = {
@@ -90,7 +79,7 @@ export type Listing = {
   dailyQuota: (typeof DAILY_QUOTAS)[number];
   travel: (typeof TRAVELS)[number];
   condom: (typeof CONDOMS)[number];
-  extras: string[];
+  extras: ExtraFee[];
   reviewPref: (typeof REVIEW_PREFS)[number];
   depositFen: number;
 };
@@ -152,4 +141,3 @@ export function composeListingBio(input: {
   ].join("");
   return text.slice(0, 280);
 }
-
