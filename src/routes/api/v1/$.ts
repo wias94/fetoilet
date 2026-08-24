@@ -73,10 +73,17 @@ async function handle(method: string, request: Request) {
     await touchSeen(user.id);
 
     if (method === "GET" && path === "me") {
+      const { refreshUserFromSim } = await import("@/lib/location-sim");
+      await refreshUserFromSim(user.id);
       const state = await getUserState(user.id);
+      const sql = await (await import("@/lib/db")).getSql();
+      const loc = await sql<{ location_id: string | null }>`
+        select location_id from user_state where user_id = ${user.id} limit 1
+      `;
       return json({
         ok: true,
         user: { id: user.id, email: user.email },
+        location_id: loc[0]?.location_id ?? (/^P\d{5}$/.test(user.id) ? user.id : null),
         banned: Boolean(state?.banned),
         ban_reason: state?.banReason ?? "",
         last_seen_at: state?.lastSeenAt ?? null,
@@ -86,6 +93,8 @@ async function handle(method: string, request: Request) {
 
     if (path === "location") {
       if (method === "GET") {
+        const { refreshUserFromSim } = await import("@/lib/location-sim");
+        await refreshUserFromSim(user.id);
         const state = await getUserState(user.id);
         return json({ ok: true, location: state?.location ?? null });
       }

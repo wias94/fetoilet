@@ -116,6 +116,7 @@ type StallRow = {
   stall_token?: string | null;
   listed_fen?: number | null;
   relation?: string | null;
+  location_id?: string | null;
   weight_kg?: number | null;
   identity?: string | null;
   job?: string | null;
@@ -135,6 +136,9 @@ type StallRow = {
   extras?: ExtraFee[] | string[] | string | null;
   review_pref?: string | null;
   deposit_fen?: number | null;
+  person_id?: string | null;
+  lat?: number | null;
+  lng?: number | null;
 };
 
 export type MineStall = Profile & { hasOwner: boolean; stallToken: string | null };
@@ -185,6 +189,7 @@ function toProfile(row: StallRow): Profile {
     unowned: !row.owner_id,
     listedFen: row.listed_fen == null ? null : Number(row.listed_fen),
     relation: row.relation ?? null,
+    locationId: row.location_id ?? null,
     weightKg: Number(row.weight_kg ?? LISTING_DEFAULTS.weightKg),
     identity: row.identity || LISTING_DEFAULTS.identity,
     job: row.job || LISTING_DEFAULTS.job,
@@ -204,6 +209,7 @@ function toProfile(row: StallRow): Profile {
     extras: parseExtras(row.extras),
     reviewPref: row.review_pref || LISTING_DEFAULTS.reviewPref,
     depositFen: Number(row.deposit_fen ?? LISTING_DEFAULTS.depositFen),
+    personId: row.person_id ?? null,
   };
 }
 
@@ -214,35 +220,8 @@ function autoWork(data: { online: boolean; tags: TagId[]; etaMin: number }) {
 }
 
 async function ensureSeeded(sql: Sql) {
-  const counted = await sql<{ n: number }>`select count(*)::int as n from stalls`;
-  if (Number(counted[0]?.n ?? 0) === 0) {
-    for (const p of PROFILES) {
-      await sql`
-        insert into stalls (
-          id, user_id, name, age, height_cm, cup, tags, image, online,
-          hour_fen, night_fen, eta_min, places, bio, services, work, owner_id
-        ) values (
-          ${p.id}, ${`seed:${p.id}`}, ${p.name}, ${p.age}, ${p.heightCm}, ${p.cup},
-          ${JSON.stringify(p.tags)}::jsonb, ${p.image}, ${p.online},
-          ${p.hourFen}, ${p.nightFen}, ${p.etaMin}, ${JSON.stringify(p.places)}::jsonb,
-          ${p.bio}, ${JSON.stringify(p.services)}::jsonb, ${p.work}, ${"seed:owner"}
-        )
-      `;
-    }
-  } else {
-    for (const p of PROFILES) {
-      await sql`
-        update stalls set
-          name = ${p.name},
-          bio = ${p.bio},
-          services = ${JSON.stringify(p.services)}::jsonb,
-          work = ${p.work}
-        where user_id = ${`seed:${p.id}`}
-      `;
-    }
-  }
-  const { ensureMotherSon } = await import("@/lib/seed-family");
-  await ensureMotherSon(sql);
+  const { ensureGtaPeople } = await import("@/lib/seed-gta");
+  await ensureGtaPeople(sql);
 }
 
 export async function findStall(sql: Sql, id: string) {
@@ -278,6 +257,7 @@ export const listPublicStalls = createServerFn({ method: "GET" }).handler(async 
     ) r on r.profile_id = s.id
     where coalesce(s.hidden, false) = false
     order by coalesce(s.featured, false) desc, s.online desc, s.created_at desc
+    limit 80
   `;
   return rows.map(toProfile);
 });

@@ -274,7 +274,7 @@ export function listingFromArchive(input: ArchiveInput): MappedListing {
     skillLevel: pick(s.experience, SKILLS),
     orgasm: pick(s.experience * 0.45 + s.lewd * 0.35 + s.youth * 0.2, ORGASMS),
     feel: pick(s.lewd * 0.5 + s.experience * 0.5, FEELS),
-    persona: pick(s.lewd * 0.4 + s.obedience * 0.2 + (1 - s.reserve) * 0.2 + (1 - s.temper) * 0.2, PERSONAS),
+    persona: pick(Math.min(0.99, s.lewd * 0.4 + s.obedience * 0.2 + (1 - s.reserve) * 0.2 + (1 - s.temper) * 0.2 + 0.12), PERSONAS),
     sellingPoints: sellingPoints({ ...input, job, personality, identity }, s),
     hoursTag: (HOURS_TAGS as readonly string[]).includes(hours) ? (hours as (typeof HOURS_TAGS)[number]) : "仅晚上可接",
     dailyQuota: pick(s.availability * 0.6 + s.stamina * 0.4, DAILY_QUOTAS),

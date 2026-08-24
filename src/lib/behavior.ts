@@ -270,6 +270,8 @@ export async function listLocations() {
 }
 
 export async function listNearby(lat: number, lng: number, radiusM: number) {
+  const { syncWorldIfDue } = await import("@/lib/location-sim");
+  await syncWorldIfDue();
   const sql = await getSql();
   const rows = await sql<{
     id: string;
