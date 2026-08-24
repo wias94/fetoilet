@@ -25,7 +25,7 @@ export function ProfileCard({ profile: p }: { profile: Profile }) {
               </p>
               <p className="mt-0.5 truncate text-xs text-fg/65">
                 {p.persona ? `${p.persona} · ` : ""}
-                {p.heightCm}cm/{p.weightKg ?? "—"}kg · {p.area}
+                {p.heightCm}cm/{p.weightKg ?? "—"}kg
               </p>
             </div>
             <span className="shrink-0 tabular-nums text-sm">{formatFen(p.hourFen)}/次</span>

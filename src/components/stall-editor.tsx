@@ -13,7 +13,6 @@ import {
 } from "@/lib/stalls";
 import { readStallPhoto } from "@/lib/read-photo";
 import {
-  AREAS,
   PLACE_PRESETS,
   SERVICE_PRESETS,
   TAGS,
@@ -47,7 +46,6 @@ import {
 } from "@/lib/listing";
 import { cn, formatFen } from "@/lib/utils";
 
-const AREAS_ONLY = AREAS.filter((a) => a !== "附近");
 const TAG_OPTIONS = TAGS.filter((t) => t.id !== "all") as { id: TagId; label: string }[];
 const STEPS = ["保证金", "档案", "表现", "接客", "照片"] as const;
 
@@ -57,7 +55,6 @@ type Form = {
   heightCm: string;
   weightKg: string;
   cup: string;
-  area: string;
   tags: TagId[];
   image: string;
   online: boolean;
@@ -95,7 +92,6 @@ const EMPTY: Form = {
   heightCm: "165",
   weightKg: String(LISTING_DEFAULTS.weightKg),
   cup: "C",
-  area: "徐汇",
   tags: ["visit"],
   image: "",
   online: true,
@@ -135,7 +131,6 @@ function fromProfile(p: Profile): Form {
     heightCm: String(p.heightCm),
     weightKg: String(p.weightKg ?? LISTING_DEFAULTS.weightKg),
     cup: p.cup,
-    area: p.area,
     tags: p.tags,
     image: p.image,
     online: p.online,
@@ -251,7 +246,6 @@ export function StallEditor({
       age: Number(form.age),
       heightCm: Number(form.heightCm),
       cup: form.cup as "B" | "C" | "D" | "E",
-      area: form.area,
       tags: form.tags,
       image: form.image,
       online: form.online,
@@ -525,13 +519,6 @@ export function StallEditor({
                 </div>
               </Field>
             </div>
-            <Field label="区">
-              <div className="flex flex-wrap gap-2">
-                {AREAS_ONLY.map((a) => (
-                  <Chip key={a} active={form.area === a} onClick={() => setForm((f) => ({ ...f, area: a }))}>{a}</Chip>
-                ))}
-              </div>
-            </Field>
             <Field label="身份">
               <div className="flex flex-wrap gap-2">
                 {IDENTITIES.map((v) => (

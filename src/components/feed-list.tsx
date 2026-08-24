@@ -105,10 +105,7 @@ export function FeedList({ compose }: { compose?: boolean }) {
                 </Link>
                 <span className="shrink-0 text-xs text-subtle">{ago(p.createdAt)}</span>
               </div>
-              <p className="text-xs text-muted">
-                {p.area}
-                {p.online ? " · 在线" : ""}
-              </p>
+              <p className="text-xs text-muted">{p.online ? "可点单" : "已下架"}</p>
               <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">{p.body}</p>
               {p.mine && (
                 <button

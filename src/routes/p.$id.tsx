@@ -109,7 +109,7 @@ function ProfilePage() {
                 <span className="ml-2 font-sans text-lg font-normal text-muted">{profile.age}</span>
               </h1>
               <p className="mt-1 text-sm text-muted">
-                {profile.area} · {profile.heightCm} cm · {profile.weightKg ?? "—"} kg · {profile.cup}杯 · 肉厕编号 {profile.id}
+                {profile.heightCm} cm · {profile.weightKg ?? "—"} kg · {profile.cup}杯 · 肉厕编号 {profile.id}
               </p>
               <p className="mt-2 text-sm text-fg">
                 {profile.online ? "当前可点单" : "暂未上架"} · {profile.etaMin} 分钟抵达 ·{" "}

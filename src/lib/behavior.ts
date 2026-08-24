@@ -274,7 +274,6 @@ export async function listNearby(lat: number, lng: number, radiusM: number) {
   const rows = await sql<{
     id: string;
     name: string;
-    area: string;
     online: boolean;
     hour_fen: number;
     eta_min: number;
@@ -282,7 +281,7 @@ export async function listNearby(lat: number, lng: number, radiusM: number) {
     lat: number;
     lng: number;
   }>`
-    select id, name, area, online, hour_fen, eta_min, image, lat, lng
+    select id, name, online, hour_fen, eta_min, image, lat, lng
     from stalls
     where lat is not null and lng is not null
       and coalesce(hidden, false) = false
@@ -293,7 +292,6 @@ export async function listNearby(lat: number, lng: number, radiusM: number) {
       return {
         id: r.id,
         name: r.name,
-        area: r.area,
         online: Boolean(r.online),
         hour_fen: Number(r.hour_fen),
         eta_min: Number(r.eta_min),

@@ -16,7 +16,6 @@ export type AdminStallRow = {
   id: string;
   userId: string;
   name: string;
-  area: string;
   online: boolean;
   featured: boolean;
   hidden: boolean;
@@ -122,14 +121,13 @@ export const adminListStalls = createServerFn({ method: "GET" })
       id: string;
       user_id: string;
       name: string;
-      area: string;
       online: boolean;
       featured: boolean;
       hidden: boolean;
       hour_fen: number;
       created_at: string;
     }>`
-      select id, user_id, name, area, online,
+      select id, user_id, name, online,
         coalesce(featured, false) as featured,
         coalesce(hidden, false) as hidden,
         hour_fen, created_at
@@ -142,7 +140,6 @@ export const adminListStalls = createServerFn({ method: "GET" })
         id: r.id,
         userId: r.user_id,
         name: r.name,
-        area: r.area,
         online: Boolean(r.online),
         featured: Boolean(r.featured),
         hidden: Boolean(r.hidden),

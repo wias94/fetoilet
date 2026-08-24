@@ -7,7 +7,7 @@ import { Splash } from "@/components/splash";
 import { Input } from "@/components/ui/input";
 import { useEntry } from "@/lib/entry";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { AREAS, TAGS, type TagId, onlineCount, searchProfiles } from "@/lib/profiles";
+import { TAGS, type TagId, onlineCount, searchProfiles } from "@/lib/profiles";
 import { listPublicStalls } from "@/lib/stalls";
 import { BroadcastBanner } from "@/components/broadcast-banner";
 import { cn, greetingForHour } from "@/lib/utils";
@@ -48,7 +48,6 @@ function HomeFeed() {
   const stalls = Route.useLoaderData();
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState<TagId | "all">("all");
-  const [area, setArea] = useState<string>("附近");
   const [shelf, setShelf] = useState<"all" | "unowned" | "sale">("all");
   const [hello, setHello] = useState("本所营业中");
 
@@ -57,11 +56,11 @@ function HomeFeed() {
   }, []);
 
   const list = useMemo(() => {
-    const rows = searchProfiles(stalls, query, tag, area);
+    const rows = searchProfiles(stalls, query, tag);
     if (shelf === "unowned") return rows.filter((p) => p.unowned);
     if (shelf === "sale") return rows.filter((p) => Boolean(p.listedFen));
     return rows;
-  }, [stalls, query, tag, area, shelf]);
+  }, [stalls, query, tag, shelf]);
 
   return (
     <div>
@@ -75,22 +74,6 @@ function HomeFeed() {
       </p>
 
       <div className="-mx-4 mt-5 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {AREAS.map((a) => (
-          <button
-            key={a}
-            type="button"
-            onClick={() => setArea(a)}
-            className={cn(
-              "h-9 shrink-0 rounded-full px-3.5 text-sm",
-              area === a ? "bg-fg text-bg" : "bg-surface text-fg shadow-border",
-            )}
-          >
-            {a}
-          </button>
-        ))}
-      </div>
-
-      <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {(
           [
             ["all", "全部货"],

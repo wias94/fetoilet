@@ -59,7 +59,7 @@ function WorkMePage() {
           <p className="text-sm text-muted">当前挂牌</p>
           <p className="mt-1 font-display text-xl font-semibold">{stall.name}</p>
           <p className="mt-1 text-sm text-muted">
-            {stall.area} · 单次 {formatFen(stall.hourFen)} · {stall.online ? "可点单" : "已下架"}
+            单次 {formatFen(stall.hourFen)} · {stall.online ? "可点单" : "已下架"}
             {stall.hasOwner ? " · 有所属人，收益归所属人" : " · 无主，被使用后收益为零"}
           </p>
           {stall.stallToken && (

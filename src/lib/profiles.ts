@@ -6,7 +6,6 @@ export type Profile = {
   age: number;
   heightCm: number;
   cup: string;
-  area: string;
   tags: TagId[];
   image: string;
   online: boolean;
@@ -54,8 +53,6 @@ export const TAGS: { id: TagId | "all"; label: string }[] = [
   { id: "business", label: "随身肉厕" },
 ];
 
-export const AREAS = ["附近", "徐汇", "静安", "黄浦", "长宁", "浦东"] as const;
-
 export const SLOTS = ["即刻使用", "今晚使用", "明日预约", "周末占用"] as const;
 
 export const PROFILES: Profile[] = [
@@ -65,7 +62,6 @@ export const PROFILES: Profile[] = [
     age: 26,
     heightCm: 168,
     cup: "C",
-    area: "徐汇",
     tags: ["visit", "parttime"],
     image: "/profiles/qi.jpg",
     online: true,
@@ -85,7 +81,6 @@ export const PROFILES: Profile[] = [
     age: 29,
     heightCm: 170,
     cup: "D",
-    area: "静安",
     tags: ["incall", "night"],
     image: "/profiles/wan.jpg",
     online: true,
@@ -105,7 +100,6 @@ export const PROFILES: Profile[] = [
     age: 31,
     heightCm: 165,
     cup: "C",
-    area: "黄浦",
     tags: ["visit", "night"],
     image: "/profiles/su.jpg",
     online: false,
@@ -125,7 +119,6 @@ export const PROFILES: Profile[] = [
     age: 32,
     heightCm: 172,
     cup: "B",
-    area: "浦东",
     tags: ["business", "visit"],
     image: "/profiles/mina.jpg",
     online: true,
@@ -145,7 +138,6 @@ export const PROFILES: Profile[] = [
     age: 27,
     heightCm: 163,
     cup: "C",
-    area: "长宁",
     tags: ["parttime", "visit"],
     image: "/profiles/bei.jpg",
     online: true,
@@ -165,7 +157,6 @@ export const PROFILES: Profile[] = [
     age: 34,
     heightCm: 167,
     cup: "C",
-    area: "徐汇",
     tags: ["incall", "business"],
     image: "/profiles/lin.jpg",
     online: false,
@@ -185,7 +176,6 @@ export const PROFILES: Profile[] = [
     age: 25,
     heightCm: 166,
     cup: "D",
-    area: "静安",
     tags: ["visit", "night", "parttime"],
     image: "/profiles/ke.jpg",
     online: true,
@@ -205,7 +195,6 @@ export const PROFILES: Profile[] = [
     age: 36,
     heightCm: 164,
     cup: "B",
-    area: "黄浦",
     tags: ["night", "business"],
     image: "/profiles/shen.jpg",
     online: true,
@@ -258,14 +247,12 @@ export function searchProfiles(
   list: Profile[],
   query: string,
   tag: TagId | "all",
-  area: string,
 ) {
   const q = query.trim().toLowerCase();
   return list.filter((p) => {
     if (tag !== "all" && !p.tags.includes(tag)) return false;
-    if (area !== "附近" && p.area !== area) return false;
     if (!q) return true;
-    const blob = [p.name, p.area, p.bio, p.work, p.cup, ...p.services, ...p.places, ...p.tags]
+    const blob = [p.name, p.bio, p.work, p.cup, ...p.services, ...p.places, ...p.tags]
       .join(" ")
       .toLowerCase();
     return blob.includes(q);

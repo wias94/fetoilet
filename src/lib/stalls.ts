@@ -3,7 +3,6 @@ import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql, type Sql } from "@/lib/db";
 import {
-  AREAS,
   PLACE_PRESETS,
   PROFILES,
   SERVICE_PRESETS,
@@ -29,7 +28,6 @@ import {
 } from "@/lib/listing";
 
 const TAG_IDS = ["visit", "incall", "night", "parttime", "business"] as const;
-const AREA_SET = AREAS.filter((a) => a !== "附近");
 
 function isUserPhoto(value: string) {
   return (
@@ -48,7 +46,6 @@ const StallInput = z.object({
   age: z.number().int().min(18).max(55),
   heightCm: z.number().int().min(150).max(185),
   cup: z.enum(["B", "C", "D", "E"]),
-  area: z.string().refine((v) => AREA_SET.includes(v as (typeof AREA_SET)[number])),
   tags: z.array(z.enum(TAG_IDS)).min(1).max(4),
   image: z.string().refine((v) => isUserPhoto(v) || isStoredPhoto(v), "上传自己的实拍"),
   online: z.boolean(),
@@ -96,7 +93,6 @@ type StallRow = {
   age: number;
   height_cm: number;
   cup: string;
-  area: string;
   tags: TagId[] | string;
   image: string;
   online: boolean;
@@ -166,7 +162,6 @@ function toProfile(row: StallRow): Profile {
     age: Number(row.age),
     heightCm: Number(row.height_cm),
     cup: row.cup,
-    area: row.area,
     tags: parseJsonArray<TagId>(row.tags),
     image: row.image,
     online: Boolean(row.online),
@@ -215,10 +210,10 @@ async function ensureSeeded(sql: Sql) {
     for (const p of PROFILES) {
       await sql`
         insert into stalls (
-          id, user_id, name, age, height_cm, cup, area, tags, image, online,
+          id, user_id, name, age, height_cm, cup, tags, image, online,
           hour_fen, night_fen, eta_min, places, bio, services, work, owner_id
         ) values (
-          ${p.id}, ${`seed:${p.id}`}, ${p.name}, ${p.age}, ${p.heightCm}, ${p.cup}, ${p.area},
+          ${p.id}, ${`seed:${p.id}`}, ${p.name}, ${p.age}, ${p.heightCm}, ${p.cup},
           ${JSON.stringify(p.tags)}::jsonb, ${p.image}, ${p.online},
           ${p.hourFen}, ${p.nightFen}, ${p.etaMin}, ${JSON.stringify(p.places)}::jsonb,
           ${p.bio}, ${JSON.stringify(p.services)}::jsonb, ${p.work}, ${"seed:owner"}
@@ -339,7 +334,6 @@ export const saveMyStall = createServerFn({ method: "POST" })
           age = ${data.age},
           height_cm = ${data.heightCm},
           cup = ${data.cup},
-          area = ${data.area},
           tags = ${JSON.stringify(data.tags)}::jsonb,
           image = ${image},
           online = ${data.online},
@@ -374,14 +368,14 @@ export const saveMyStall = createServerFn({ method: "POST" })
     } else {
       await sql`
         insert into stalls (
-          id, user_id, name, age, height_cm, cup, area, tags, image, online,
+          id, user_id, name, age, height_cm, cup, tags, image, online,
           hour_fen, night_fen, eta_min, places, bio, services, work, owner_id,
           weight_kg, identity, marriage, demeanor, moan, skill_level, orgasm, feel,
           persona, selling_points, hours_tag, daily_quota, travel, condom, extras,
           review_pref, deposit_fen
         ) values (
           ${id}, ${context.userId}, ${data.name}, ${data.age}, ${data.heightCm}, ${data.cup},
-          ${data.area}, ${JSON.stringify(data.tags)}::jsonb, ${image}, ${data.online},
+          ${JSON.stringify(data.tags)}::jsonb, ${image}, ${data.online},
           ${data.hourFen}, ${data.nightFen}, ${data.etaMin}, ${JSON.stringify(data.places)}::jsonb,
           ${data.bio}, ${JSON.stringify(data.services)}::jsonb, ${work}, ${ownerId},
           ${data.weightKg}, ${data.identity}, ${data.marriage}, ${data.demeanor}, ${data.moan},
@@ -482,7 +476,6 @@ export const saveOwnedStall = createServerFn({ method: "POST" })
         age = ${data.age},
         height_cm = ${data.heightCm},
         cup = ${data.cup},
-        area = ${data.area},
         tags = ${JSON.stringify(data.tags)}::jsonb,
         image = ${image},
         online = ${data.online},
@@ -548,7 +541,7 @@ export const createOwnedStall = createServerFn({ method: "POST" })
     const token = mintToken("TC");
     await sql`
       insert into stalls (
-        id, user_id, name, age, height_cm, cup, area, tags, image, online,
+        id, user_id, name, age, height_cm, cup, tags, image, online,
         hour_fen, night_fen, eta_min, places, bio, services, work, owner_id,
         stall_token, relation,
         weight_kg, identity, marriage, demeanor, moan, skill_level, orgasm, feel,
@@ -556,7 +549,7 @@ export const createOwnedStall = createServerFn({ method: "POST" })
         review_pref, deposit_fen
       ) values (
         ${id}, ${login.userId}, ${data.name}, ${data.age}, ${data.heightCm}, ${data.cup},
-        ${data.area}, ${JSON.stringify(data.tags)}::jsonb, ${image}, ${data.online},
+        ${JSON.stringify(data.tags)}::jsonb, ${image}, ${data.online},
         ${data.hourFen}, ${data.nightFen}, ${data.etaMin}, ${JSON.stringify(data.places)}::jsonb,
         ${data.bio}, ${JSON.stringify(data.services)}::jsonb, ${work}, ${context.userId},
         ${token}, ${data.relation},

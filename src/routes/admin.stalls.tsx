@@ -51,7 +51,6 @@ function AdminStalls() {
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <p className="font-medium">
                 {row.name}
-                <span className="ml-2 text-sm font-normal text-muted">{row.area}</span>
               </p>
               <p className="text-sm tabular-nums">{formatFen(row.hourFen)}/冲</p>
             </div>

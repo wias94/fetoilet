@@ -148,7 +148,7 @@ function WorkBoard() {
       <p className="text-sm text-muted">便器端 · 等人来泄</p>
       <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">{stall.name}</h1>
       <p className="mt-1 text-sm text-muted">
-        {stall.area} · {stall.etaMin} 分钟到 · {stall.online ? "现在挂着" : "关着"}
+        {stall.etaMin} 分钟到 · {stall.online ? "现在挂着" : "关着"}
       </p>
 
       <button

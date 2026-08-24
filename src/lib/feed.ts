@@ -8,7 +8,6 @@ export type FeedPost = {
   stallId: string;
   stallName: string;
   stallImage: string;
-  area: string;
   online: boolean;
   body: string;
   createdAt: string;
@@ -24,14 +23,13 @@ export const listFeed = createServerFn({ method: "GET" })
       stall_id: string;
       stall_name: string;
       stall_image: string;
-      area: string;
       online: boolean;
       body: string;
       created_at: string;
       user_id: string;
     }>`
       select p.id, p.stall_id, s.name as stall_name, s.image as stall_image,
-        s.area, s.online, p.body, p.created_at, p.user_id
+        s.online, p.body, p.created_at, p.user_id
       from posts p
       join stalls s on s.id = p.stall_id
       where coalesce(s.hidden, false) = false
@@ -43,7 +41,6 @@ export const listFeed = createServerFn({ method: "GET" })
       stallId: r.stall_id,
       stallName: r.stall_name,
       stallImage: r.stall_image,
-      area: r.area,
       online: Boolean(r.online),
       body: r.body,
       createdAt: r.created_at,
