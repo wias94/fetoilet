@@ -13,19 +13,11 @@ export const adminMiddleware = createMiddleware({ type: "function" })
     const { getBearerToken } = await import("./client");
     return next({ sendContext: { bearerToken: getBearerToken() ?? undefined } });
   })
-  .server(async ({ next, context }) => {
+  .server(async ({ next }) => {
     const { assertSameSiteRequest } = await import("./isolation.server");
-    const { getSessionUser, UnauthorizedError } = await import("./verify.server");
-    const { getSql } = await import("@/lib/db");
+    const { isAdminSession, adminContext } = await import("./admin-session.server");
+    const { UnauthorizedError } = await import("./verify.server");
     assertSameSiteRequest();
-    const user = await getSessionUser(context.bearerToken);
-    if (!user?.id) throw new UnauthorizedError();
-    const email = (user.email ?? "").trim().toLowerCase();
-    if (!email) throw new ForbiddenError();
-    const sql = await getSql();
-    const rows = await sql<{ email: string }>`
-      select email from admins where lower(email) = ${email} limit 1
-    `;
-    if (!rows[0]) throw new ForbiddenError();
-    return next({ context: { userId: user.id, email } });
+    if (!isAdminSession()) throw new UnauthorizedError();
+    return next({ context: adminContext() });
   });

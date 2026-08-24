@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Megaphone, LayoutGrid, Package, Receipt, Users } from "lucide-react";
 import { Wordmark } from "@/components/logo";
-import { AuthSlot } from "@/components/auth-slot";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type AdminPath = "/admin" | "/admin/users" | "/admin/stalls" | "/admin/orders" | "/admin/push";
@@ -22,7 +22,18 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <HeaderLink to="/admin/orders" label="单" />
             <HeaderLink to="/admin/push" label="推流" />
           </nav>
-          <AuthSlot to="/admin" />
+          <Button
+            size="sm"
+            variant="secondary"
+            type="button"
+            onClick={() => {
+              void fetch("/api/admin/session", { method: "DELETE", credentials: "include" }).then(() => {
+                window.location.href = "/admin";
+              });
+            }}
+          >
+            退出
+          </Button>
         </div>
       </header>
       <div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-5 md:pb-12">{children}</div>

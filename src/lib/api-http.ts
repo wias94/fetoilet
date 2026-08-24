@@ -96,20 +96,9 @@ export async function requireApiAdmin() {
   if (key && given && given === key) {
     return { userId: "admin-key", email: "admin-key" };
   }
-  const user = await getSessionUser();
-  if (!user?.id || !user.email) {
-    const err = new Error("Unauthorized");
-    (err as Error & { status: number }).status = 401;
-    throw err;
-  }
-  const sql = await getSql();
-  const rows = await sql<{ email: string }>`
-    select email from admins where lower(email) = ${user.email.trim().toLowerCase()} limit 1
-  `;
-  if (!rows[0]) {
-    const err = new Error("Forbidden");
-    (err as Error & { status: number }).status = 403;
-    throw err;
-  }
-  return { userId: user.id, email: user.email };
+  const { isAdminSession, adminContext } = await import("@/lib/auth/admin-session.server");
+  if (isAdminSession(request)) return adminContext();
+  const err = new Error("Unauthorized");
+  (err as Error & { status: number }).status = 401;
+  throw err;
 }

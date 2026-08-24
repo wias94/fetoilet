@@ -1,10 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { GROK_PROVIDERS, authClient, authEnabled, signIn } from "@/lib/auth/client";
 import { resetEmailPassword } from "@/lib/auth/reset-password";
-import { resolveLoginEmail, ADMIN_EMAIL } from "@/lib/auth/login-email";
-import { ensureAdminReady } from "@/lib/auth/ensure-admin";
 import { LogoMark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,12 +31,8 @@ function Login() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    void ensureAdminReady().catch(() => undefined);
-  }, []);
-
   function cleanEmail() {
-    return resolveLoginEmail(email);
+    return email.trim().toLowerCase();
   }
 
   async function oauth(providerId: string) {
@@ -72,11 +66,7 @@ function Login() {
           toast(authMessage(error.message ?? "重设了，再点一次邮箱登录"));
           return;
         }
-        window.location.href = mail === ADMIN_EMAIL ? "/admin" : (redirect ?? "/");
-        return;
-      }
-      if (mode === "up" && mail === ADMIN_EMAIL) {
-        toast("管理号请直接登录");
+        window.location.href = redirect ?? "/";
         return;
       }
       const fn =
@@ -92,7 +82,7 @@ function Login() {
         toast(authMessage(error.message ?? "没登上"));
         return;
       }
-      window.location.href = mail === ADMIN_EMAIL ? "/admin" : (redirect ?? "/");
+      window.location.href = redirect ?? "/";
     } catch (err) {
       toast(err instanceof Error ? authMessage(err.message) : "没登上");
     } finally {
@@ -146,9 +136,9 @@ function Login() {
 
           <div className="mt-8 space-y-3">
             <Input
-              type="text"
-              autoComplete="username"
-              placeholder="邮箱，或 admin"
+              type="email"
+              autoComplete="email"
+              placeholder="邮箱"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />

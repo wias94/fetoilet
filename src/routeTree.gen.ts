@@ -34,6 +34,7 @@ import { Route as WorkMailRouteImport } from './routes/work.mail'
 import { Route as WorkMeRouteImport } from './routes/work.me'
 import { Route as WorkStallRouteImport } from './routes/work.stall'
 import { Route as WorkStatsRouteImport } from './routes/work.stats'
+import { Route as ApiAdminSessionRouteImport } from './routes/api/admin/session'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiMediaSplatRouteImport } from './routes/api/media/$'
 import { Route as ApiV1SplatRouteImport } from './routes/api/v1/$'
@@ -164,6 +165,11 @@ const WorkStatsRoute = WorkStatsRouteImport.update({
   path: '/stats',
   getParentRoute: () => WorkRoute,
 } as any)
+const ApiAdminSessionRoute = ApiAdminSessionRouteImport.update({
+  id: '/api/admin/session',
+  path: '/api/admin/session',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -211,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/work/stats': typeof WorkStatsRoute
   '/admin/': typeof AdminIndexRoute
   '/work/': typeof WorkIndexRoute
+  '/api/admin/session': typeof ApiAdminSessionRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/api/v1/$': typeof ApiV1SplatRoute
@@ -240,6 +247,7 @@ export interface FileRoutesByTo {
   '/work/stats': typeof WorkStatsRoute
   '/admin': typeof AdminIndexRoute
   '/work': typeof WorkIndexRoute
+  '/api/admin/session': typeof ApiAdminSessionRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/api/v1/$': typeof ApiV1SplatRoute
@@ -272,6 +280,7 @@ export interface FileRoutesById {
   '/work/stats': typeof WorkStatsRoute
   '/admin/': typeof AdminIndexRoute
   '/work/': typeof WorkIndexRoute
+  '/api/admin/session': typeof ApiAdminSessionRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/api/v1/$': typeof ApiV1SplatRoute
@@ -305,6 +314,7 @@ export interface FileRouteTypes {
     | '/work/stats'
     | '/admin/'
     | '/work/'
+    | '/api/admin/session'
     | '/api/auth/$'
     | '/api/media/$'
     | '/api/v1/$'
@@ -334,6 +344,7 @@ export interface FileRouteTypes {
     | '/work/stats'
     | '/admin'
     | '/work'
+    | '/api/admin/session'
     | '/api/auth/$'
     | '/api/media/$'
     | '/api/v1/$'
@@ -365,6 +376,7 @@ export interface FileRouteTypes {
     | '/work/stats'
     | '/admin/'
     | '/work/'
+    | '/api/admin/session'
     | '/api/auth/$'
     | '/api/media/$'
     | '/api/v1/$'
@@ -385,6 +397,7 @@ export interface RootRouteChildren {
   ApiV1Route: typeof ApiV1RouteWithChildren
   OwnedIdRoute: typeof OwnedIdRoute
   PIdRoute: typeof PIdRoute
+  ApiAdminSessionRoute: typeof ApiAdminSessionRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiMediaSplatRoute: typeof ApiMediaSplatRoute
 }
@@ -566,6 +579,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkStatsRouteImport
       parentRoute: typeof WorkRoute
     }
+    '/api/admin/session': {
+      id: '/api/admin/session'
+      path: '/api/admin/session'
+      fullPath: '/api/admin/session'
+      preLoaderRoute: typeof ApiAdminSessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -681,6 +701,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1Route: ApiV1RouteWithChildren,
   OwnedIdRoute: OwnedIdRoute,
   PIdRoute: PIdRoute,
+  ApiAdminSessionRoute: ApiAdminSessionRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiMediaSplatRoute: ApiMediaSplatRoute,
 }
