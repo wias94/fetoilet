@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, Textarea } from "@/components/ui/input";
 import {
   createOwnedStall,
   getMyStall,
@@ -250,25 +250,7 @@ export function StallEditor({
       nightFen: Math.round(Number(form.nightYuan) * 100),
       etaMin: Number(form.etaMin),
       places: form.places,
-      bio: composeListingBio({
-        persona: form.persona,
-        age: Number(form.age),
-        heightCm: Number(form.heightCm),
-        weightKg: Number(form.weightKg),
-        cup: form.cup,
-        identity: form.identity,
-        marriage: form.marriage,
-        demeanor: form.demeanor,
-        moan: form.moan,
-        skillLevel: form.skillLevel,
-        orgasm: form.orgasm,
-        feel: form.feel,
-        condom: form.condom,
-        hoursTag: form.hoursTag,
-        dailyQuota: form.dailyQuota,
-        travel: form.travel,
-        sellingPoints: form.sellingPoints,
-      }),
+      bio: form.bio.trim(),
       services: form.services,
       confirmedAdult: true as const,
       ownerToken: form.ownerToken,
@@ -313,7 +295,7 @@ export function StallEditor({
       if (!Number.isInteger(night) || night < 80 || night > 8000) return false;
       return form.places.length > 0 && form.services.length > 0 && form.tags.length > 0;
     }
-    if (step === 4) return isShownPhoto(form.image);
+    if (step === 4) return isShownPhoto(form.image) && form.bio.trim().length >= 8;
     return true;
   }
 
@@ -648,28 +630,47 @@ export function StallEditor({
                 {reading ? "在压图…" : form.image ? "换一张" : "从相册选"}
               </Button>
             </Field>
-            <Field label="档案预览（由选项生成，不可手改）">
-              <p className="rounded-2xl bg-sunken p-4 text-sm leading-relaxed text-muted">
-                {composeListingBio({
-                  persona: form.persona,
-                  age: Number(form.age) || 18,
-                  heightCm: Number(form.heightCm) || 165,
-                  weightKg: Number(form.weightKg) || 50,
-                  cup: form.cup,
-                  identity: form.identity,
-                  marriage: form.marriage,
-                  demeanor: form.demeanor,
-                  moan: form.moan,
-                  skillLevel: form.skillLevel,
-                  orgasm: form.orgasm,
-                  feel: form.feel,
-                  condom: form.condom,
-                  hoursTag: form.hoursTag,
-                  dailyQuota: form.dailyQuota,
-                  travel: form.travel,
-                  sellingPoints: form.sellingPoints,
-                })}
-              </p>
+            <Field label="简介（手打，8–280 字）">
+              <Textarea
+                value={form.bio}
+                onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value.slice(0, 280) }))}
+                maxLength={280}
+                required
+              />
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <span className="text-xs text-subtle">{form.bio.trim().length}/280</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() =>
+                    setForm((f) => ({
+                      ...f,
+                      bio: composeListingBio({
+                        persona: f.persona,
+                        age: Number(f.age) || 18,
+                        heightCm: Number(f.heightCm) || 165,
+                        weightKg: Number(f.weightKg) || 50,
+                        cup: f.cup,
+                        identity: f.identity,
+                        marriage: f.marriage,
+                        demeanor: f.demeanor,
+                        moan: f.moan,
+                        skillLevel: f.skillLevel,
+                        orgasm: f.orgasm,
+                        feel: f.feel,
+                        condom: f.condom,
+                        hoursTag: f.hoursTag,
+                        dailyQuota: f.dailyQuota,
+                        travel: f.travel,
+                        sellingPoints: f.sellingPoints,
+                      }),
+                    }))
+                  }
+                >
+                  用选项填一份草稿
+                </Button>
+              </div>
             </Field>
             <label className="flex items-center gap-3 text-sm">
               <input type="checkbox" checked={form.online} onChange={(e) => setForm((f) => ({ ...f, online: e.target.checked }))} className="size-4 accent-fg" />
