@@ -69,6 +69,7 @@ type Form = {
   services: string[];
   confirmedAdult: boolean;
   ownerToken: string;
+  stallEmail: string;
   relation: Relation;
   identity: (typeof IDENTITIES)[number];
   marriage: (typeof MARRIAGES)[number];
@@ -106,6 +107,7 @@ const EMPTY: Form = {
   services: ["走到你身边", "当马桶冲", "必须套上"],
   confirmedAdult: false,
   ownerToken: "",
+  stallEmail: "",
   relation: "女友",
   identity: LISTING_DEFAULTS.identity,
   marriage: LISTING_DEFAULTS.marriage,
@@ -145,6 +147,7 @@ function fromProfile(p: Profile): Form {
     services: p.services,
     confirmedAdult: true,
     relation: (p.relation as Relation) || "女友",
+    stallEmail: "",
     identity: (p.identity as Form["identity"]) || LISTING_DEFAULTS.identity,
     marriage: (p.marriage as Form["marriage"]) || LISTING_DEFAULTS.marriage,
     demeanor: (p.demeanor as Form["demeanor"]) || LISTING_DEFAULTS.demeanor,
@@ -275,7 +278,11 @@ export function StallEditor({
   }
 
   function canNext() {
-    if (step === 0) return form.confirmedAdult;
+    if (step === 0) {
+      if (!form.confirmedAdult) return false;
+      if (createOwned && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.stallEmail.trim())) return false;
+      return true;
+    }
     if (step === 1) {
       const age = Number(form.age);
       const height = Number(form.heightCm);
@@ -313,17 +320,27 @@ export function StallEditor({
     setSaving(true);
     try {
       const payload = listingPayload();
-      const saved = createOwned
-        ? await createOwnedStall({ data: { ...payload, relation: form.relation } })
-        : asOwner && stallId
+      if (createOwned) {
+        const saved = await createOwnedStall({
+          data: { ...payload, relation: form.relation, stallEmail: form.stallEmail.trim().toLowerCase() },
+        });
+        setMine(saved);
+        setHasOwner(true);
+        sessionStorage.setItem(
+          `stall-login:${saved.id}`,
+          JSON.stringify({ email: saved.loginEmail, password: saved.loginPassword }),
+        );
+        toast(form.online ? "已挂牌，开始接询" : "挂上了。开着才会出现在货架上");
+        void navigate({ to: "/owned/$id", params: { id: saved.id } });
+        return;
+      }
+      const saved =
+        asOwner && stallId
           ? await saveOwnedStall({ data: { ...payload, id: stallId } })
           : await saveMyStall({ data: payload });
       setMine(saved);
-      setHasOwner(Boolean(saved.owned) || createOwned || asOwner);
+      setHasOwner(Boolean(saved.owned) || asOwner);
       toast(form.online ? "已挂牌，开始接询" : "挂上了。开着才会出现在货架上");
-      if (createOwned) {
-        void navigate({ to: "/owned/$id", params: { id: saved.id } });
-      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "没写成";
       toast(message === "Unauthorized" ? "先登录" : message);
@@ -383,15 +400,27 @@ export function StallEditor({
               </p>
             </div>
             {createOwned && (
-              <Field label="她是你的什么（妻子、母亲、成年女儿核验简单；同事较复杂）">
-                <div className="flex flex-wrap gap-2">
-                  {RELATIONS.map((r) => (
-                    <Chip key={r} active={form.relation === r} onClick={() => setForm((f) => ({ ...f, relation: r }))}>
-                      {r}
-                    </Chip>
-                  ))}
-                </div>
-              </Field>
+              <>
+                <Field label="她是你的什么（妻子、母亲、成年女儿核验简单；同事较复杂）">
+                  <div className="flex flex-wrap gap-2">
+                    {RELATIONS.map((r) => (
+                      <Chip key={r} active={form.relation === r} onClick={() => setForm((f) => ({ ...f, relation: r }))}>
+                        {r}
+                      </Chip>
+                    ))}
+                  </div>
+                </Field>
+                <Field label="肉厕登录邮箱（注册后生成密码，她用这组进肉厕端）">
+                  <Input
+                    type="email"
+                    autoComplete="off"
+                    value={form.stallEmail}
+                    onChange={(e) => setForm((f) => ({ ...f, stallEmail: e.target.value }))}
+                    placeholder="她的邮箱，不能和你的相同"
+                    required
+                  />
+                </Field>
+              </>
             )}
             <Field label="你能承担的履约保证金">
               <div className="flex flex-wrap gap-2">

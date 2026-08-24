@@ -500,6 +500,7 @@ export const saveOwnedStall = createServerFn({ method: "POST" })
 
 const OwnedCreate = StallInput.extend({
   relation: z.enum(["妻子", "母亲", "女儿", "女友", "同事", "其他"]),
+  stallEmail: z.string().trim().email("请填写肉厕登录邮箱").transform((v) => v.toLowerCase()),
 });
 
 export const createOwnedStall = createServerFn({ method: "POST" })
@@ -520,6 +521,8 @@ export const createOwnedStall = createServerFn({ method: "POST" })
     }
     const work = autoWork(data);
     const { mintToken, ensureStallToken } = await import("@/lib/owners");
+    const { createStallLogin } = await import("@/lib/stall-account");
+    const login = await createStallLogin(data.stallEmail, data.name, context.userId);
     const token = mintToken("TC");
     await sql`
       insert into stalls (
@@ -530,7 +533,7 @@ export const createOwnedStall = createServerFn({ method: "POST" })
         persona, selling_points, hours_tag, daily_quota, travel, condom, extras,
         review_pref, deposit_fen
       ) values (
-        ${id}, ${`held:${id}`}, ${data.name}, ${data.age}, ${data.heightCm}, ${data.cup},
+        ${id}, ${login.userId}, ${data.name}, ${data.age}, ${data.heightCm}, ${data.cup},
         ${data.area}, ${JSON.stringify(data.tags)}::jsonb, ${image}, ${data.online},
         ${data.hourFen}, ${data.nightFen}, ${data.etaMin}, ${JSON.stringify(data.places)}::jsonb,
         ${data.bio}, ${JSON.stringify(data.services)}::jsonb, ${work}, ${context.userId},
@@ -545,7 +548,11 @@ export const createOwnedStall = createServerFn({ method: "POST" })
     await ensureStallToken(sql, id);
     const rows = await sql<StallRow>`select * from stalls where id = ${id} limit 1`;
     if (!rows[0]) throw new Error("没写成");
-    return toProfile(rows[0]);
+    return {
+      ...toProfile(rows[0]),
+      loginEmail: login.email,
+      loginPassword: login.password,
+    };
   });
 
 export const PLACE_OPTIONS = PLACE_PRESETS;
