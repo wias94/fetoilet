@@ -44,7 +44,7 @@ function isStoredPhoto(value: string) {
 }
 
 const StallInput = z.object({
-  name: z.string().trim().min(1).max(12),
+  name: z.string().trim().min(1).max(16).transform((v) => v.replace(/\s+/g, " ")),
   age: z.number().int().min(18).max(55),
   heightCm: z.number().int().min(150).max(185),
   cup: z.enum(["B", "C", "D", "E"]),

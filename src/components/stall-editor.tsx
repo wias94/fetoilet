@@ -466,9 +466,12 @@ export function StallEditor({
               <Input
                 value={form.name}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, name: e.target.value.replace(/[^\u4e00-\u9fa5A-Za-z]/g, "").slice(0, 12) }))
+                  setForm((f) => ({
+                    ...f,
+                    name: e.target.value.replace(/[^\u4e00-\u9fa5A-Za-z\s]/g, "").slice(0, 16),
+                  }))
                 }
-                maxLength={12}
+                maxLength={16}
                 placeholder="点选上方或填写"
                 required
               />
