@@ -22,7 +22,7 @@ import {
   upsertLocation,
   EVENT_KINDS,
 } from "@/lib/behavior";
-import { parseLocation } from "@/lib/geo";
+import { NEARBY_RADIUS_M, parseLocation } from "@/lib/geo";
 
 export const Route = createFileRoute("/api/v1/$")({
   server: {
@@ -91,8 +91,13 @@ async function handle(method: string, request: Request) {
       }
       if (method === "PUT") {
         const body = await readJson(request);
-        const state = await upsertLocation(user.id, body);
-        return json({ ok: true, location: state?.location ?? null });
+        const result = await upsertLocation(user.id, body);
+        return json({
+          ok: true,
+          updated: result.updated,
+          retry_after_s: result.retry_after_s,
+          location: result.state?.location ?? null,
+        });
       }
     }
 
@@ -100,12 +105,11 @@ async function handle(method: string, request: Request) {
       const state = await getUserState(user.id);
       const lat = url.searchParams.get("lat") ? Number(url.searchParams.get("lat")) : state?.location?.lat;
       const lng = url.searchParams.get("lng") ? Number(url.searchParams.get("lng")) : state?.location?.lng;
-      const radius_m = Math.min(Math.max(Number(url.searchParams.get("radius_m") ?? 3000), 100), 20000);
       if (lat == null || lng == null || !Number.isFinite(lat) || !Number.isFinite(lng)) {
         return apiError("先 PUT /api/v1/location，或在 query 里带 lat lng", 400);
       }
-      const stalls = await listNearby(lat, lng, radius_m);
-      return json({ ok: true, origin: { lat, lng }, radius_m, stalls });
+      const stalls = await listNearby(lat, lng, NEARBY_RADIUS_M);
+      return json({ ok: true, origin: { lat, lng }, radius_m: NEARBY_RADIUS_M, stalls });
     }
 
     if (path === "events") {
@@ -174,7 +178,7 @@ async function adminHandle(method: string, path: string, request: Request, url: 
       }
       if (body.location && typeof body.location === "object") {
         parseLocation(body.location);
-        await upsertLocation(id, body.location);
+        await upsertLocation(id, body.location, { force: true });
       }
       if (body.stall_online === false) {
         await forceStallOffline(id);

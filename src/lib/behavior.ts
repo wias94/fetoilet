@@ -1,6 +1,6 @@
 import { getSql, type Sql } from "@/lib/db";
 import type { LocSource, LocationFix } from "@/lib/geo";
-import { distanceM, parseLocation } from "@/lib/geo";
+import { LOCATION_INTERVAL_MS, distanceM, parseLocation } from "@/lib/geo";
 
 export const EVENT_KINDS = [
   "page_view",
@@ -126,10 +126,29 @@ export async function setBanned(userId: string, banned: boolean, reason: string)
   });
 }
 
-export async function upsertLocation(userId: string, raw: unknown, copyToStall = true) {
+export async function upsertLocation(
+  userId: string,
+  raw: unknown,
+  opts: { copyToStall?: boolean; force?: boolean } = {},
+) {
+  const copyToStall = opts.copyToStall !== false;
   const fix = parseLocation(raw);
   const sql = await getSql();
   await ensureUserState(sql, userId);
+
+  const live = opts.force || fix.source === "fake" || fix.source === "manual";
+  if (!live) {
+    const prev = await sql<{ loc_updated_at: string | null }>`
+      select loc_updated_at from user_state where user_id = ${userId} limit 1
+    `;
+    const last = prev[0]?.loc_updated_at ? Date.parse(prev[0].loc_updated_at) : 0;
+    if (last && Date.now() - last < LOCATION_INTERVAL_MS) {
+      const state = await getUserState(userId);
+      const wait = LOCATION_INTERVAL_MS - (Date.now() - last);
+      return { state, updated: false, retry_after_s: Math.ceil(wait / 1000) };
+    }
+  }
+
   await sql`
     update user_state set
       lat = ${fix.lat},
@@ -152,11 +171,11 @@ export async function upsertLocation(userId: string, raw: unknown, copyToStall =
   await recordEvent({
     userId,
     kind: "location",
-    payload: { source: fix.source, accuracy_m: fix.accuracy_m },
+    payload: { source: fix.source },
     lat: fix.lat,
     lng: fix.lng,
   });
-  return getUserState(userId);
+  return { state: await getUserState(userId), updated: true, retry_after_s: 180 };
 }
 
 export async function recordEvent(input: {
