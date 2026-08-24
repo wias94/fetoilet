@@ -1,6 +1,6 @@
 # GPS API
 
-巷厕位置接口。真机用浏览器定位，测试用伪 GPS。字段一样。
+男性 / 女性位置接口。真机用浏览器定位，测试用伪 GPS。字段一样。
 
 线上：`https://fetoilet-production.up.railway.app`  
 本地：`http://localhost:8080`
@@ -13,10 +13,10 @@
 
 | 谁 | 怎么带 |
 |---|---|
-| 登录用户 | Cookie，或 `Authorization: Bearer <session>` |
-| 管事 | 管事账号 Cookie，或请求头 `x-admin-key: <ADMIN_API_KEY>` |
+| 登录的男性或女性 | Cookie，或 `Authorization: Bearer <session>` |
+| 管理员 | 管理员账号 Cookie，或请求头 `x-admin-key: <ADMIN_API_KEY>` |
 
-未登录返回 `401`。被封的号除了 `GET /api/v1/me` 一律 `403`。
+未登录返回 `401`。被封的用户除了 `GET /api/v1/me` 一律 `403`。
 
 ---
 
@@ -83,6 +83,8 @@
 
 ## 用户接口
 
+男性和女性都走这组。女性上报后会出现在男性的附近列表里。
+
 ### 读自己位置
 
 ```http
@@ -96,16 +98,18 @@ PUT /api/v1/location
 Content-Type: application/json
 ```
 
-有肉厕账号时，这次坐标会同步到那具货上，附近列表才能搜到。
+女性账号上报时，坐标会写到该女性资料上，男性才能在附近搜到她。
 
-### 附近
+### 附近的女性
 
 ```http
 GET /api/v1/nearby?radius_m=3000
 GET /api/v1/nearby?lat=31.1883&lng=121.437&radius_m=3000
 ```
 
-不传 `lat` `lng` 就用自己最后一次位置。`radius_m` 默认 3000，范围 100 ~ 20000。
+给男性用。不传 `lat` `lng` 就用自己最后一次位置。`radius_m` 默认 3000，范围 100 ~ 20000。
+
+返回里的 `stalls` 即附近女性列表：
 
 ```json
 {
@@ -139,11 +143,11 @@ GET /api/v1/me
 
 ---
 
-## 管事接口
+## 管理员接口
 
 头里带 `x-admin-key`。
 
-### 替某个号写伪坐标
+### 替某个男性或女性写伪坐标
 
 ```http
 PATCH /api/v1/admin/users/:id
@@ -158,7 +162,7 @@ Content-Type: application/json
 GET /api/v1/admin/locations
 ```
 
-### 封禁 + 关坑 + 改位置（可一起）
+### 封禁 + 让女性下线 + 改位置（可一起）
 
 ```http
 PATCH /api/v1/admin/users/:id
@@ -171,26 +175,28 @@ PATCH /api/v1/admin/users/:id
 }
 ```
 
+`stall_online: false` 表示让该女性下线，男性附近列表不再显示她。
+
 ---
 
 ## curl 示例
 
-伪 GPS 报到徐汇（先登录拿到 Cookie，或管事用 admin key 改别人）：
+伪 GPS 报到徐汇（先登录拿到 Cookie，或管理员用 admin key 改别人）：
 
 ```bash
 BASE=https://fetoilet-production.up.railway.app
 
-# 自己上报
+# 男性或女性自己上报
 curl -X PUT "$BASE/api/v1/location" \
   -H "Cookie: __Host-grok-auth.session_token=…" \
   -H "Content-Type: application/json" \
   -d '{"lat":31.1883,"lng":121.437,"accuracy_m":15,"source":"fake"}'
 
-# 附近
+# 男性查附近女性
 curl "$BASE/api/v1/nearby?radius_m=3000" \
   -H "Cookie: __Host-grok-auth.session_token=…"
 
-# 管事给某号塞坐标
+# 管理员给某位用户写坐标
 curl -X PATCH "$BASE/api/v1/admin/users/USER_ID" \
   -H "x-admin-key: $ADMIN_API_KEY" \
   -H "Content-Type: application/json" \
@@ -219,4 +225,4 @@ navigator.geolocation.getCurrentPosition(async (pos) => {
 });
 ```
 
-必须 HTTPS。用户拒绝授权就只能走 `fake` / `manual`。接口不能替用户打开 GPS。
+必须 HTTPS。用户拒绝授权就只能走 `fake` / `manual`。接口不能替男性或女性打开 GPS。
