@@ -1,0 +1,17 @@
+alter table stalls add column if not exists weight_kg integer not null default 50;
+alter table stalls add column if not exists identity text not null default '在职';
+alter table stalls add column if not exists marriage text not null default '未婚未育';
+alter table stalls add column if not exists demeanor text not null default '自然开放积极配合';
+alter table stalls add column if not exists moan text not null default '只会轻喘呻吟';
+alter table stalls add column if not exists skill_level text not null default '常规伴侣级';
+alter table stalls add column if not exists orgasm text not null default '正常可以高潮';
+alter table stalls add column if not exists feel text not null default '愉悦身心';
+alter table stalls add column if not exists persona text not null default '有待开发的良家';
+alter table stalls add column if not exists selling_points jsonb not null default '[]'::jsonb;
+alter table stalls add column if not exists hours_tag text not null default '仅晚上可接';
+alter table stalls add column if not exists daily_quota text not null default '一天一客';
+alter table stalls add column if not exists travel text not null default '本地客人';
+alter table stalls add column if not exists condom text not null default '必须带套';
+alter table stalls add column if not exists extras jsonb not null default '[]'::jsonb;
+alter table stalls add column if not exists review_pref text not null default '可以接受';
+alter table stalls add column if not exists deposit_fen integer not null default 50000;

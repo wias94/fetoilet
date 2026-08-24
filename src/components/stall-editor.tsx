@@ -23,15 +23,36 @@ import {
   type Relation,
   type TagId,
 } from "@/lib/profiles";
+import {
+  CONDOMS,
+  DAILY_QUOTAS,
+  DEMEANORS,
+  DEPOSITS,
+  EXTRAS,
+  FEELS,
+  HOURS_TAGS,
+  IDENTITIES,
+  LISTING_DEFAULTS,
+  MARRIAGES,
+  MOANS,
+  ORGASMS,
+  PERSONAS,
+  REVIEW_PREFS,
+  SELLING_POINTS,
+  SKILLS,
+  TRAVELS,
+} from "@/lib/listing";
 import { cn, formatFen } from "@/lib/utils";
 
 const AREAS_ONLY = AREAS.filter((a) => a !== "附近");
 const TAG_OPTIONS = TAGS.filter((t) => t.id !== "all") as { id: TagId; label: string }[];
+const STEPS = ["保证金", "档案", "表现", "接客", "照片"] as const;
 
 type Form = {
   name: string;
   age: string;
   heightCm: string;
+  weightKg: string;
   cup: string;
   area: string;
   tags: TagId[];
@@ -46,12 +67,29 @@ type Form = {
   confirmedAdult: boolean;
   ownerToken: string;
   relation: Relation;
+  identity: (typeof IDENTITIES)[number];
+  marriage: (typeof MARRIAGES)[number];
+  demeanor: (typeof DEMEANORS)[number];
+  moan: (typeof MOANS)[number];
+  skillLevel: (typeof SKILLS)[number];
+  orgasm: (typeof ORGASMS)[number];
+  feel: (typeof FEELS)[number];
+  persona: (typeof PERSONAS)[number];
+  sellingPoints: string[];
+  hoursTag: (typeof HOURS_TAGS)[number];
+  dailyQuota: (typeof DAILY_QUOTAS)[number];
+  travel: (typeof TRAVELS)[number];
+  condom: (typeof CONDOMS)[number];
+  extras: string[];
+  reviewPref: (typeof REVIEW_PREFS)[number];
+  depositFen: number;
 };
 
 const EMPTY: Form = {
   name: "",
   age: "18",
   heightCm: "165",
+  weightKg: String(LISTING_DEFAULTS.weightKg),
   cup: "C",
   area: "徐汇",
   tags: ["visit"],
@@ -61,18 +99,36 @@ const EMPTY: Form = {
   nightYuan: "240",
   etaMin: "20",
   places: ["你家", "酒店"],
-  bio: "移动肉便器。写清自己：松还是紧、会什么特技、接不接无套。男人急了叫它走过来。冲完走人。别把它当人。",
+  bio: "移动肉便器。写清松还是紧、会什么、接不接无套。男人急了叫它走过来。冲完走人。",
   services: ["走到你身边", "当马桶冲", "必须套上"],
   confirmedAdult: false,
   ownerToken: "",
   relation: "女友",
+  identity: LISTING_DEFAULTS.identity,
+  marriage: LISTING_DEFAULTS.marriage,
+  demeanor: LISTING_DEFAULTS.demeanor,
+  moan: LISTING_DEFAULTS.moan,
+  skillLevel: LISTING_DEFAULTS.skillLevel,
+  orgasm: LISTING_DEFAULTS.orgasm,
+  feel: LISTING_DEFAULTS.feel,
+  persona: LISTING_DEFAULTS.persona,
+  sellingPoints: [],
+  hoursTag: LISTING_DEFAULTS.hoursTag,
+  dailyQuota: LISTING_DEFAULTS.dailyQuota,
+  travel: LISTING_DEFAULTS.travel,
+  condom: LISTING_DEFAULTS.condom,
+  extras: [],
+  reviewPref: LISTING_DEFAULTS.reviewPref,
+  depositFen: LISTING_DEFAULTS.depositFen,
 };
 
 function fromProfile(p: Profile): Form {
   return {
+    ...EMPTY,
     name: p.name,
     age: String(p.age),
     heightCm: String(p.heightCm),
+    weightKg: String(p.weightKg ?? LISTING_DEFAULTS.weightKg),
     cup: p.cup,
     area: p.area,
     tags: p.tags,
@@ -85,8 +141,23 @@ function fromProfile(p: Profile): Form {
     bio: p.bio,
     services: p.services,
     confirmedAdult: true,
-    ownerToken: "",
     relation: (p.relation as Relation) || "女友",
+    identity: (p.identity as Form["identity"]) || LISTING_DEFAULTS.identity,
+    marriage: (p.marriage as Form["marriage"]) || LISTING_DEFAULTS.marriage,
+    demeanor: (p.demeanor as Form["demeanor"]) || LISTING_DEFAULTS.demeanor,
+    moan: (p.moan as Form["moan"]) || LISTING_DEFAULTS.moan,
+    skillLevel: (p.skillLevel as Form["skillLevel"]) || LISTING_DEFAULTS.skillLevel,
+    orgasm: (p.orgasm as Form["orgasm"]) || LISTING_DEFAULTS.orgasm,
+    feel: (p.feel as Form["feel"]) || LISTING_DEFAULTS.feel,
+    persona: (p.persona as Form["persona"]) || LISTING_DEFAULTS.persona,
+    sellingPoints: p.sellingPoints ?? [],
+    hoursTag: (p.hoursTag as Form["hoursTag"]) || LISTING_DEFAULTS.hoursTag,
+    dailyQuota: (p.dailyQuota as Form["dailyQuota"]) || LISTING_DEFAULTS.dailyQuota,
+    travel: (p.travel as Form["travel"]) || LISTING_DEFAULTS.travel,
+    condom: (p.condom as Form["condom"]) || LISTING_DEFAULTS.condom,
+    extras: p.extras ?? [],
+    reviewPref: (p.reviewPref as Form["reviewPref"]) || LISTING_DEFAULTS.reviewPref,
+    depositFen: p.depositFen ?? LISTING_DEFAULTS.depositFen,
   };
 }
 
@@ -113,6 +184,7 @@ export function StallEditor({
   const [form, setForm] = useState<Form>(EMPTY);
   const [saving, setSaving] = useState(false);
   const [reading, setReading] = useState(false);
+  const [step, setStep] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -153,7 +225,7 @@ export function StallEditor({
     return <p className="text-sm text-muted">这具不是你名下的货。</p>;
   }
 
-  function toggle<T extends string>(key: "tags" | "places" | "services", value: T) {
+  function toggle<T extends string>(key: "tags" | "places" | "services" | "sellingPoints" | "extras", value: T) {
     setForm((f) => {
       const cur = f[key] as T[];
       const next = cur.includes(value) ? cur.filter((x) => x !== value) : [...cur, value];
@@ -161,35 +233,65 @@ export function StallEditor({
     });
   }
 
+  function listingPayload() {
+    return {
+      name: form.name,
+      age: Number(form.age),
+      heightCm: Number(form.heightCm),
+      cup: form.cup as "B" | "C" | "D" | "E",
+      area: form.area,
+      tags: form.tags,
+      image: form.image,
+      online: form.online,
+      hourFen: Math.round(Number(form.hourYuan) * 100),
+      nightFen: Math.round(Number(form.nightYuan) * 100),
+      etaMin: Number(form.etaMin),
+      places: form.places,
+      bio: form.bio,
+      services: form.services,
+      confirmedAdult: true as const,
+      ownerToken: form.ownerToken,
+      weightKg: Number(form.weightKg),
+      identity: form.identity,
+      marriage: form.marriage,
+      demeanor: form.demeanor,
+      moan: form.moan,
+      skillLevel: form.skillLevel,
+      orgasm: form.orgasm,
+      feel: form.feel,
+      persona: form.persona,
+      sellingPoints: form.sellingPoints,
+      hoursTag: form.hoursTag,
+      dailyQuota: form.dailyQuota,
+      travel: form.travel,
+      condom: form.condom,
+      extras: form.extras,
+      reviewPref: form.reviewPref,
+      depositFen: form.depositFen,
+    };
+  }
+
+  function canNext() {
+    if (step === 0) return form.confirmedAdult;
+    if (step === 1) return form.name.trim().length > 0 && Number(form.age) >= 18;
+    if (step === 4) return isShownPhoto(form.image);
+    return true;
+  }
+
   async function submit() {
     if (!form.confirmedAdult) {
-      toast("先确认自己满 18 岁");
+      toast("先确认已满 18 岁");
+      setStep(0);
       return;
     }
     if (!isShownPhoto(form.image)) {
-      toast("先上传这具身体的实拍，男人冲的时候就看这张");
+      toast("先上传实拍");
+      setStep(4);
       return;
     }
     setSaving(true);
     try {
-      const payload = {
-        name: form.name,
-        age: Number(form.age),
-        heightCm: Number(form.heightCm),
-        cup: form.cup as "B" | "C" | "D" | "E",
-        area: form.area,
-        tags: form.tags,
-        image: form.image,
-        online: form.online,
-        hourFen: Math.round(Number(form.hourYuan) * 100),
-        nightFen: Math.round(Number(form.nightYuan) * 100),
-        etaMin: Number(form.etaMin),
-        places: form.places,
-        bio: form.bio,
-        services: form.services,
-        confirmedAdult: true as const,
-        ownerToken: form.ownerToken,
-      };
+      const payload = listingPayload();
       const saved = createOwned
         ? await createOwnedStall({ data: { ...payload, relation: form.relation } })
         : asOwner && stallId
@@ -197,7 +299,7 @@ export function StallEditor({
           : await saveMyStall({ data: payload });
       setMine(saved);
       setHasOwner(Boolean(saved.owned) || createOwned || asOwner);
-      toast(form.online ? "这具货已挂上，男人能拿去灌" : "挂上了。开着才会出现在货架上当马桶");
+      toast(form.online ? "已挂牌，开始接询" : "挂上了。开着才会出现在货架上");
       if (createOwned) {
         void navigate({ to: "/owned/$id", params: { id: saved.id } });
       }
@@ -211,277 +313,303 @@ export function StallEditor({
 
   return (
     <>
-      <p className="text-sm text-muted">
-        {createOwned ? "男人端 · 把身边的女人挂成肉厕" : asOwner ? "男人端 · 名下的货" : "肉厕端 · 货卡"}
-      </p>
+      <p className="text-sm text-muted">巷厕 · 挂牌交易所</p>
       <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">
-        {createOwned
-          ? "把她挂成你的肉厕"
-          : asOwner
-            ? "改这具所属肉厕"
-            : mine
-              ? "改这具马桶的挂牌"
-              : "把这具身体挂成公共肉厕"}
+        {createOwned ? "把她挂牌出售 / 出租" : asOwner ? "改挂牌资料" : mine ? "改这具挂牌" : "肉厕挂牌登记"}
       </h1>
-      <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted">
-        {createOwned
-          ? "妻子、母亲、女友都可以。挂上归你，别人冲她，钱进你口袋。"
-          : asOwner
-            ? "这具挂在你名下。货卡内容你说了算。也可以挂牌转给别的男人。"
-            : "所有者口令选填。不填就是无主货，被人灌了没人收钱。有主之后钱归主人。"}
-      </p>
+
+      <ol className="mt-5 flex gap-1">
+        {STEPS.map((label, i) => (
+          <li key={label} className="min-w-0 flex-1">
+            <button
+              type="button"
+              onClick={() => setStep(i)}
+              className={cn(
+                "w-full truncate rounded-full px-2 py-1.5 text-[11px]",
+                i === step ? "bg-fg text-bg" : i < step ? "bg-primary-soft text-fg" : "bg-sunken text-subtle",
+              )}
+            >
+              {label}
+            </button>
+          </li>
+        ))}
+      </ol>
 
       {mine && (
-        <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl bg-surface px-4 py-3 text-sm shadow-border">
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl bg-surface px-4 py-3 text-sm shadow-border">
           <span className={mine.online ? "text-live" : "text-muted"}>
-            {mine.online ? "这具在货架上，可灌" : "挂上了，这具先不给人用"}
+            {mine.online ? "挂牌中" : "已登记，未上架"}
           </span>
           <Button asChild size="sm" variant="secondary">
             <Link to="/p/$id" params={{ id: mine.id }}>
-              男人冲的时候看的页
+              客户看到的页
             </Link>
           </Button>
         </div>
       )}
 
-      <form
-        className="mt-8 space-y-6"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void submit();
-        }}
-      >
-        <Field label="这具货对外叫什么">
-          <Input
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            maxLength={12}
-            placeholder="厕名，不是人名"
-            required
-          />
-        </Field>
-
-        {!asOwner && !createOwned && (
-          <Field label="所有者口令（选填）">
-            {hasOwner ? (
-              <p className="text-sm text-muted">已有主。冲一次的钱进主人口袋。</p>
-            ) : (
-              <>
-                <Input
-                  value={form.ownerToken}
-                  onChange={(e) => setForm((f) => ({ ...f, ownerToken: e.target.value }))}
-                  placeholder="XC-********  不填就是无主"
-                  autoComplete="off"
-                />
-                <p className="mt-1 text-xs text-subtle">填了立刻归他。不填也能挂，只是被人用了没人收钱。</p>
-              </>
-            )}
-          </Field>
-        )}
-
-        {createOwned && (
-          <Field label="她是你的什么">
-            <div className="flex flex-wrap gap-2">
-              {RELATIONS.map((r) => (
-                <Chip key={r} active={form.relation === r} onClick={() => setForm((f) => ({ ...f, relation: r }))}>
-                  {r}
-                </Chip>
-              ))}
+      <div className="mt-6 space-y-6">
+        {step === 0 && (
+          <>
+            <div className="space-y-3 rounded-2xl bg-surface p-4 text-sm leading-relaxed text-muted shadow-border">
+              <p>欢迎进入肉厕挂牌交易所。</p>
+              <p>
+                妻子、母亲、女友可以在这里登记挂牌，出租或转让使用权。同事、同学核验更严，请如实填。只接受
+                18 岁以上。
+              </p>
+              <p>
+                登记后必须能接单。放鸽子会扣履约保证金。核验通过后会出现在货架上，客户随时点单。
+              </p>
             </div>
-          </Field>
+            {createOwned && (
+              <Field label="她是你的什么（妻子、母亲核验简单；同事较复杂）">
+                <div className="flex flex-wrap gap-2">
+                  {RELATIONS.map((r) => (
+                    <Chip key={r} active={form.relation === r} onClick={() => setForm((f) => ({ ...f, relation: r }))}>
+                      {r}
+                    </Chip>
+                  ))}
+                </div>
+              </Field>
+            )}
+            <Field label="你能承担的履约保证金">
+              <div className="flex flex-wrap gap-2">
+                {DEPOSITS.map((d) => (
+                  <Chip
+                    key={d.fen}
+                    active={form.depositFen === d.fen}
+                    onClick={() => setForm((f) => ({ ...f, depositFen: d.fen }))}
+                  >
+                    {d.label}
+                  </Chip>
+                ))}
+              </div>
+            </Field>
+            <label className="flex items-start gap-3 text-sm leading-relaxed">
+              <input
+                type="checkbox"
+                checked={form.confirmedAdult}
+                onChange={(e) => setForm((f) => ({ ...f, confirmedAdult: e.target.checked }))}
+                className="mt-0.5 size-4 accent-fg"
+              />
+              本人确认被挂牌者已满 18 岁，登记后能正式接单。放鸽子扣保证金。
+            </label>
+          </>
         )}
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Field label="岁数">
-            <Input
-              type="number"
-              min={18}
-              max={55}
-              value={form.age}
-              onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))}
-              required
-            />
-          </Field>
-          <Field label="身高 cm">
-            <Input
-              type="number"
-              min={150}
-              max={185}
-              value={form.heightCm}
-              onChange={(e) => setForm((f) => ({ ...f, heightCm: e.target.value }))}
-              required
-            />
-          </Field>
-          <Field label="杯">
-            <select
-              value={form.cup}
-              onChange={(e) => setForm((f) => ({ ...f, cup: e.target.value }))}
-              className="h-11 w-full rounded-xl bg-surface px-3 text-base text-fg shadow-border outline-none"
-            >
-              {CUPS.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="区">
-            <select
-              value={form.area}
-              onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))}
-              className="h-11 w-full rounded-xl bg-surface px-3 text-base text-fg shadow-border outline-none"
-            >
-              {AREAS_ONLY.map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
-
-        <Field label="这具便器怎么被叫走">
-          <div className="flex flex-wrap gap-2">
-            {TAG_OPTIONS.map((t) => (
-              <Chip key={t.id} active={form.tags.includes(t.id)} onClick={() => toggle("tags", t.id)}>
-                {t.label}
-              </Chip>
-            ))}
-          </div>
-        </Field>
-
-        <Field label="男人能在哪冲">
-          <div className="flex flex-wrap gap-2">
-            {PLACE_PRESETS.map((p) => (
-              <Chip key={p} active={form.places.includes(p)} onClick={() => toggle("places", p)}>
-                {p}
-              </Chip>
-            ))}
-          </div>
-        </Field>
-
-        <Field label="这具便器怎么冲">
-          <div className="flex flex-wrap gap-2">
-            {SERVICE_PRESETS.map((s) => (
-              <Chip key={s} active={form.services.includes(s)} onClick={() => toggle("services", s)}>
-                {s}
-              </Chip>
-            ))}
-          </div>
-        </Field>
-
-        <div className="grid grid-cols-3 gap-3">
-          <Field label="几分钟到">
-            <Input
-              type="number"
-              min={5}
-              max={90}
-              value={form.etaMin}
-              onChange={(e) => setForm((f) => ({ ...f, etaMin: e.target.value }))}
-              required
-            />
-          </Field>
-          <Field label="冲一次 ¥">
-            <Input
-              type="number"
-              min={20}
-              max={2000}
-              value={form.hourYuan}
-              onChange={(e) => setForm((f) => ({ ...f, hourYuan: e.target.value }))}
-              required
-            />
-          </Field>
-          <Field label="通宵 ¥">
-            <Input
-              type="number"
-              min={80}
-              max={8000}
-              value={form.nightYuan}
-              onChange={(e) => setForm((f) => ({ ...f, nightYuan: e.target.value }))}
-              required
-            />
-          </Field>
-        </div>
-
-        <Field label="这具身体的实拍">
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              e.target.value = "";
-              if (!file) return;
-              setReading(true);
-              void readStallPhoto(file)
-                .then((image) => setForm((f) => ({ ...f, image })))
-                .catch((err) => toast(err instanceof Error ? err.message : "图没读成"))
-                .finally(() => setReading(false));
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="relative block w-full overflow-hidden rounded-2xl bg-sunken text-left shadow-border"
-          >
-            {isShownPhoto(form.image) ? (
-              <img src={form.image} alt="" className="aspect-[2/3] w-full object-cover object-top sm:max-h-[28rem]" />
-            ) : (
-              <div className="flex aspect-[2/3] max-h-72 flex-col items-center justify-center gap-2 px-6 text-center sm:max-h-80">
-                <p className="font-display text-lg">上传实拍</p>
-                <p className="text-sm text-muted">自己的图。不要演示封面。</p>
-              </div>
+        {step === 1 && (
+          <>
+            <Field label="对外称呼">
+              <Input
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                maxLength={12}
+                placeholder="挂牌名"
+                required
+              />
+            </Field>
+            {!asOwner && !createOwned && (
+              <Field label="所有者口令（选填）">
+                {hasOwner ? (
+                  <p className="text-sm text-muted">已有主。钱进主人口袋。</p>
+                ) : (
+                  <Input
+                    value={form.ownerToken}
+                    onChange={(e) => setForm((f) => ({ ...f, ownerToken: e.target.value }))}
+                    placeholder="XC-********  不填就是无主"
+                    autoComplete="off"
+                  />
+                )}
+              </Field>
             )}
-          </button>
-          <Button
-            type="button"
-            variant="secondary"
-            className="mt-3"
-            disabled={reading}
-            onClick={() => fileRef.current?.click()}
-          >
-            {reading ? "在压图…" : form.image ? "换这具的实拍" : "从相册选这具的图"}
-          </Button>
-        </Field>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Field label="年龄">
+                <Input type="number" min={18} max={55} value={form.age} onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))} />
+              </Field>
+              <Field label="身高 cm">
+                <Input type="number" min={150} max={185} value={form.heightCm} onChange={(e) => setForm((f) => ({ ...f, heightCm: e.target.value }))} />
+              </Field>
+              <Field label="体重 kg">
+                <Input type="number" min={35} max={120} value={form.weightKg} onChange={(e) => setForm((f) => ({ ...f, weightKg: e.target.value }))} />
+              </Field>
+              <Field label="杯">
+                <select value={form.cup} onChange={(e) => setForm((f) => ({ ...f, cup: e.target.value }))} className="h-11 w-full rounded-xl bg-surface px-3 text-base shadow-border">
+                  {CUPS.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <Field label="区">
+              <div className="flex flex-wrap gap-2">
+                {AREAS_ONLY.map((a) => (
+                  <Chip key={a} active={form.area === a} onClick={() => setForm((f) => ({ ...f, area: a }))}>{a}</Chip>
+                ))}
+              </div>
+            </Field>
+            <Field label="身份">
+              <div className="flex flex-wrap gap-2">
+                {IDENTITIES.map((v) => (
+                  <Chip key={v} active={form.identity === v} onClick={() => setForm((f) => ({ ...f, identity: v }))}>{v}</Chip>
+                ))}
+              </div>
+            </Field>
+            <Field label="婚育">
+              <div className="flex flex-wrap gap-2">
+                {MARRIAGES.map((v) => (
+                  <Chip key={v} active={form.marriage === v} onClick={() => setForm((f) => ({ ...f, marriage: v }))}>{v}</Chip>
+                ))}
+              </div>
+            </Field>
+          </>
+        )}
 
-        <Field label="这具货怎么介绍">
-          <Textarea
-            value={form.bio}
-            onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
-            maxLength={280}
-            required
-          />
-        </Field>
+        {step === 2 && (
+          <>
+            <Pick label="表现" options={DEMEANORS} value={form.demeanor} onPick={(v) => setForm((f) => ({ ...f, demeanor: v }))} />
+            <Pick label="叫床" options={MOANS} value={form.moan} onPick={(v) => setForm((f) => ({ ...f, moan: v }))} />
+            <Pick label="技术级别" options={SKILLS} value={form.skillLevel} onPick={(v) => setForm((f) => ({ ...f, skillLevel: v }))} />
+            <Pick label="高潮难度" options={ORGASMS} value={form.orgasm} onPick={(v) => setForm((f) => ({ ...f, orgasm: v }))} />
+            <Pick label="使用感受" options={FEELS} value={form.feel} onPick={(v) => setForm((f) => ({ ...f, feel: v }))} />
+            <Pick label="最贴切的标签" options={PERSONAS} value={form.persona} onPick={(v) => setForm((f) => ({ ...f, persona: v }))} />
+            <Field label="卖点（可多选，别夸张）">
+              <div className="flex flex-wrap gap-2">
+                {SELLING_POINTS.map((s) => (
+                  <Chip key={s} active={form.sellingPoints.includes(s)} onClick={() => toggle("sellingPoints", s)}>{s}</Chip>
+                ))}
+              </div>
+            </Field>
+          </>
+        )}
 
-        <label className="flex items-center gap-3 text-sm">
-          <input
-            type="checkbox"
-            checked={form.online}
-            onChange={(e) => setForm((f) => ({ ...f, online: e.target.checked }))}
-            className="size-4 accent-fg"
-          />
-          开着，让男人把这具当马桶从货架上叫走
-        </label>
+        {step === 3 && (
+          <>
+            <Pick label="可服务时间" options={HOURS_TAGS} value={form.hoursTag} onPick={(v) => setForm((f) => ({ ...f, hoursTag: v }))} />
+            <Pick label="一天接客" options={DAILY_QUOTAS} value={form.dailyQuota} onPick={(v) => setForm((f) => ({ ...f, dailyQuota: v }))} />
+            <Pick label="上门地域" options={TRAVELS} value={form.travel} onPick={(v) => setForm((f) => ({ ...f, travel: v }))} />
+            <Pick label="安全措施" options={CONDOMS} value={form.condom} onPick={(v) => setForm((f) => ({ ...f, condom: v }))} />
+            <Field label="怎么被叫走">
+              <div className="flex flex-wrap gap-2">
+                {TAG_OPTIONS.map((t) => (
+                  <Chip key={t.id} active={form.tags.includes(t.id)} onClick={() => toggle("tags", t.id)}>{t.label}</Chip>
+                ))}
+              </div>
+            </Field>
+            <Field label="能在哪">
+              <div className="flex flex-wrap gap-2">
+                {PLACE_PRESETS.map((p) => (
+                  <Chip key={p} active={form.places.includes(p)} onClick={() => toggle("places", p)}>{p}</Chip>
+                ))}
+              </div>
+            </Field>
+            <Field label="基础服务">
+              <div className="flex flex-wrap gap-2">
+                {SERVICE_PRESETS.map((s) => (
+                  <Chip key={s} active={form.services.includes(s)} onClick={() => toggle("services", s)}>{s}</Chip>
+                ))}
+              </div>
+            </Field>
+            <Field label="可加价项目">
+              <div className="flex flex-wrap gap-2">
+                {EXTRAS.map((s) => (
+                  <Chip key={s} active={form.extras.includes(s)} onClick={() => toggle("extras", s)}>{s}</Chip>
+                ))}
+              </div>
+            </Field>
+            <Pick label="公开点评" options={REVIEW_PREFS} value={form.reviewPref} onPick={(v) => setForm((f) => ({ ...f, reviewPref: v }))} />
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="几分钟到">
+                <Input type="number" min={5} max={90} value={form.etaMin} onChange={(e) => setForm((f) => ({ ...f, etaMin: e.target.value }))} />
+              </Field>
+              <Field label="一次 ¥">
+                <Input type="number" min={20} max={2000} value={form.hourYuan} onChange={(e) => setForm((f) => ({ ...f, hourYuan: e.target.value }))} />
+              </Field>
+              <Field label="通宵 ¥">
+                <Input type="number" min={80} max={8000} value={form.nightYuan} onChange={(e) => setForm((f) => ({ ...f, nightYuan: e.target.value }))} />
+              </Field>
+            </div>
+          </>
+        )}
 
-        <label className="flex items-start gap-3 text-sm leading-relaxed">
-          <input
-            type="checkbox"
-            checked={form.confirmedAdult}
-            onChange={(e) => setForm((f) => ({ ...f, confirmedAdult: e.target.checked }))}
-            className="mt-0.5 size-4 accent-fg"
-          />
-          我已满 18 岁。我知道这是把这具身体登记成公共移动肉厕。男人按货来叫，拿去灌注。不是人，是马桶。
-        </label>
+        {step === 4 && (
+          <>
+            <Field label="照片（真实、好看，直接决定问询）">
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  setReading(true);
+                  void readStallPhoto(file)
+                    .then((image) => setForm((f) => ({ ...f, image })))
+                    .catch((err) => toast(err instanceof Error ? err.message : "图没读成"))
+                    .finally(() => setReading(false));
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="relative block w-full overflow-hidden rounded-2xl bg-sunken text-left shadow-border"
+              >
+                {isShownPhoto(form.image) ? (
+                  <img src={form.image} alt="" className="aspect-[2/3] w-full object-cover object-top sm:max-h-[28rem]" />
+                ) : (
+                  <div className="flex aspect-[2/3] max-h-72 flex-col items-center justify-center gap-2 px-6 text-center sm:max-h-80">
+                    <p className="font-display text-lg">上传实拍</p>
+                    <p className="text-sm text-muted">自己的图。不要演示封面。</p>
+                  </div>
+                )}
+              </button>
+              <Button type="button" variant="secondary" className="mt-3" disabled={reading} onClick={() => fileRef.current?.click()}>
+                {reading ? "在压图…" : form.image ? "换一张" : "从相册选"}
+              </Button>
+            </Field>
+            <Field label="简介">
+              <Textarea value={form.bio} onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))} maxLength={280} required />
+            </Field>
+            <label className="flex items-center gap-3 text-sm">
+              <input type="checkbox" checked={form.online} onChange={(e) => setForm((f) => ({ ...f, online: e.target.checked }))} className="size-4 accent-fg" />
+              审核后立刻上架接询
+            </label>
+            <p className="text-sm text-muted">
+              {form.persona} · {form.condom} · 保证金 {formatFen(form.depositFen)} · 一次{" "}
+              {formatFen(Math.round(Number(form.hourYuan || 0) * 100))}
+            </p>
+          </>
+        )}
 
-        <Button className="w-full" type="submit" disabled={saving}>
-          {saving ? "在挂…" : mine ? "更新这具货卡" : "把这具挂上货架"}
-        </Button>
-        <p className="text-center text-xs text-subtle">
-          冲一次 {formatFen(Math.round(Number(form.hourYuan || 0) * 100))} · 通宵{" "}
-          {formatFen(Math.round(Number(form.nightYuan || 0) * 100))}
-        </p>
-      </form>
+        <div className="flex gap-2">
+          {step > 0 && (
+            <Button type="button" variant="secondary" className="flex-1" onClick={() => setStep((s) => s - 1)}>
+              上一步
+            </Button>
+          )}
+          {step < STEPS.length - 1 ? (
+            <Button
+              type="button"
+              className="flex-1"
+              disabled={!canNext()}
+              onClick={() => {
+                if (!canNext()) {
+                  toast(step === 0 ? "先确认满 18 岁" : "先把这页填完");
+                  return;
+                }
+                setStep((s) => s + 1);
+              }}
+            >
+              下一步
+            </Button>
+          ) : (
+            <Button type="button" className="flex-1" disabled={saving || !canNext()} onClick={() => void submit()}>
+              {saving ? "在挂…" : mine ? "更新挂牌" : "提交登记"}
+            </Button>
+          )}
+        </div>
+      </div>
     </>
   );
 }
@@ -492,6 +620,30 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       <p className="mb-2 text-sm text-muted">{label}</p>
       {children}
     </div>
+  );
+}
+
+function Pick<T extends string>({
+  label,
+  options,
+  value,
+  onPick,
+}: {
+  label: string;
+  options: readonly T[];
+  value: T;
+  onPick: (v: T) => void;
+}) {
+  return (
+    <Field label={label}>
+      <div className="flex flex-wrap gap-2">
+        {options.map((o) => (
+          <Chip key={o} active={value === o} onClick={() => onPick(o)}>
+            {o}
+          </Chip>
+        ))}
+      </div>
+    </Field>
   );
 }
 

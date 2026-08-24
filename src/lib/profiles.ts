@@ -23,6 +23,23 @@ export type Profile = {
   unowned?: boolean;
   listedFen?: number | null;
   relation?: string | null;
+  weightKg?: number;
+  identity?: string;
+  marriage?: string;
+  demeanor?: string;
+  moan?: string;
+  skillLevel?: string;
+  orgasm?: string;
+  feel?: string;
+  persona?: string;
+  sellingPoints?: string[];
+  hoursTag?: string;
+  dailyQuota?: string;
+  travel?: string;
+  condom?: string;
+  extras?: string[];
+  reviewPref?: string;
+  depositFen?: number;
 };
 
 export const RELATIONS = ["妻子", "母亲", "女友", "同事", "其他"] as const;

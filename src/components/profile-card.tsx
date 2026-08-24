@@ -24,6 +24,7 @@ export function ProfileCard({ profile: p }: { profile: Profile }) {
                 <span className="ml-1.5 font-sans text-sm font-normal text-fg/70">{p.age}</span>
               </p>
               <p className="mt-0.5 truncate text-xs text-fg/65">
+                {p.persona ? `${p.persona} · ` : ""}
                 {p.area} · {p.etaMin}分到 · {formatRating(p.ratingAvg, p.ratingCount)}
               </p>
             </div>

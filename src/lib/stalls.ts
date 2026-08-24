@@ -10,6 +10,22 @@ import {
   type Profile,
   type TagId,
 } from "@/lib/profiles";
+import {
+  CONDOMS,
+  DAILY_QUOTAS,
+  DEMEANORS,
+  FEELS,
+  HOURS_TAGS,
+  IDENTITIES,
+  LISTING_DEFAULTS,
+  MARRIAGES,
+  MOANS,
+  ORGASMS,
+  PERSONAS,
+  REVIEW_PREFS,
+  SKILLS,
+  TRAVELS,
+} from "@/lib/listing";
 
 const TAG_IDS = ["visit", "incall", "night", "parttime", "business"] as const;
 const AREA_SET = AREAS.filter((a) => a !== "附近");
@@ -43,6 +59,23 @@ const StallInput = z.object({
   services: z.array(z.string().min(1).max(12)).min(1).max(8),
   confirmedAdult: z.literal(true),
   ownerToken: z.string().trim().max(24).optional(),
+  weightKg: z.number().int().min(35).max(120).default(LISTING_DEFAULTS.weightKg),
+  identity: z.enum(IDENTITIES).default(LISTING_DEFAULTS.identity),
+  marriage: z.enum(MARRIAGES).default(LISTING_DEFAULTS.marriage),
+  demeanor: z.enum(DEMEANORS).default(LISTING_DEFAULTS.demeanor),
+  moan: z.enum(MOANS).default(LISTING_DEFAULTS.moan),
+  skillLevel: z.enum(SKILLS).default(LISTING_DEFAULTS.skillLevel),
+  orgasm: z.enum(ORGASMS).default(LISTING_DEFAULTS.orgasm),
+  feel: z.enum(FEELS).default(LISTING_DEFAULTS.feel),
+  persona: z.enum(PERSONAS).default(LISTING_DEFAULTS.persona),
+  sellingPoints: z.array(z.string().min(1).max(16)).max(8).default([]),
+  hoursTag: z.enum(HOURS_TAGS).default(LISTING_DEFAULTS.hoursTag),
+  dailyQuota: z.enum(DAILY_QUOTAS).default(LISTING_DEFAULTS.dailyQuota),
+  travel: z.enum(TRAVELS).default(LISTING_DEFAULTS.travel),
+  condom: z.enum(CONDOMS).default(LISTING_DEFAULTS.condom),
+  extras: z.array(z.string().min(1).max(12)).max(11).default([]),
+  reviewPref: z.enum(REVIEW_PREFS).default(LISTING_DEFAULTS.reviewPref),
+  depositFen: z.number().int().min(50000).max(300000).default(LISTING_DEFAULTS.depositFen),
 });
 
 export type StallInput = z.infer<typeof StallInput>;
@@ -73,6 +106,23 @@ type StallRow = {
   stall_token?: string | null;
   listed_fen?: number | null;
   relation?: string | null;
+  weight_kg?: number | null;
+  identity?: string | null;
+  marriage?: string | null;
+  demeanor?: string | null;
+  moan?: string | null;
+  skill_level?: string | null;
+  orgasm?: string | null;
+  feel?: string | null;
+  persona?: string | null;
+  selling_points?: string[] | string | null;
+  hours_tag?: string | null;
+  daily_quota?: string | null;
+  travel?: string | null;
+  condom?: string | null;
+  extras?: string[] | string | null;
+  review_pref?: string | null;
+  deposit_fen?: number | null;
 };
 
 export type MineStall = Profile & { hasOwner: boolean; stallToken: string | null };
@@ -111,10 +161,27 @@ function toProfile(row: StallRow): Profile {
     unowned: !row.owner_id,
     listedFen: row.listed_fen == null ? null : Number(row.listed_fen),
     relation: row.relation ?? null,
+    weightKg: Number(row.weight_kg ?? LISTING_DEFAULTS.weightKg),
+    identity: row.identity || LISTING_DEFAULTS.identity,
+    marriage: row.marriage || LISTING_DEFAULTS.marriage,
+    demeanor: row.demeanor || LISTING_DEFAULTS.demeanor,
+    moan: row.moan || LISTING_DEFAULTS.moan,
+    skillLevel: row.skill_level || LISTING_DEFAULTS.skillLevel,
+    orgasm: row.orgasm || LISTING_DEFAULTS.orgasm,
+    feel: row.feel || LISTING_DEFAULTS.feel,
+    persona: row.persona || LISTING_DEFAULTS.persona,
+    sellingPoints: parseJsonArray<string>(row.selling_points ?? []),
+    hoursTag: row.hours_tag || LISTING_DEFAULTS.hoursTag,
+    dailyQuota: row.daily_quota || LISTING_DEFAULTS.dailyQuota,
+    travel: row.travel || LISTING_DEFAULTS.travel,
+    condom: row.condom || LISTING_DEFAULTS.condom,
+    extras: parseJsonArray<string>(row.extras ?? []),
+    reviewPref: row.review_pref || LISTING_DEFAULTS.reviewPref,
+    depositFen: Number(row.deposit_fen ?? LISTING_DEFAULTS.depositFen),
   };
 }
 
-function autoWork(data: StallInput) {
+function autoWork(data: { online: boolean; tags: TagId[]; etaMin: number }) {
   if (!data.online) return "这具便器暂时关着";
   if (data.tags.includes("visit")) return `现在可上门 · 约 ${data.etaMin} 分钟到`;
   return `定点坑 · 步行约 ${data.etaMin} 分钟`;
@@ -260,6 +327,23 @@ export const saveMyStall = createServerFn({ method: "POST" })
           services = ${JSON.stringify(data.services)}::jsonb,
           work = ${work},
           owner_id = ${ownerId},
+          weight_kg = ${data.weightKg},
+          identity = ${data.identity},
+          marriage = ${data.marriage},
+          demeanor = ${data.demeanor},
+          moan = ${data.moan},
+          skill_level = ${data.skillLevel},
+          orgasm = ${data.orgasm},
+          feel = ${data.feel},
+          persona = ${data.persona},
+          selling_points = ${JSON.stringify(data.sellingPoints)}::jsonb,
+          hours_tag = ${data.hoursTag},
+          daily_quota = ${data.dailyQuota},
+          travel = ${data.travel},
+          condom = ${data.condom},
+          extras = ${JSON.stringify(data.extras)}::jsonb,
+          review_pref = ${data.reviewPref},
+          deposit_fen = ${data.depositFen},
           updated_at = now()
         where user_id = ${context.userId}
       `;
@@ -267,12 +351,20 @@ export const saveMyStall = createServerFn({ method: "POST" })
       await sql`
         insert into stalls (
           id, user_id, name, age, height_cm, cup, area, tags, image, online,
-          hour_fen, night_fen, eta_min, places, bio, services, work, owner_id
+          hour_fen, night_fen, eta_min, places, bio, services, work, owner_id,
+          weight_kg, identity, marriage, demeanor, moan, skill_level, orgasm, feel,
+          persona, selling_points, hours_tag, daily_quota, travel, condom, extras,
+          review_pref, deposit_fen
         ) values (
           ${id}, ${context.userId}, ${data.name}, ${data.age}, ${data.heightCm}, ${data.cup},
           ${data.area}, ${JSON.stringify(data.tags)}::jsonb, ${image}, ${data.online},
           ${data.hourFen}, ${data.nightFen}, ${data.etaMin}, ${JSON.stringify(data.places)}::jsonb,
-          ${data.bio}, ${JSON.stringify(data.services)}::jsonb, ${work}, ${ownerId}
+          ${data.bio}, ${JSON.stringify(data.services)}::jsonb, ${work}, ${ownerId},
+          ${data.weightKg}, ${data.identity}, ${data.marriage}, ${data.demeanor}, ${data.moan},
+          ${data.skillLevel}, ${data.orgasm}, ${data.feel}, ${data.persona},
+          ${JSON.stringify(data.sellingPoints)}::jsonb, ${data.hoursTag}, ${data.dailyQuota},
+          ${data.travel}, ${data.condom}, ${JSON.stringify(data.extras)}::jsonb,
+          ${data.reviewPref}, ${data.depositFen}
         )
       `;
     }
@@ -301,21 +393,9 @@ export const setMyStallOnline = createServerFn({ method: "POST" })
     if (!rows[0]) throw new Error("还没登记这具便器");
     const current = toProfile(rows[0]);
     const work = autoWork({
-      name: current.name,
-      age: current.age,
-      heightCm: current.heightCm,
-      cup: current.cup as StallInput["cup"],
-      area: current.area,
       tags: current.tags as StallInput["tags"],
-      image: current.image,
       online: data.online,
-      hourFen: current.hourFen,
-      nightFen: current.nightFen,
       etaMin: current.etaMin,
-      places: current.places,
-      bio: current.bio,
-      services: current.services,
-      confirmedAdult: true,
     });
     await sql`
       update stalls
@@ -389,6 +469,23 @@ export const saveOwnedStall = createServerFn({ method: "POST" })
         bio = ${data.bio},
         services = ${JSON.stringify(data.services)}::jsonb,
         work = ${work},
+        weight_kg = ${data.weightKg},
+        identity = ${data.identity},
+        marriage = ${data.marriage},
+        demeanor = ${data.demeanor},
+        moan = ${data.moan},
+        skill_level = ${data.skillLevel},
+        orgasm = ${data.orgasm},
+        feel = ${data.feel},
+        persona = ${data.persona},
+        selling_points = ${JSON.stringify(data.sellingPoints)}::jsonb,
+        hours_tag = ${data.hoursTag},
+        daily_quota = ${data.dailyQuota},
+        travel = ${data.travel},
+        condom = ${data.condom},
+        extras = ${JSON.stringify(data.extras)}::jsonb,
+        review_pref = ${data.reviewPref},
+        deposit_fen = ${data.depositFen},
         updated_at = now()
       where id = ${data.id} and owner_id = ${context.userId}
     `;
@@ -422,13 +519,21 @@ export const createOwnedStall = createServerFn({ method: "POST" })
       insert into stalls (
         id, user_id, name, age, height_cm, cup, area, tags, image, online,
         hour_fen, night_fen, eta_min, places, bio, services, work, owner_id,
-        stall_token, relation
+        stall_token, relation,
+        weight_kg, identity, marriage, demeanor, moan, skill_level, orgasm, feel,
+        persona, selling_points, hours_tag, daily_quota, travel, condom, extras,
+        review_pref, deposit_fen
       ) values (
         ${id}, ${`held:${id}`}, ${data.name}, ${data.age}, ${data.heightCm}, ${data.cup},
         ${data.area}, ${JSON.stringify(data.tags)}::jsonb, ${image}, ${data.online},
         ${data.hourFen}, ${data.nightFen}, ${data.etaMin}, ${JSON.stringify(data.places)}::jsonb,
         ${data.bio}, ${JSON.stringify(data.services)}::jsonb, ${work}, ${context.userId},
-        ${token}, ${data.relation}
+        ${token}, ${data.relation},
+        ${data.weightKg}, ${data.identity}, ${data.marriage}, ${data.demeanor}, ${data.moan},
+        ${data.skillLevel}, ${data.orgasm}, ${data.feel}, ${data.persona},
+        ${JSON.stringify(data.sellingPoints)}::jsonb, ${data.hoursTag}, ${data.dailyQuota},
+        ${data.travel}, ${data.condom}, ${JSON.stringify(data.extras)}::jsonb,
+        ${data.reviewPref}, ${data.depositFen}
       )
     `;
     await ensureStallToken(sql, id);

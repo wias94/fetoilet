@@ -133,6 +133,23 @@ function ProfilePage() {
             </button>
           </div>
           <p className="mt-4 max-w-prose text-sm leading-relaxed text-muted">{profile.bio}</p>
+          {(profile.persona || profile.condom) && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {profile.persona && <span className="rounded-full bg-sunken px-3 py-1 text-xs">{profile.persona}</span>}
+              {profile.condom && <span className="rounded-full bg-sunken px-3 py-1 text-xs">{profile.condom}</span>}
+              {profile.hoursTag && <span className="rounded-full bg-sunken px-3 py-1 text-xs">{profile.hoursTag}</span>}
+              {profile.identity && <span className="rounded-full bg-sunken px-3 py-1 text-xs">{profile.identity}</span>}
+            </div>
+          )}
+          {profile.sellingPoints && profile.sellingPoints.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {profile.sellingPoints.map((s) => (
+                <span key={s} className="rounded-full bg-primary-soft px-3 py-1 text-xs">
+                  {s}
+                </span>
+              ))}
+            </div>
+          )}
           <p className="mt-2 text-sm text-subtle">{profile.work}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             {profile.tags.map((t) => (
@@ -144,6 +161,11 @@ function ProfilePage() {
           <h2 className="mt-6 font-display text-lg font-semibold">这具肉便器怎么冲</h2>
           <ul className="mt-3 flex flex-wrap gap-2">
             {profile.services.map((s) => (
+              <li key={s} className="rounded-full bg-sunken px-3 py-2 text-sm">
+                {s}
+              </li>
+            ))}
+            {profile.extras?.map((s) => (
               <li key={s} className="rounded-full bg-sunken px-3 py-2 text-sm">
                 {s}
               </li>
