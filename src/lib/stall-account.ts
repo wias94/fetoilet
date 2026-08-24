@@ -1,4 +1,7 @@
 import { hashPassword } from "better-auth/crypto";
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
 import { ensureUserState } from "@/lib/behavior";
 import { ADMIN_EMAIL } from "@/lib/auth/login-email";
@@ -45,3 +48,49 @@ export async function createStallLogin(email: string, name: string, ownerUserId:
   await sql`update user_state set role = 'stall', updated_at = now() where user_id = ${id}`;
   return { userId: id, email: mail, password };
 }
+
+async function ownedStallUser(ownerId: string, stallId: string) {
+  const sql = await getSql();
+  const rows = await sql<{ user_id: string; email: string | null }>`
+    select s.user_id, u.email
+    from stalls s
+    left join "user" u on u.id = s.user_id
+    where s.id = ${stallId} and s.owner_id = ${ownerId}
+    limit 1
+  `;
+  if (!rows[0]) throw new Error("这具不是你的货");
+  if (!rows[0].email || rows[0].user_id.startsWith("held:") || rows[0].user_id.startsWith("seed:")) {
+    throw new Error("这具没有登录号");
+  }
+  return { sql, userId: rows[0].user_id, email: rows[0].email };
+}
+
+export const getOwnedStallLogin = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => z.object({ id: z.string().min(1) }).parse(data))
+  .handler(async ({ context, data }) => {
+    const { assertRole } = await import("@/lib/roles");
+    await assertRole(context.userId, "male");
+    const { email } = await ownedStallUser(context.userId, data.id);
+    return { email };
+  });
+
+export const resetOwnedStallLogin = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => z.object({ id: z.string().min(1) }).parse(data))
+  .handler(async ({ context, data }) => {
+    const { assertRole } = await import("@/lib/roles");
+    await assertRole(context.userId, "male");
+    const { sql, userId, email } = await ownedStallUser(context.userId, data.id);
+    const password = mintLoginPassword();
+    const hash = await hashPassword(password);
+    const updated = await sql<{ id: string }>`
+      update account
+      set password = ${hash}, "updatedAt" = now()
+      where "userId" = ${userId} and "providerId" = 'credential'
+      returning id
+    `;
+    if (!updated[0]) throw new Error("这具没有登录号");
+    await sql`delete from session where "userId" = ${userId}`;
+    return { email, password };
+  });
