@@ -16,7 +16,12 @@ export function RoleGate({ side }: { side: AccountRole }) {
     let cancelled = false;
     void claimMyRole({ data: { role: side } })
       .then((row) => {
-        if (!cancelled) setRole(row.role);
+        if (cancelled) return;
+        if (row.admin) {
+          setRole(null);
+          return;
+        }
+        setRole(row.role);
       })
       .catch((err) => {
         if (cancelled) return;

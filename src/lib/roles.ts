@@ -6,6 +6,19 @@ import { ensureUserState } from "@/lib/behavior";
 
 export type AccountRole = "male" | "stall";
 
+export async function isAdminUser(userId: string) {
+  const sql = await getSql();
+  const users = await sql<{ email: string | null }>`
+    select email from "user" where id = ${userId} limit 1
+  `;
+  const email = (users[0]?.email ?? "").trim().toLowerCase();
+  if (!email) return false;
+  const rows = await sql<{ email: string }>`
+    select email from admins where lower(email) = ${email} limit 1
+  `;
+  return Boolean(rows[0]);
+}
+
 export async function resolveRole(userId: string): Promise<AccountRole | null> {
   const sql = await getSql();
   await ensureUserState(sql, userId);
@@ -29,6 +42,7 @@ export async function resolveRole(userId: string): Promise<AccountRole | null> {
 }
 
 export async function assertRole(userId: string, wanted: AccountRole) {
+  if (await isAdminUser(userId)) throw new Error("管理号请走管理台");
   const current = await resolveRole(userId);
   if (!current) {
     const sql = await getSql();
@@ -48,14 +62,16 @@ export async function assertRole(userId: string, wanted: AccountRole) {
 export const getMyRole = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
-    const role = await resolveRole(context.userId);
-    return { role };
+    const admin = await isAdminUser(context.userId);
+    const role = admin ? null : await resolveRole(context.userId);
+    return { role, admin };
   });
 
 export const claimMyRole = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: unknown) => z.object({ role: z.enum(["male", "stall"]) }).parse(data))
   .handler(async ({ context, data }) => {
+    if (await isAdminUser(context.userId)) return { role: null as AccountRole | null, admin: true };
     const role = await assertRole(context.userId, data.role);
-    return { role };
+    return { role, admin: false };
   });
