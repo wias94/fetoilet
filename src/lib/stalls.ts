@@ -49,8 +49,8 @@ const StallInput = z.object({
   tags: z.array(z.enum(TAG_IDS)).min(1).max(4),
   image: z.string().refine((v) => isUserPhoto(v) || isStoredPhoto(v), "上传自己的实拍"),
   online: z.boolean(),
-  hourFen: z.number().int().min(100).max(20000),
-  nightFen: z.number().int().min(400).max(80000),
+  hourFen: z.number().int().min(0).max(1_000_000_000),
+  nightFen: z.number().int().min(0).max(1_000_000_000),
   etaMin: z.number().int().min(5).max(90),
   places: z.array(z.string().min(1).max(8)).min(1).max(6),
   bio: z.string().trim().min(8).max(280),
@@ -75,13 +75,13 @@ const StallInput = z.object({
     .array(
       z.object({
         name: z.string().min(1).max(12),
-        fen: z.number().int().min(10).max(50000),
+        fen: z.number().int().min(0).max(1_000_000_000),
       }),
     )
     .max(10)
     .default([]),
   reviewPref: z.enum(REVIEW_PREFS).default(LISTING_DEFAULTS.reviewPref),
-  depositFen: z.number().int().min(5000).max(30000).default(LISTING_DEFAULTS.depositFen),
+  depositFen: z.number().int().min(0).max(1_000_000_000).default(LISTING_DEFAULTS.depositFen),
 });
 
 export type StallInput = z.infer<typeof StallInput>;
@@ -149,7 +149,7 @@ function parseExtras(value: ExtraFee[] | string[] | string | null | undefined): 
     if (typeof row === "string") continue;
     if (!row || typeof row.name !== "string") continue;
     const fen = Number(row.fen);
-    if (!Number.isFinite(fen) || fen < 10) continue;
+    if (!Number.isFinite(fen) || fen < 0) continue;
     out.push({ name: row.name, fen });
   }
   return out;

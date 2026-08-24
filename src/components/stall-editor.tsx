@@ -298,8 +298,8 @@ export function StallEditor({
       const hour = Number(form.hourYuan);
       const night = Number(form.nightYuan);
       if (!Number.isInteger(eta) || eta < 5 || eta > 90) return false;
-      if (!Number.isInteger(hour) || hour < 1 || hour > 200) return false;
-      if (!Number.isInteger(night) || night < 4 || night > 800) return false;
+      if (!Number.isInteger(hour) || hour < 0) return false;
+      if (!Number.isInteger(night) || night < 0) return false;
       if (form.places.length === 0 || form.services.length === 0) return false;
       return true;
     }
@@ -620,8 +620,8 @@ export function StallEditor({
                         toast("先选一项服务");
                         return;
                       }
-                      if (!Number.isInteger(yuan) || yuan < 1) {
-                        toast("加价至少 1 加元");
+                      if (!Number.isInteger(yuan) || yuan < 0) {
+                        toast("加价填加元数字");
                         return;
                       }
                       setForm((f) => ({ ...f, extras: [...f.extras, { name, fen: yuan * 100 }] }));
@@ -665,16 +665,12 @@ export function StallEditor({
               <NumField
                 label="单次"
                 unit="加元"
-                min={1}
-                max={200}
                 value={form.hourYuan}
                 onValue={(hourYuan) => setForm((f) => ({ ...f, hourYuan }))}
               />
               <NumField
                 label="通宵"
                 unit="加元"
-                min={4}
-                max={800}
                 value={form.nightYuan}
                 onValue={(nightYuan) => setForm((f) => ({ ...f, nightYuan }))}
               />
@@ -792,7 +788,7 @@ export function StallEditor({
                   else if (step === 3) {
                     if (form.places.length === 0) toast("先选能在哪");
                     else if (form.services.length === 0) toast("先选提供服务");
-                    else toast("抵达和价格请填加元数字");
+                    else toast("抵达填分钟，价格填加元数字");
                   } else toast("先把这页填完");
                   return;
                 }
@@ -832,8 +828,8 @@ function NumField({
   label: string;
   unit: string;
   value: string;
-  min: number;
-  max: number;
+  min?: number;
+  max?: number;
   onValue: (v: string) => void;
 }) {
   return (
@@ -850,9 +846,11 @@ function NumField({
         />
         <span className="w-10 shrink-0 text-sm text-muted">{unit}</span>
       </div>
-      <p className="mt-1 text-[11px] text-subtle">
-        {min}–{max} {unit}，仅数字
-      </p>
+      {min != null && max != null && (
+        <p className="mt-1 text-[11px] text-subtle">
+          {min}–{max} {unit}，仅数字
+        </p>
+      )}
     </Field>
   );
 }
