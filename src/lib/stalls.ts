@@ -497,7 +497,7 @@ export const saveOwnedStall = createServerFn({ method: "POST" })
   });
 
 const OwnedCreate = StallInput.extend({
-  relation: z.enum(["妻子", "母亲", "女友", "同事", "其他"]),
+  relation: z.enum(["妻子", "母亲", "女儿", "女友", "同事", "其他"]),
 });
 
 export const createOwnedStall = createServerFn({ method: "POST" })
@@ -505,6 +505,8 @@ export const createOwnedStall = createServerFn({ method: "POST" })
   .validator((data: unknown) => OwnedCreate.parse(data))
   .handler(async ({ context, data }) => {
     if (context.userId.startsWith("seed:")) throw new Error("种子号不能挂");
+    if (data.age < 18) throw new Error("必须满 18 岁");
+    if (data.relation === "女儿" && data.age < 18) throw new Error("女儿必须满 18 岁");
     const sql = await getSql();
     const id = `t${crypto.randomUUID().replaceAll("-", "").slice(0, 8)}`;
     let image = data.image;

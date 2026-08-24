@@ -226,7 +226,7 @@ function MePage() {
           </Button>
         </div>
         {owned && owned.length === 0 ? (
-          <p className="mt-3 text-sm text-subtle">还没有货。挂妻子、母亲、女友，或用便器口令收编无主的。</p>
+          <p className="mt-3 text-sm text-subtle">还没有货。挂妻子、母亲、已满18岁的女儿、女友，或用便器口令收编无主的。</p>
         ) : (
           <ul className="mt-3 space-y-2">
             {owned?.map((p) => (

@@ -42,7 +42,7 @@ export type Profile = {
   depositFen?: number;
 };
 
-export const RELATIONS = ["妻子", "母亲", "女友", "同事", "其他"] as const;
+export const RELATIONS = ["妻子", "母亲", "女儿", "女友", "同事", "其他"] as const;
 export type Relation = (typeof RELATIONS)[number];
 
 export const TAGS: { id: TagId | "all"; label: string }[] = [

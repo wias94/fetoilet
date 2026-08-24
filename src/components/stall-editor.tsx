@@ -273,7 +273,12 @@ export function StallEditor({
 
   function canNext() {
     if (step === 0) return form.confirmedAdult;
-    if (step === 1) return form.name.trim().length > 0 && Number(form.age) >= 18;
+    if (step === 1) {
+      if (form.name.trim().length === 0) return false;
+      if (Number(form.age) < 18) return false;
+      if (form.relation === "女儿" && Number(form.age) < 18) return false;
+      return true;
+    }
     if (step === 4) return isShownPhoto(form.image);
     return true;
   }
@@ -354,15 +359,15 @@ export function StallEditor({
             <div className="space-y-3 rounded-2xl bg-surface p-4 text-sm leading-relaxed text-muted shadow-border">
               <p>欢迎进入肉厕挂牌交易所。</p>
               <p>
-                妻子、母亲、女友可以在这里登记挂牌，出租或转让使用权。同事、同学核验更严，请如实填。只接受
-                18 岁以上。
+                妻子、母亲、已满 18 岁的女儿、女友可以在这里登记挂牌。同事核验更严。未满 18
+                岁一律不收。
               </p>
               <p>
                 登记后必须能接单。放鸽子会扣履约保证金。核验通过后会出现在货架上，客户随时点单。
               </p>
             </div>
             {createOwned && (
-              <Field label="她是你的什么（妻子、母亲核验简单；同事较复杂）">
+              <Field label="她是你的什么（妻子、母亲、成年女儿核验简单；同事较复杂）">
                 <div className="flex flex-wrap gap-2">
                   {RELATIONS.map((r) => (
                     <Chip key={r} active={form.relation === r} onClick={() => setForm((f) => ({ ...f, relation: r }))}>
