@@ -4,7 +4,8 @@ import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { listMessages, sendMessage, type ChatMessage, type Thread } from "@/lib/messages";
+import { listMessages, sendMessage } from "@/lib/mail-api";
+import type { ChatMessage, Thread } from "@/lib/messages";
 import { cn } from "@/lib/utils";
 
 export function ChatThread({
@@ -26,7 +27,7 @@ export function ChatThread({
     let cancelled = false;
     async function load() {
       try {
-        const data = await listMessages({ data: { id } });
+        const data = await listMessages(id);
         if (cancelled) return;
         setThread(data.thread);
         setMessages(data.messages);
@@ -35,7 +36,7 @@ export function ChatThread({
       }
     }
     void load();
-    const timer = window.setInterval(() => void load(), 8000);
+    const timer = window.setInterval(() => void load(), 4000);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
@@ -51,19 +52,18 @@ export function ChatThread({
     if (!next || busy) return;
     setBusy(true);
     try {
-      const msg = await sendMessage({ data: { id, text: next } });
+      const msg = await sendMessage(id, next);
       setMessages((cur) => (cur.some((m) => m.id === msg.id) ? cur : [...cur, msg]));
       setText("");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "没发出去";
-      toast(message.startsWith("[") ? "没发出去" : message);
+      toast(err instanceof Error ? err.message : "没发出去");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-8rem)] flex-col">
+    <div className="flex min-h-[calc(100dvh-9.5rem)] flex-col">
       <Link to={backTo} className="inline-flex h-10 items-center gap-1 text-sm text-muted hover:text-fg">
         <ArrowLeft className="size-4" />
         {backLabel}
@@ -71,7 +71,7 @@ export function ChatThread({
       <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight">
         {thread?.peerName ?? "私信"}
       </h1>
-      <div className="mt-4 flex-1 space-y-2 overflow-y-auto pb-24">
+      <div className="mt-4 flex-1 space-y-2 overflow-y-auto">
         {messages.length === 0 && <p className="py-8 text-center text-sm text-muted">还没有话。下面输入发出去。</p>}
         {messages.map((m) => (
           <div key={m.id} className={cn("flex", m.mine ? "justify-end" : "justify-start")}>
@@ -87,26 +87,26 @@ export function ChatThread({
         ))}
         <div ref={bottom} />
       </div>
-      <form
-        className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 border-t border-border bg-bg/95 px-4 py-3 backdrop-blur-md md:bottom-0"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void send();
-        }}
-      >
-        <div className="mx-auto flex max-w-5xl gap-2">
+      <div className="sticky bottom-0 z-20 -mx-4 mt-3 border-t border-border bg-bg px-4 py-3">
+        <div className="flex gap-2">
           <Input
             value={text}
             maxLength={2000}
             placeholder="写一句"
             enterKeyHint="send"
             onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void send();
+              }
+            }}
           />
-          <Button type="submit" disabled={busy || !text.trim()}>
+          <Button type="button" disabled={busy || !text.trim()} onClick={() => void send()}>
             {busy ? "在发…" : "发送"}
           </Button>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

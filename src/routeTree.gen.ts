@@ -36,6 +36,7 @@ import { Route as WorkStallRouteImport } from './routes/work.stall'
 import { Route as WorkStatsRouteImport } from './routes/work.stats'
 import { Route as ApiAdminSessionRouteImport } from './routes/api/admin/session'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiMailSplatRouteImport } from './routes/api/mail/$'
 import { Route as ApiMediaSplatRouteImport } from './routes/api/media/$'
 import { Route as ApiV1SplatRouteImport } from './routes/api/v1/$'
 import { Route as WorkMailIdRouteImport } from './routes/work.mail.$id'
@@ -175,6 +176,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMailSplatRoute = ApiMailSplatRouteImport.update({
+  id: '/api/mail/$',
+  path: '/api/mail/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMediaSplatRoute = ApiMediaSplatRouteImport.update({
   id: '/api/media/$',
   path: '/api/media/$',
@@ -219,6 +225,7 @@ export interface FileRoutesByFullPath {
   '/work/': typeof WorkIndexRoute
   '/api/admin/session': typeof ApiAdminSessionRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/mail/$': typeof ApiMailSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/work/mail/$id': typeof WorkMailIdRoute
@@ -249,6 +256,7 @@ export interface FileRoutesByTo {
   '/work': typeof WorkIndexRoute
   '/api/admin/session': typeof ApiAdminSessionRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/mail/$': typeof ApiMailSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/work/mail/$id': typeof WorkMailIdRoute
@@ -282,6 +290,7 @@ export interface FileRoutesById {
   '/work/': typeof WorkIndexRoute
   '/api/admin/session': typeof ApiAdminSessionRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/mail/$': typeof ApiMailSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/api/v1/$': typeof ApiV1SplatRoute
   '/work/mail/$id': typeof WorkMailIdRoute
@@ -316,6 +325,7 @@ export interface FileRouteTypes {
     | '/work/'
     | '/api/admin/session'
     | '/api/auth/$'
+    | '/api/mail/$'
     | '/api/media/$'
     | '/api/v1/$'
     | '/work/mail/$id'
@@ -346,6 +356,7 @@ export interface FileRouteTypes {
     | '/work'
     | '/api/admin/session'
     | '/api/auth/$'
+    | '/api/mail/$'
     | '/api/media/$'
     | '/api/v1/$'
     | '/work/mail/$id'
@@ -378,6 +389,7 @@ export interface FileRouteTypes {
     | '/work/'
     | '/api/admin/session'
     | '/api/auth/$'
+    | '/api/mail/$'
     | '/api/media/$'
     | '/api/v1/$'
     | '/work/mail/$id'
@@ -399,6 +411,7 @@ export interface RootRouteChildren {
   PIdRoute: typeof PIdRoute
   ApiAdminSessionRoute: typeof ApiAdminSessionRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiMailSplatRoute: typeof ApiMailSplatRoute
   ApiMediaSplatRoute: typeof ApiMediaSplatRoute
 }
 
@@ -593,6 +606,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mail/$': {
+      id: '/api/mail/$'
+      path: '/api/mail/$'
+      fullPath: '/api/mail/$'
+      preLoaderRoute: typeof ApiMailSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/media/$': {
       id: '/api/media/$'
       path: '/api/media/$'
@@ -703,6 +723,7 @@ const rootRouteChildren: RootRouteChildren = {
   PIdRoute: PIdRoute,
   ApiAdminSessionRoute: ApiAdminSessionRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiMailSplatRoute: ApiMailSplatRoute,
   ApiMediaSplatRoute: ApiMediaSplatRoute,
 }
 export const routeTree = rootRouteImport

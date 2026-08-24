@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { WorkShell } from "@/components/work-shell";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { listThreads, type Thread } from "@/lib/messages";
+import { listThreads } from "@/lib/mail-api";
+import type { Thread } from "@/lib/messages";
 
 export const Route = createFileRoute("/work/mail")({ component: WorkMailPage });
 

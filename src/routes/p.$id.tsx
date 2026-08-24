@@ -11,7 +11,7 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getPublicStall } from "@/lib/stalls";
 import { buyStall } from "@/lib/economy";
 import { claimByStallToken } from "@/lib/owners";
-import { openThread } from "@/lib/messages";
+import { openThread } from "@/lib/mail-api";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { tagLabel } from "@/lib/profiles";
@@ -190,7 +190,7 @@ function ProfilePage() {
             disabled={tradeBusy}
             onClick={() => {
               setTradeBusy(true);
-              void openThread({ data: { stallId: profile.id } })
+              void openThread(profile.id)
                 .then((row) => router.navigate({ to: "/mail/$id", params: { id: row.id } }))
                 .catch((err) => toast(err instanceof Error ? err.message : "没打开"))
                 .finally(() => setTradeBusy(false));
