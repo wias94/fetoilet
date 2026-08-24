@@ -24,6 +24,8 @@ export type Profile = {
   relation?: string | null;
   weightKg?: number;
   identity?: string;
+  job?: string;
+  personality?: string;
   marriage?: string;
   demeanor?: string;
   moan?: string;

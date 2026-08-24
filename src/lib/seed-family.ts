@@ -55,6 +55,8 @@ export async function ensureMotherSon(sql: Sql) {
   const mapped = listingFromArchive({
     age: 42,
     identity: "在职",
+    job: "公司职员",
+    personality: "隐忍顾家",
     marriage: "已婚已育",
     relation: "母亲",
     heightCm: 162,
@@ -73,7 +75,7 @@ export async function ensureMotherSon(sql: Sql) {
       insert into stalls (
         id, user_id, name, age, height_cm, cup, tags, image, online,
         hour_fen, night_fen, eta_min, places, bio, services, work, owner_id,
-        relation, weight_kg, identity, marriage, demeanor, moan, skill_level,
+        relation, weight_kg, identity, job, personality, marriage, demeanor, moan, skill_level,
         orgasm, feel, persona, selling_points, hours_tag, daily_quota, travel,
         condom, extras, review_pref, deposit_fen
       ) values (
@@ -81,7 +83,7 @@ export async function ensureMotherSon(sql: Sql) {
         ${tags}::jsonb, ${"/profiles/lin.jpg"}, ${true},
         ${mapped.hourYuan * 100}, ${mapped.nightYuan * 100}, ${25}, ${places}::jsonb, ${bio}, ${services}::jsonb,
         ${"可上门 · 约 25 分钟抵达"}, ${SON_ID},
-        ${"母亲"}, ${54}, ${"在职"}, ${"已婚已育"}, ${mapped.demeanor}, ${mapped.moan},
+        ${"母亲"}, ${54}, ${"在职"}, ${"公司职员"}, ${"隐忍顾家"}, ${"已婚已育"}, ${mapped.demeanor}, ${mapped.moan},
         ${mapped.skillLevel}, ${mapped.orgasm}, ${mapped.feel}, ${mapped.persona},
         ${points}::jsonb, ${mapped.hoursTag}, ${mapped.dailyQuota}, ${mapped.travel},
         ${mapped.condom}, ${extras}::jsonb, ${mapped.reviewPref}, ${5000}
@@ -95,6 +97,8 @@ export async function ensureMotherSon(sql: Sql) {
         relation = ${"母亲"},
         name = ${"衡母"},
         age = ${42},
+        job = ${"公司职员"},
+        personality = ${"隐忍顾家"},
         bio = ${bio}
       where id = ${MOM_STALL_ID}
     `;

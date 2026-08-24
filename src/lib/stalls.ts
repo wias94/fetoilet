@@ -18,8 +18,10 @@ import {
   FEELS,
   HOURS_TAGS,
   IDENTITIES,
+  JOBS,
   LISTING_DEFAULTS,
   MARRIAGES,
+  PERSONALITIES,
   MOANS,
   ORGASMS,
   PERSONAS,
@@ -60,6 +62,8 @@ const StallInput = z.object({
   ownerToken: z.string().trim().max(24).optional(),
   weightKg: z.number().int().min(35).max(120).default(LISTING_DEFAULTS.weightKg),
   identity: z.enum(IDENTITIES).default(LISTING_DEFAULTS.identity),
+  job: z.enum(JOBS).default(LISTING_DEFAULTS.job),
+  personality: z.enum(PERSONALITIES).default(LISTING_DEFAULTS.personality),
   marriage: z.enum(MARRIAGES).default(LISTING_DEFAULTS.marriage),
   demeanor: z.enum(DEMEANORS).default(LISTING_DEFAULTS.demeanor),
   moan: z.enum(MOANS).default(LISTING_DEFAULTS.moan),
@@ -114,6 +118,8 @@ type StallRow = {
   relation?: string | null;
   weight_kg?: number | null;
   identity?: string | null;
+  job?: string | null;
+  personality?: string | null;
   marriage?: string | null;
   demeanor?: string | null;
   moan?: string | null;
@@ -181,6 +187,8 @@ function toProfile(row: StallRow): Profile {
     relation: row.relation ?? null,
     weightKg: Number(row.weight_kg ?? LISTING_DEFAULTS.weightKg),
     identity: row.identity || LISTING_DEFAULTS.identity,
+    job: row.job || LISTING_DEFAULTS.job,
+    personality: row.personality || LISTING_DEFAULTS.personality,
     marriage: row.marriage || LISTING_DEFAULTS.marriage,
     demeanor: row.demeanor || LISTING_DEFAULTS.demeanor,
     moan: row.moan || LISTING_DEFAULTS.moan,
@@ -350,6 +358,8 @@ export const saveMyStall = createServerFn({ method: "POST" })
           owner_id = ${ownerId},
           weight_kg = ${data.weightKg},
           identity = ${data.identity},
+          job = ${data.job},
+          personality = ${data.personality},
           marriage = ${data.marriage},
           demeanor = ${data.demeanor},
           moan = ${data.moan},
@@ -373,7 +383,7 @@ export const saveMyStall = createServerFn({ method: "POST" })
         insert into stalls (
           id, user_id, name, age, height_cm, cup, tags, image, online,
           hour_fen, night_fen, eta_min, places, bio, services, work, owner_id,
-          weight_kg, identity, marriage, demeanor, moan, skill_level, orgasm, feel,
+          weight_kg, identity, job, personality, marriage, demeanor, moan, skill_level, orgasm, feel,
           persona, selling_points, hours_tag, daily_quota, travel, condom, extras,
           review_pref, deposit_fen
         ) values (
@@ -381,7 +391,7 @@ export const saveMyStall = createServerFn({ method: "POST" })
           ${JSON.stringify(data.tags)}::jsonb, ${image}, ${data.online},
           ${data.hourFen}, ${data.nightFen}, ${data.etaMin}, ${JSON.stringify(data.places)}::jsonb,
           ${data.bio}, ${JSON.stringify(data.services)}::jsonb, ${work}, ${ownerId},
-          ${data.weightKg}, ${data.identity}, ${data.marriage}, ${data.demeanor}, ${data.moan},
+          ${data.weightKg}, ${data.identity}, ${data.job}, ${data.personality}, ${data.marriage}, ${data.demeanor}, ${data.moan},
           ${data.skillLevel}, ${data.orgasm}, ${data.feel}, ${data.persona},
           ${JSON.stringify(data.sellingPoints)}::jsonb, ${data.hoursTag}, ${data.dailyQuota},
           ${data.travel}, ${data.condom}, ${JSON.stringify(data.extras)}::jsonb,
@@ -491,6 +501,8 @@ export const saveOwnedStall = createServerFn({ method: "POST" })
         work = ${work},
         weight_kg = ${data.weightKg},
         identity = ${data.identity},
+        job = ${data.job},
+        personality = ${data.personality},
         marriage = ${data.marriage},
         demeanor = ${data.demeanor},
         moan = ${data.moan},
@@ -549,7 +561,7 @@ export const createOwnedStall = createServerFn({ method: "POST" })
         id, user_id, name, age, height_cm, cup, tags, image, online,
         hour_fen, night_fen, eta_min, places, bio, services, work, owner_id,
         stall_token, relation,
-        weight_kg, identity, marriage, demeanor, moan, skill_level, orgasm, feel,
+        weight_kg, identity, job, personality, marriage, demeanor, moan, skill_level, orgasm, feel,
         persona, selling_points, hours_tag, daily_quota, travel, condom, extras,
         review_pref, deposit_fen
       ) values (
@@ -558,7 +570,7 @@ export const createOwnedStall = createServerFn({ method: "POST" })
         ${data.hourFen}, ${data.nightFen}, ${data.etaMin}, ${JSON.stringify(data.places)}::jsonb,
         ${data.bio}, ${JSON.stringify(data.services)}::jsonb, ${work}, ${context.userId},
         ${token}, ${data.relation},
-        ${data.weightKg}, ${data.identity}, ${data.marriage}, ${data.demeanor}, ${data.moan},
+        ${data.weightKg}, ${data.identity}, ${data.job}, ${data.personality}, ${data.marriage}, ${data.demeanor}, ${data.moan},
         ${data.skillLevel}, ${data.orgasm}, ${data.feel}, ${data.persona},
         ${JSON.stringify(data.sellingPoints)}::jsonb, ${data.hoursTag}, ${data.dailyQuota},
         ${data.travel}, ${data.condom}, ${JSON.stringify(data.extras)}::jsonb,

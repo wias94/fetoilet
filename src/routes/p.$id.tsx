@@ -139,6 +139,8 @@ function ProfilePage() {
               {profile.condom && <span className="rounded-full bg-sunken px-3 py-1 text-xs">{profile.condom}</span>}
               {profile.hoursTag && <span className="rounded-full bg-sunken px-3 py-1 text-xs">{profile.hoursTag}</span>}
               {profile.identity && <span className="rounded-full bg-sunken px-3 py-1 text-xs">{profile.identity}</span>}
+              {profile.job && <span className="rounded-full bg-sunken px-3 py-1 text-xs">{profile.job}</span>}
+              {profile.personality && <span className="rounded-full bg-sunken px-3 py-1 text-xs">{profile.personality}</span>}
             </div>
           )}
           {profile.sellingPoints && profile.sellingPoints.length > 0 && (

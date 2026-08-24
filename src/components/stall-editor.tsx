@@ -31,11 +31,13 @@ import {
   FEELS,
   HOURS_TAGS,
   IDENTITIES,
+  JOBS,
   LISTING_DEFAULTS,
   MARRIAGES,
   MOANS,
   NAME_PRESETS,
   ORGASMS,
+  PERSONALITIES,
   PERSONAS,
   REVIEW_PREFS,
   SELLING_POINTS,
@@ -44,7 +46,7 @@ import {
   composeListingBio,
   digitsOnly,
 } from "@/lib/listing";
-import { listingFromArchive } from "@/lib/listing-params";
+import { identityFromJob, listingFromArchive } from "@/lib/listing-params";
 import { cn, formatFen } from "@/lib/utils";
 
 const TAG_OPTIONS = TAGS.filter((t) => t.id !== "all") as { id: TagId; label: string }[];
@@ -70,6 +72,8 @@ type Form = {
   stallEmail: string;
   relation: Relation;
   identity: (typeof IDENTITIES)[number];
+  job: (typeof JOBS)[number];
+  personality: (typeof PERSONALITIES)[number];
   marriage: (typeof MARRIAGES)[number];
   demeanor: (typeof DEMEANORS)[number];
   moan: (typeof MOANS)[number];
@@ -107,6 +111,8 @@ const EMPTY: Form = {
   stallEmail: "",
   relation: "母亲",
   identity: LISTING_DEFAULTS.identity,
+  job: LISTING_DEFAULTS.job,
+  personality: LISTING_DEFAULTS.personality,
   marriage: LISTING_DEFAULTS.marriage,
   demeanor: LISTING_DEFAULTS.demeanor,
   moan: LISTING_DEFAULTS.moan,
@@ -145,6 +151,8 @@ function fromProfile(p: Profile): Form {
     relation: (p.relation as Relation) || "女友",
     stallEmail: "",
     identity: (p.identity as Form["identity"]) || LISTING_DEFAULTS.identity,
+    job: (p.job as Form["job"]) || LISTING_DEFAULTS.job,
+    personality: (p.personality as Form["personality"]) || LISTING_DEFAULTS.personality,
     marriage: (p.marriage as Form["marriage"]) || LISTING_DEFAULTS.marriage,
     demeanor: (p.demeanor as Form["demeanor"]) || LISTING_DEFAULTS.demeanor,
     moan: (p.moan as Form["moan"]) || LISTING_DEFAULTS.moan,
@@ -261,6 +269,8 @@ export function StallEditor({
       ownerToken: form.ownerToken,
       weightKg: Number(form.weightKg),
       identity: form.identity,
+      job: form.job,
+      personality: form.personality,
       marriage: form.marriage,
       demeanor: form.demeanor,
       moan: form.moan,
@@ -523,10 +533,28 @@ export function StallEditor({
                 </div>
               </Field>
             </div>
-            <Field label="身份">
+            <Field label="职位">
               <div className="flex flex-wrap gap-2">
-                {IDENTITIES.map((v) => (
-                  <Chip key={v} active={form.identity === v} onClick={() => setForm((f) => ({ ...f, identity: v }))}>{v}</Chip>
+                {JOBS.map((v) => (
+                  <Chip
+                    key={v}
+                    active={form.job === v}
+                    onClick={() =>
+                      setForm((f) => ({ ...f, job: v, identity: identityFromJob(v) }))
+                    }
+                  >
+                    {v}
+                  </Chip>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-subtle">档期按职位归到{form.identity}</p>
+            </Field>
+            <Field label="性格">
+              <div className="flex flex-wrap gap-2">
+                {PERSONALITIES.map((v) => (
+                  <Chip key={v} active={form.personality === v} onClick={() => setForm((f) => ({ ...f, personality: v }))}>
+                    {v}
+                  </Chip>
                 ))}
               </div>
             </Field>
@@ -548,8 +576,10 @@ export function StallEditor({
               onClick={() => {
                 const mapped = listingFromArchive({
                   age: Number(form.age) || 18,
-                  identity: form.identity as (typeof IDENTITIES)[number],
-                  marriage: form.marriage as (typeof MARRIAGES)[number],
+                  identity: form.identity,
+                  job: form.job,
+                  personality: form.personality,
+                  marriage: form.marriage,
                   relation: form.relation,
                   heightCm: Number(form.heightCm) || undefined,
                   weightKg: Number(form.weightKg) || undefined,
@@ -557,6 +587,7 @@ export function StallEditor({
                 });
                 setForm((f) => ({
                   ...f,
+                  identity: mapped.identity,
                   demeanor: mapped.demeanor,
                   moan: mapped.moan,
                   skillLevel: mapped.skillLevel,
@@ -572,7 +603,7 @@ export function StallEditor({
                   hourYuan: String(mapped.hourYuan),
                   nightYuan: String(mapped.nightYuan),
                 }));
-                toast("已按年龄、职业、关系、婚育生成表现");
+                toast("已按年龄、职位、性格、关系生成表现");
               }}
             >
               按档案生成表现
@@ -776,6 +807,8 @@ export function StallEditor({
                         weightKg: Number(f.weightKg) || 50,
                         cup: f.cup,
                         identity: f.identity,
+                        job: f.job,
+                        personality: f.personality,
                         marriage: f.marriage,
                         demeanor: f.demeanor,
                         moan: f.moan,

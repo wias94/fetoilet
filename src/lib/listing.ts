@@ -7,6 +7,28 @@ export const DEPOSITS = [
 ] as const;
 
 export const IDENTITIES = ["在校（仅18+）", "在职", "自由职业"] as const;
+export const JOBS = [
+  "在校学生",
+  "全职主妇",
+  "公司职员",
+  "教师",
+  "护士",
+  "服务员",
+  "销售",
+  "公务员",
+  "主播网红",
+  "无业",
+] as const;
+export const PERSONALITIES = [
+  "温顺讨好",
+  "软萌粘人",
+  "内向闷骚",
+  "清高要强",
+  "冷淡疏离",
+  "外向热闹",
+  "作精骄纵",
+  "隐忍顾家",
+] as const;
 export const MARRIAGES = ["未婚未育", "已婚未育", "已婚已育"] as const;
 export const DEMEANORS = [
   "被动保守呆板生涩",
@@ -67,6 +89,8 @@ export const REVIEW_PREFS = ["不需要", "可以接受", "非常需要"] as con
 export type Listing = {
   weightKg: number;
   identity: (typeof IDENTITIES)[number];
+  job: (typeof JOBS)[number];
+  personality: (typeof PERSONALITIES)[number];
   marriage: (typeof MARRIAGES)[number];
   demeanor: (typeof DEMEANORS)[number];
   moan: (typeof MOANS)[number];
@@ -87,6 +111,8 @@ export type Listing = {
 export const LISTING_DEFAULTS: Listing = {
   weightKg: 50,
   identity: "在职",
+  job: "公司职员",
+  personality: "温顺讨好",
   marriage: "未婚未育",
   demeanor: "自然开放积极配合",
   moan: "只会轻喘呻吟",
@@ -117,6 +143,8 @@ export function composeListingBio(input: {
   weightKg: number;
   cup: string;
   identity: string;
+  job: string;
+  personality: string;
   marriage: string;
   demeanor: string;
   moan: string;
@@ -133,7 +161,7 @@ export function composeListingBio(input: {
   const text = [
     `${input.persona}。`,
     `${input.age}岁，${input.heightCm}cm，${input.weightKg}kg，${input.cup}杯。`,
-    `${input.identity}，${input.marriage}。`,
+    `${input.job}，${input.personality}，${input.identity}，${input.marriage}。`,
     `表现${input.demeanor}，${input.moan}，技术${input.skillLevel}，${input.orgasm}。`,
     `使用感受：${input.feel}。${input.condom}。`,
     `${input.hoursTag}，${input.dailyQuota}，${input.travel}。`,
