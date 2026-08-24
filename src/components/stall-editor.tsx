@@ -44,6 +44,7 @@ import {
   composeListingBio,
   digitsOnly,
 } from "@/lib/listing";
+import { listingFromArchive } from "@/lib/listing-params";
 import { cn, formatFen } from "@/lib/utils";
 
 const TAG_OPTIONS = TAGS.filter((t) => t.id !== "all") as { id: TagId; label: string }[];
@@ -541,6 +542,41 @@ export function StallEditor({
 
         {step === 2 && (
           <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                const mapped = listingFromArchive({
+                  age: Number(form.age) || 18,
+                  identity: form.identity as (typeof IDENTITIES)[number],
+                  marriage: form.marriage as (typeof MARRIAGES)[number],
+                  relation: form.relation,
+                  heightCm: Number(form.heightCm) || undefined,
+                  weightKg: Number(form.weightKg) || undefined,
+                  cup: form.cup,
+                });
+                setForm((f) => ({
+                  ...f,
+                  demeanor: mapped.demeanor,
+                  moan: mapped.moan,
+                  skillLevel: mapped.skillLevel,
+                  orgasm: mapped.orgasm,
+                  feel: mapped.feel,
+                  persona: mapped.persona,
+                  sellingPoints: mapped.sellingPoints,
+                  hoursTag: mapped.hoursTag,
+                  dailyQuota: mapped.dailyQuota,
+                  travel: mapped.travel,
+                  condom: mapped.condom,
+                  reviewPref: mapped.reviewPref,
+                  hourYuan: String(mapped.hourYuan),
+                  nightYuan: String(mapped.nightYuan),
+                }));
+                toast("已按年龄、职业、关系、婚育生成表现");
+              }}
+            >
+              按档案生成表现
+            </Button>
             <Pick label="表现" options={DEMEANORS} value={form.demeanor} onPick={(v) => setForm((f) => ({ ...f, demeanor: v }))} />
             <Pick label="叫床" options={MOANS} value={form.moan} onPick={(v) => setForm((f) => ({ ...f, moan: v }))} />
             <Pick label="技术级别" options={SKILLS} value={form.skillLevel} onPick={(v) => setForm((f) => ({ ...f, skillLevel: v }))} />

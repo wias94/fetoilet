@@ -1,6 +1,7 @@
 import { hashPassword } from "better-auth/crypto";
 import type { Sql } from "@/lib/db";
 import { ensureUserState } from "@/lib/behavior";
+import { listingFromArchive } from "@/lib/listing-params";
 
 const SON_ID = "family-son-heng";
 const SON_EMAIL = "heng@xiangce.app";
@@ -51,10 +52,19 @@ export async function ensureMotherSon(sql: Sql) {
   await ensureCredential(sql, SON_ID, "阿衡", SON_EMAIL, "male");
   await ensureCredential(sql, MOM_USER_ID, "衡母", MOM_EMAIL, "stall");
   const stall = await sql<{ id: string }>`select id from stalls where id = ${MOM_STALL_ID} limit 1`;
+  const mapped = listingFromArchive({
+    age: 42,
+    identity: "在职",
+    marriage: "已婚已育",
+    relation: "母亲",
+    heightCm: 162,
+    weightKg: 54,
+    cup: "C",
+  });
   const tags = JSON.stringify(["visit", "night"]);
   const places = JSON.stringify(["你家", "她家", "酒店"]);
   const services = JSON.stringify(["口交", "性交", "内射"]);
-  const points = JSON.stringify(["气质反差", "奴性强", "反差"]);
+  const points = JSON.stringify(mapped.sellingPoints);
   const extras = JSON.stringify([]);
   const bio =
     "儿子名下的母亲肉厕。42 岁已婚已育，在职。接客姿态羞涩需引导。无套看人。主人优先占用。";
@@ -69,12 +79,12 @@ export async function ensureMotherSon(sql: Sql) {
       ) values (
         ${MOM_STALL_ID}, ${MOM_USER_ID}, ${"衡母"}, ${42}, ${162}, ${"C"},
         ${tags}::jsonb, ${"/profiles/lin.jpg"}, ${true},
-        ${800}, ${2800}, ${25}, ${places}::jsonb, ${bio}, ${services}::jsonb,
+        ${mapped.hourYuan * 100}, ${mapped.nightYuan * 100}, ${25}, ${places}::jsonb, ${bio}, ${services}::jsonb,
         ${"可上门 · 约 25 分钟抵达"}, ${SON_ID},
-        ${"母亲"}, ${54}, ${"在职"}, ${"已婚已育"}, ${"羞涩需要引导鼓励"}, ${"只会轻喘呻吟"},
-        ${"常规伴侣级"}, ${"不易高潮"}, ${"纯粹泄欲"}, ${"有待开发的良家"},
-        ${points}::jsonb, ${"仅晚上可接"}, ${"一天一客"}, ${"本地客人"},
-        ${"看人可无套"}, ${extras}::jsonb, ${"可以接受"}, ${5000}
+        ${"母亲"}, ${54}, ${"在职"}, ${"已婚已育"}, ${mapped.demeanor}, ${mapped.moan},
+        ${mapped.skillLevel}, ${mapped.orgasm}, ${mapped.feel}, ${mapped.persona},
+        ${points}::jsonb, ${mapped.hoursTag}, ${mapped.dailyQuota}, ${mapped.travel},
+        ${mapped.condom}, ${extras}::jsonb, ${mapped.reviewPref}, ${5000}
       )
     `;
   } else {
