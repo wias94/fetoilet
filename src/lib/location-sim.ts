@@ -4,10 +4,16 @@ import { LOCATION_INTERVAL_MS } from "@/lib/geo";
 
 type PersonFix = { id: string; lat: number; lng: number };
 
-const cache: { at: number; running: Promise<number> | null } = { at: 0, running: null };
+const cache: { at: number; running: Promise<number> | null; etag: string } = {
+  at: 0,
+  running: null,
+  etag: "",
+};
 
 export function locationApiBase() {
-  return runtimeEnv("LOCATION_API_URL")?.replace(/\/$/, "") ?? "";
+  const raw =
+    runtimeEnv("LOCATION_API_BASE_URL") ?? runtimeEnv("LOCATION_API_URL") ?? "";
+  return raw.replace(/\/$/, "");
 }
 
 function locationApiKey() {
@@ -58,8 +64,22 @@ export async function syncWorldIfDue() {
   if (cache.running) return cache.running;
   cache.running = (async () => {
     try {
-      const res = await fetch(`${base}/api/v1/world?compact=true`, { headers: simHeaders() });
+      const headers: Record<string, string> = {
+        ...simHeaders(),
+        Accept: "application/json",
+        "Accept-Encoding": "gzip",
+      };
+      if (cache.etag) headers["If-None-Match"] = cache.etag;
+      const res = await fetch(`${base}/api/v1/world?compact=true`, {
+        headers,
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (res.status === 304) {
+        cache.at = Date.now();
+        return 0;
+      }
       if (!res.ok) return 0;
+      cache.etag = res.headers.get("etag") || cache.etag;
       const data = (await res.json()) as { p?: unknown };
       const rows = Array.isArray(data.p) ? data.p : [];
       const fixes: PersonFix[] = [];
