@@ -276,14 +276,19 @@ export async function listNearby(lat: number, lng: number, radiusM: number) {
   const rows = await sql<{
     id: string;
     name: string;
+    age: number;
     online: boolean;
     hour_fen: number;
     eta_min: number;
     image: string;
+    persona: string | null;
+    height_cm: number | null;
+    weight_kg: number | null;
+    owner_id: string | null;
     lat: number;
     lng: number;
   }>`
-    select id, name, online, hour_fen, eta_min, image, lat, lng
+    select id, name, age, online, hour_fen, eta_min, image, persona, height_cm, weight_kg, owner_id, lat, lng
     from stalls
     where lat is not null and lng is not null
       and coalesce(hidden, false) = false
@@ -294,10 +299,17 @@ export async function listNearby(lat: number, lng: number, radiusM: number) {
       return {
         id: r.id,
         name: r.name,
+        age: Number(r.age),
         online: Boolean(r.online),
+        hourFen: Number(r.hour_fen),
         hour_fen: Number(r.hour_fen),
+        etaMin: Number(r.eta_min),
         eta_min: Number(r.eta_min),
         image: r.image,
+        persona: r.persona || "",
+        heightCm: Number(r.height_cm ?? 0),
+        weightKg: Number(r.weight_kg ?? 0),
+        unowned: !r.owner_id,
         lat: Number(r.lat),
         lng: Number(r.lng),
         distance_m,

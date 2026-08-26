@@ -19,6 +19,7 @@ import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MailRouteImport } from './routes/mail'
 import { Route as MeRouteImport } from './routes/me'
+import { Route as NearbyRouteImport } from './routes/nearby'
 import { Route as WorkRouteImport } from './routes/work'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
@@ -93,6 +94,11 @@ const MailRoute = MailRouteImport.update({
 const MeRoute = MeRouteImport.update({
   id: '/me',
   path: '/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NearbyRoute = NearbyRouteImport.update({
+  id: '/nearby',
+  path: '/nearby',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkRoute = WorkRouteImport.update({
@@ -232,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/mail': typeof MailRouteWithChildren
   '/me': typeof MeRoute
+  '/nearby': typeof NearbyRoute
   '/work': typeof WorkRouteWithChildren
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/push': typeof AdminPushRoute
@@ -267,6 +274,7 @@ export interface FileRoutesByTo {
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
+  '/nearby': typeof NearbyRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/push': typeof AdminPushRoute
   '/admin/stalls': typeof AdminStallsRoute
@@ -303,6 +311,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/mail': typeof MailRouteWithChildren
   '/me': typeof MeRoute
+  '/nearby': typeof NearbyRoute
   '/work': typeof WorkRouteWithChildren
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/push': typeof AdminPushRoute
@@ -342,6 +351,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/mail'
     | '/me'
+    | '/nearby'
     | '/work'
     | '/admin/orders'
     | '/admin/push'
@@ -377,6 +387,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/login'
     | '/me'
+    | '/nearby'
     | '/admin/orders'
     | '/admin/push'
     | '/admin/stalls'
@@ -412,6 +423,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/mail'
     | '/me'
+    | '/nearby'
     | '/work'
     | '/admin/orders'
     | '/admin/push'
@@ -450,6 +462,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MailRoute: typeof MailRouteWithChildren
   MeRoute: typeof MeRoute
+  NearbyRoute: typeof NearbyRoute
   WorkRoute: typeof WorkRouteWithChildren
   ApiMeRoute: typeof ApiMeRoute
   ApiV1Route: typeof ApiV1RouteWithChildren
@@ -531,6 +544,13 @@ declare module '@tanstack/react-router' {
       path: '/me'
       fullPath: '/me'
       preLoaderRoute: typeof MeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nearby': {
+      id: '/nearby'
+      path: '/nearby'
+      fullPath: '/nearby'
+      preLoaderRoute: typeof NearbyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/work': {
@@ -796,6 +816,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MailRoute: MailRouteWithChildren,
   MeRoute: MeRoute,
+  NearbyRoute: NearbyRoute,
   WorkRoute: WorkRouteWithChildren,
   ApiMeRoute: ApiMeRoute,
   ApiV1Route: ApiV1RouteWithChildren,

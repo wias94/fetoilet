@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Compass, Inbox, MessageCircle, Radio, UserRound } from "lucide-react";
+import { Compass, Inbox, MapPin, MessageCircle, UserRound } from "lucide-react";
 import { Wordmark } from "@/components/logo";
 import { AuthSlot } from "@/components/auth-slot";
 import { RoleGate } from "@/components/role-gate";
@@ -17,6 +17,7 @@ export function AppShell({ children, bare }: { children: ReactNode; bare?: boole
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
             <HeaderLink to="/" label="选厕" />
+            <HeaderLink to="/nearby" label="附近" />
             <HeaderLink to="/feed" label="动态" />
             <HeaderLink to="/inbox" label="订单" />
             <HeaderLink to="/mail" label="私信" />
@@ -33,7 +34,7 @@ export function AppShell({ children, bare }: { children: ReactNode; bare?: boole
   );
 }
 
-function HeaderLink({ to, label }: { to: "/" | "/feed" | "/inbox" | "/mail" | "/me"; label: string }) {
+function HeaderLink({ to, label }: { to: "/" | "/nearby" | "/feed" | "/inbox" | "/mail" | "/me"; label: string }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const active = to === "/" ? pathname === "/" : pathname.startsWith(to);
   return (
@@ -53,7 +54,7 @@ function MobileTabBar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const tabs = [
     { to: "/" as const, label: "选厕", icon: Compass, active: pathname === "/" },
-    { to: "/feed" as const, label: "动态", icon: Radio, active: pathname.startsWith("/feed") },
+    { to: "/nearby" as const, label: "附近", icon: MapPin, active: pathname.startsWith("/nearby") },
     { to: "/inbox" as const, label: "订单", icon: Inbox, active: pathname.startsWith("/inbox") },
     { to: "/mail" as const, label: "私信", icon: MessageCircle, active: pathname.startsWith("/mail") },
     { to: "/me" as const, label: "账户", icon: UserRound, active: pathname.startsWith("/me") },
