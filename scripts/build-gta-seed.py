@@ -217,26 +217,22 @@ def main() -> None:
 
     claimed: dict[str, tuple[str, str]] = {}  # woman -> (relation, owner_pid)
 
-    def claim(wid: str, relation: str, owner: str, cap: int, counts: dict[str, int]) -> None:
+    def claim(wid: str, relation: str, owner: str) -> None:
         if wid in claimed:
             return
         if gender(wid) != "女" or age(wid) < 18:
             return
-        if gender(owner) != "男":
-            return
-        if counts[relation] >= cap:
+        if gender(owner) != "男" or age(owner) < 18:
             return
         claimed[wid] = (relation, owner)
-        counts[relation] += 1
 
-    counts = defaultdict(int)
     for row in rels:
         if row["relationship_type"] != "parent_of":
             continue
         a, b = row["person_id_a"], row["person_id_b"]
         pa, ch = (a, b) if age(a) >= age(b) else (b, a)
         if gender(pa) == "女" and gender(ch) == "男" and age(pa) - age(ch) >= 16:
-            claim(pa, "母亲", ch, 80, counts)
+            claim(pa, "母亲", ch)
     for row in rels:
         if row["relationship_type"] != "spouse":
             continue
@@ -244,22 +240,14 @@ def main() -> None:
         if {gender(a), gender(b)} != {"男", "女"}:
             continue
         w, m = (a, b) if gender(a) == "女" else (b, a)
-        claim(w, "妻子", m, 80, counts)
+        claim(w, "妻子", m)
     for row in rels:
         if row["relationship_type"] != "parent_of":
             continue
         a, b = row["person_id_a"], row["person_id_b"]
         pa, ch = (a, b) if age(a) >= age(b) else (b, a)
         if gender(pa) == "男" and gender(ch) == "女" and age(ch) >= 18 and age(pa) - age(ch) >= 16:
-            claim(ch, "女儿", pa, 60, counts)
-    for row in rels:
-        if row["relationship_type"] != "sibling":
-            continue
-        a, b = row["person_id_a"], row["person_id_b"]
-        if {gender(a), gender(b)} != {"男", "女"}:
-            continue
-        w, m = (a, b) if gender(a) == "女" else (b, a)
-        claim(w, "兄妹", m, 40, counts)
+            claim(ch, "女儿", pa)
     friends = []
     for row in rels:
         if row["relationship_type"] != "friend":
@@ -269,9 +257,22 @@ def main() -> None:
             continue
         friends.append((float(row.get("strength") or 0), a, b))
     friends.sort(reverse=True)
-    for _, a, b in friends:
+    for strength, a, b in friends:
+        if strength < 0.55:
+            continue
         w, m = (a, b) if gender(a) == "女" else (b, a)
-        claim(w, "女友", m, 25, counts)
+        claim(w, "女友", m)
+    for row in rels:
+        if row["relationship_type"] != "sibling":
+            continue
+        a, b = row["person_id_a"], row["person_id_b"]
+        if {gender(a), gender(b)} != {"男", "女"}:
+            continue
+        w, m = (a, b) if gender(a) == "女" else (b, a)
+        claim(w, "兄妹", m)
+    for strength, a, b in friends:
+        w, m = (a, b) if gender(a) == "女" else (b, a)
+        claim(w, "朋友", m)
     for row in rels:
         if row["relationship_type"] != "coworker":
             continue
@@ -279,40 +280,38 @@ def main() -> None:
         if {gender(a), gender(b)} != {"男", "女"}:
             continue
         w, m = (a, b) if gender(a) == "女" else (b, a)
-        claim(w, "同事", m, 20, counts)
+        claim(w, "同事", m)
+    for row in rels:
+        if row["relationship_type"] not in ("neighbor", "housemate"):
+            continue
+        a, b = row["person_id_a"], row["person_id_b"]
+        if {gender(a), gender(b)} != {"男", "女"}:
+            continue
+        w, m = (a, b) if gender(a) == "女" else (b, a)
+        claim(w, "朋友", m)
 
-    place_ids = {homes[pid] for pid in list(claimed) + [o for _, o in claimed.values()] if pid in homes}
+    counts: dict[str, int] = defaultdict(int)
+    for relation, _ in claimed.values():
+        counts[relation] += 1
+
+    needed_places = set()
+    for pid, home in homes.items():
+        needed_places.add(home)
     coords: dict[str, tuple[float, float]] = {}
     if PLACES.exists() and PLACES.stat().st_size > 1000:
         with PLACES.open(encoding="utf-8-sig") as f:
             for row in csv.DictReader(f):
                 pid = row.get("place_id")
-                if pid in place_ids:
+                if pid in needed_places:
                     try:
                         coords[pid] = (float(row["lat"]), float(row["lng"]))
                     except (TypeError, ValueError):
                         pass
 
     owners: dict[str, dict] = {}
-    stalls = []
-    for wid, (relation, oid) in claimed.items():
-        w = pop[wid]
-        o = pop[oid]
-        job, ident = job_of(w)
-        pers = personality_of(prof.get(wid), w.get("家庭状态") or "")
-        marriage = "已婚已育" if relation in ("母亲", "妻子") or "孩子" in (w.get("家庭状态") or "") and "无" not in (w.get("家庭状态") or "") else "未婚未育"
-        if relation in ("母亲", "妻子"):
-            marriage = "已婚已育"
-        if relation in ("女儿", "兄妹") and age(wid) < 25:
-            marriage = "未婚未育"
-        body_h = 156 + int(h01(wid, "h") * 16)
-        body_w = 44 + int(h01(wid, "w") * 16)
-        cups = ["B", "C", "C", "D", "C"]
-        cup = cups[int(h01(wid, "cup") * 5) % 5]
-        li = listing(wid, age(wid), relation, job, ident, pers, marriage)
-        photo = PHOTOS[int(h01(wid, "img") * len(PHOTOS)) % len(PHOTOS)]
-        home = homes.get(wid)
-        latlng = coords.get(home or "", (None, None))
+    for oid, o in pop.items():
+        if gender(oid) != "男":
+            continue
         owners[oid] = {
             "person_id": oid,
             "name": o["姓名"],
@@ -320,7 +319,31 @@ def main() -> None:
             "job": o.get("具体职位") or "",
             "email": f"{oid.lower()}@gta.xiangce.app",
         }
-        hour = 5 + int(li["skillLevel"] and (["入门基础级", "常规伴侣级", "优质情人级", "专业技师级"].index(li["skillLevel"]) * 3))
+
+    stalls = []
+    for wid, w in pop.items():
+        if gender(wid) != "女" or age(wid) < 18:
+            continue
+        owned = claimed.get(wid)
+        relation = owned[0] if owned else None
+        oid = owned[1] if owned else None
+        job, ident = job_of(w)
+        pers = personality_of(prof.get(wid), w.get("家庭状态") or "")
+        marriage = "未婚未育"
+        if relation in ("母亲", "妻子") or ("孩子" in (w.get("家庭状态") or "") and "无" not in (w.get("家庭状态") or "")):
+            marriage = "已婚已育"
+        if relation in ("女儿", "兄妹") and age(wid) < 25:
+            marriage = "未婚未育"
+        body_h = 156 + int(h01(wid, "h") * 16)
+        body_w = 44 + int(h01(wid, "w") * 16)
+        cups = ["B", "C", "C", "D", "C"]
+        cup = cups[int(h01(wid, "cup") * 5) % 5]
+        li = listing(wid, age(wid), relation or "朋友", job, ident, pers, marriage)
+        photo = PHOTOS[int(h01(wid, "img") * len(PHOTOS)) % len(PHOTOS)]
+        home = homes.get(wid)
+        latlng = coords.get(home or "", (43.8561, -79.3370))
+        hour = 5 + ["入门基础级", "常规伴侣级", "优质情人级", "专业技师级"].index(li["skillLevel"]) * 3
+        who = f"{oid}名下" if oid else "无主"
         stalls.append(
             {
                 "person_id": wid,
@@ -337,14 +360,16 @@ def main() -> None:
                 "etaMin": 15 + int(h01(wid, "eta") * 20),
                 "lat": latlng[0],
                 "lng": latlng[1],
-                "bio": f"{oid}名下。location {wid}。{age(wid)}岁{job}，性格{pers}，关系{relation}。",
+                "bio": f"{who}。{wid}。{age(wid)}岁{job}，性格{pers}。",
                 **li,
             }
         )
+        counts["unowned" if not oid else relation] += 0
 
+    counts["unowned"] = sum(1 for s in stalls if not s["owner_person_id"])
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(
-        json.dumps({"owners": list(owners.values()), "stalls": stalls, "counts": dict(counts)}, ensure_ascii=False, indent=0),
+        json.dumps({"owners": list(owners.values()), "stalls": stalls, "counts": dict(counts)}, ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
     )
     print("wrote", OUT, "owners", len(owners), "stalls", len(stalls), dict(counts))
@@ -358,7 +383,7 @@ def main() -> None:
     print("personality", dict(pers_c))
     print("job", dict(job_c))
     print("persona", dict(persona_c))
-    print("with coords", sum(1 for s in stalls if s["lat"] is not None))
+    print("with coords", sum(1 for s in stalls if s["lat"] is not None), "unowned", counts["unowned"])
 
 
 if __name__ == "__main__":
