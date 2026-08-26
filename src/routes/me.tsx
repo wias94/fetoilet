@@ -18,6 +18,8 @@ import {
 } from "@/lib/owners";
 import { getProfile, type Profile } from "@/lib/profiles";
 import { listOwnedStalls, listPublicStalls } from "@/lib/stalls";
+import { getMyMaleProfile } from "@/lib/male-profile";
+import { topTastes } from "@/lib/male-params";
 import {
   actOwnerInquiry,
   listOwnerInquiries,
@@ -44,15 +46,17 @@ function MePage() {
   const [orders, setOrders] = useState<Inquiry[]>([]);
   const [claimToken, setClaimToken] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [profile, setProfile] = useState<Awaited<ReturnType<typeof getMyMaleProfile>>>(null);
 
   async function refresh() {
-    const [tok, list, w, c, o, led] = await Promise.all([
+    const [tok, list, w, c, o, led, mp] = await Promise.all([
       getMyOwnerToken(),
       listOwnedStalls(),
       getMyWallet(),
       listClaimRequests(),
       listOwnerInquiries(),
       listMyLedger(),
+      getMyMaleProfile().catch(() => null),
     ]);
     setToken(tok.token);
     setOwned(list);
@@ -60,6 +64,7 @@ function MePage() {
     setClaims(c);
     setOrders(o);
     setLedger(led.map((r) => ({ id: r.id, fen: r.fen, note: r.note })));
+    setProfile(mp);
   }
 
   useEffect(() => {
@@ -109,6 +114,18 @@ function MePage() {
           {wallet == null ? "……" : formatFen(wallet)}
         </p>
         <p className="mt-1 text-sm text-muted">名下肉厕被使用后，收益结算至此。无主肉厕被使用后收益为零。</p>
+        {profile && (
+          <div className="mt-4 border-t border-border/70 pt-3">
+            <p className="text-sm text-muted">使用倾向</p>
+            <p className="mt-1 text-sm">
+              {profile.sessionStyle} · {profile.condomPref} · 预算{profile.budgetBand}
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              口味 {topTastes(profile.taste).join(" / ") || "未标"}
+              {profile.job ? ` · ${profile.job}` : ""}
+            </p>
+          </div>
+        )}
         {ledger.length > 0 && (
           <ul className="mt-4 space-y-1.5 border-t border-border/70 pt-3">
             {ledger.slice(0, 6).map((row) => (
