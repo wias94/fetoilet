@@ -47,7 +47,7 @@ const records = [];
 for (const u of men.rows) {
   const src = axesAll[u.person_id];
   if (!src) continue;
-  const derived = deriveMale(src, ownedBy.get(u.id) || {});
+  const derived = deriveMale(src, ownedBy.get(u.id) || {}, { familyStatus: src.family_status, age: src.age });
   records.push({
     user_id: u.id,
     person_id: u.person_id,

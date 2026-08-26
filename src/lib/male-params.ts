@@ -45,7 +45,11 @@ function round2(n: number) {
 }
 
 /** 名下肉厕关系 + location 轴 → 开单用的男性倾向。 */
-export function deriveMale(axes: LocationAxes, owned: Partial<Record<TasteKey, number>>): MaleDerived {
+export function deriveMale(
+  axes: LocationAxes,
+  owned: Partial<Record<TasteKey, number>>,
+  extra: { familyStatus?: string; age?: number } = {},
+): MaleDerived {
   const a = {
     sociability: clamp01(axes.sociability),
     routine: clamp01(axes.routine_preference),
@@ -60,12 +64,22 @@ export function deriveMale(axes: LocationAxes, owned: Partial<Record<TasteKey, n
   const taste = Object.fromEntries(TASTE_KEYS.map((k) => [k, 0])) as Record<TasteKey, number>;
   taste.母亲 += a.family * 0.55;
   taste.妻子 += a.family * 0.5;
-  taste.女儿 += a.family * 0.2;
+  taste.女儿 += a.family * 0.35;
+  const status = extra.familyStatus ?? "";
+  if (status.includes("未成年")) taste.女儿 += 0.42;
+  else if (status.includes("成年孩子")) taste.女儿 += 0.25;
+  if ((extra.age ?? 0) >= 35) taste.母亲 += a.family * 0.25;
   taste.女友 += a.nightlife * 0.45 + a.sociability * 0.15;
   taste.路人 += (1 - a.family) * 0.35 + a.spontaneity * 0.25 + a.sociability * 0.15;
   taste.朋友 += a.sociability * 0.25;
   taste.同事 += (1 - a.family) * 0.1;
+  const familyOwned = (owned.母亲 ?? 0) + (owned.妻子 ?? 0) + (owned.女儿 ?? 0);
+  if ((owned.母亲 ?? 0) > 0) taste.母亲 = Math.max(taste.母亲, 0.92);
+  if ((owned.妻子 ?? 0) > 0) taste.妻子 = Math.max(taste.妻子, 0.88);
+  if ((owned.女儿 ?? 0) > 0) taste.女儿 = Math.max(taste.女儿, 0.9);
+  if (familyOwned > 0) taste.女友 *= 0.35;
   for (const key of TASTE_KEYS) {
+    if (key === "母亲" || key === "妻子" || key === "女儿") continue;
     const n = owned[key] ?? 0;
     if (n > 0) taste[key] += Math.min(0.7, 0.28 + n * 0.12);
   }
