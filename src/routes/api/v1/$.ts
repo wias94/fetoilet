@@ -48,13 +48,16 @@ async function handle(method: string, request: Request) {
       const { runtimeEnv } = await import("@/lib/runtime-env");
       const { env } = await import("node:process");
       const keys = Object.keys(env)
-        .filter((k) => /DATABASE|POSTGRES|NEON|^PG|RAILWAY|BETTER|R2_|ADMIN_API/i.test(k))
+        .filter((k) => /DATABASE|POSTGRES|NEON|^PG|RAILWAY|BETTER|R2_|ADMIN_API|LOCATION_API/i.test(k))
         .sort();
+      const { locationApiBase } = await import("@/lib/location-sim");
       return json({
         ok: true,
         db: getDatabaseUrl() ? getDbSource() : "none",
         database_url: Boolean(getDatabaseUrl()),
         railway: Boolean(runtimeEnv("RAILWAY_ENVIRONMENT")),
+        location_api: Boolean(locationApiBase()),
+        location_api_key: Boolean(runtimeEnv("LOCATION_API_KEY") || runtimeEnv("PUBLIC_API_KEY")),
         env_keys: keys,
       });
     }
