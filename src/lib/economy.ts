@@ -51,6 +51,28 @@ export async function creditOwner(
   return fen;
 }
 
+export async function debitUser(
+  sql: Sql,
+  userId: string,
+  fen: number,
+  inquiryId: string,
+  note: string,
+) {
+  if (fen <= 0) return 0;
+  await ensureWallet(sql, userId);
+  const debit = await sql<{ fen: number }>`
+    update wallets set fen = fen - ${fen}
+    where user_id = ${userId} and fen >= ${fen}
+    returning fen
+  `;
+  if (!debit[0]) throw new Error("余额不够");
+  await sql`
+    insert into ledger (id, user_id, fen, kind, ref_id, note)
+    values (${crypto.randomUUID()}, ${userId}, ${-fen}, 'spend', ${inquiryId}, ${note})
+  `;
+  return fen;
+}
+
 export async function settleUse(
   sql: Sql,
   opts: {

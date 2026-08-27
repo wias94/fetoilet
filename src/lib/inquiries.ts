@@ -315,7 +315,8 @@ export const useInquiry = createServerFn({ method: "POST" })
       if (!selfUse) {
         const { quoteStallNow } = await import("@/lib/pricing");
         const grossFen = await quoteStallNow(sql, { ...stall[0], id: rows[0].profile_id });
-        const { settleUse } = await import("@/lib/economy");
+        const { debitUser, settleUse } = await import("@/lib/economy");
+        await debitUser(sql, context.userId, grossFen, rows[0].id, `租 ${stall[0].name}`);
         await settleUse(sql, {
           ownerId,
           grossFen,
