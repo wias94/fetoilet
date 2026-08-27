@@ -29,6 +29,8 @@ const DEFAULT_ECON: Record<EconKey, number> = {
 };
 
 export async function loadMarket(sql: Sql): Promise<Market> {
+  const { loadSimConfig } = await import("@/lib/sim-config");
+  const cfg = await loadSimConfig(sql);
   const rows = await sql<{ used7: number; online: number; busy: number }>`
     select
       (select count(*)::int from inquiries
@@ -42,8 +44,8 @@ export async function loadMarket(sql: Sql): Promise<Market> {
   const online = Math.max(1, Number(rows[0]?.online ?? 1));
   const busy = Number(rows[0]?.busy ?? 0);
   const per = used7 / online;
-  const pressure = Math.min(1, Math.max(0, per / 2.2 * 0.65 + (busy / online) * 0.35));
-  const mul = 0.72 + 0.58 * pressure;
+  const pressure = Math.min(1, Math.max(0, (per / cfg.marketUseNorm) * 0.65 + (busy / online) * 0.35));
+  const mul = cfg.marketMulMin + cfg.marketMulSpan * pressure;
   return { used7, online, busy, pressure, mul };
 }
 
@@ -182,7 +184,9 @@ export async function quoteStallNow(
   },
 ) {
   const { holdingCut } = await import("@/lib/yield");
-  const cut = holdingCut(stall.relation, stall.owned_at);
+  const { loadSimConfig } = await import("@/lib/sim-config");
+  const cfg = await loadSimConfig(sql);
+  const cut = holdingCut(stall.relation, stall.owned_at, new Date(), cfg);
   const market = await loadMarket(sql);
   const usage = await stallUsage(sql, [stall.id]);
   const u = usage.get(stall.id);

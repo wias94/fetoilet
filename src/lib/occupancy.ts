@@ -27,9 +27,11 @@ export async function releaseExpiredRentals(sql: Sql) {
 }
 
 export async function lockRental(sql: Sql, stallId: string, inquiryId: string) {
+  const { loadSimConfig } = await import("@/lib/sim-config");
+  const cfg = await loadSimConfig(sql);
   const rows = await sql<{ id: string }>`
     update stalls
-    set busy_until = now() + interval '30 minutes',
+    set busy_until = now() + make_interval(mins => ${cfg.rentSessionMin}),
         busy_inquiry_id = ${inquiryId},
         updated_at = now()
     where id = ${stallId}
@@ -74,22 +76,22 @@ export async function maybeListFromBoredom(sql: Sql, ownerId: string, stallId: s
     from stalls where id = ${stallId} and owner_id = ${ownerId} limit 1
   `;
   if (!stall[0] || stall[0].listed_fen != null) return null;
+  const { loadSimConfig } = await import("@/lib/sim-config");
+  const cfg = await loadSimConfig(sql);
   const { holdingCut } = await import("@/lib/yield");
-  const cut = holdingCut(stall[0].relation, stall[0].owned_at);
+  const cut = holdingCut(stall[0].relation, stall[0].owned_at, new Date(), cfg);
   if (cut.platformSharePct <= 0) return null;
   const sat = await sql<{ uses: number; value: number }>`
     select uses, value from behavior_satiation
     where male_id = ${ownerId} and stall_id = ${stallId} limit 1
   `;
   const uses = Number(sat[0]?.uses ?? 0);
-  const sat01 = 1 - Math.exp(-uses / 4);
-  const { loadMaleEcon } = await import("@/lib/econ");
+  const sat01 = 1 - Math.exp(-uses / cfg.satiationHalfUses);
+  const keep = (cut.ownerSharePct / 100) * (1 - sat01);
+  if (keep >= cfg.listKeepThreshold) return null;
+  const { loadMaleEcon, stallUsage } = await import("@/lib/econ");
   const econ = await loadMaleEcon(sql, ownerId);
-  const taste = cut.family ? econ.family_liquidate : econ.flip;
-  const pressure = sat01 * (cut.platformSharePct / 100) * (0.5 + 0.5 * taste);
-  if (pressure < 0.14) return null;
   const { quoteSaleFen, loadMarket } = await import("@/lib/pricing");
-  const { stallUsage } = await import("@/lib/econ");
   const market = await loadMarket(sql);
   const usage = await stallUsage(sql, [stallId]);
   const fen = quoteSaleFen({

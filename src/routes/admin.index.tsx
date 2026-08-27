@@ -46,6 +46,7 @@ function AdminHome() {
           <Cell label="单" value={String(data.orders)} to="/admin/orders" />
           <Cell label="灌完" value={String(data.used)} to="/admin/orders" />
           <Cell label="评价" value={String(data.reviews)} to="/admin/orders" />
+          <Cell label="模拟" value="参数" to="/admin/sim" />
           <div className="rounded-2xl bg-surface px-5 py-4 shadow-border">
             <p className="text-sm text-muted">平台抽成</p>
             <p className="mt-1 font-display text-2xl font-semibold tabular-nums">{formatFen(data.platformFen)}</p>
@@ -63,7 +64,7 @@ function Cell({
 }: {
   label: string;
   value: string;
-  to: "/admin/users" | "/admin/stalls" | "/admin/orders";
+  to: "/admin/users" | "/admin/stalls" | "/admin/orders" | "/admin/sim";
 }) {
   return (
     <Link to={to} className="rounded-2xl bg-surface px-5 py-4 shadow-border">

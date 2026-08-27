@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getUserState, listNearby, upsertLocation } from "@/lib/behavior";
-import { NEARBY_RADIUS_M } from "@/lib/geo";
 
 import { getSql } from "@/lib/db";
 import { listStallsNear } from "@/lib/stalls";
@@ -41,11 +40,14 @@ export const fetchNearby = createServerFn({ method: "POST" })
   .validator((data: unknown) => Fix.parse(data ?? {}))
   .handler(async ({ context, data }) => {
     const { origin, source } = await resolveOrigin(context.userId, data);
+    const { loadSimConfig } = await import("@/lib/sim-config");
+    const cfg = await loadSimConfig();
+    const radius = cfg.nearbyRadiusM;
     if (!origin) {
-      return { origin: null, radius_m: NEARBY_RADIUS_M, source, stalls: [] };
+      return { origin: null, radius_m: radius, source, stalls: [] };
     }
-    const stalls = await listNearby(origin.lat, origin.lng, NEARBY_RADIUS_M);
-    return { origin, radius_m: NEARBY_RADIUS_M, source, stalls };
+    const stalls = await listNearby(origin.lat, origin.lng, radius);
+    return { origin, radius_m: radius, source, stalls };
   });
 
 export const listVisibleStalls = createServerFn({ method: "POST" })
@@ -53,18 +55,21 @@ export const listVisibleStalls = createServerFn({ method: "POST" })
   .validator((data: unknown) => Fix.parse(data ?? {}))
   .handler(async ({ context, data }) => {
     const { origin, source } = await resolveOrigin(context.userId, data);
-    if (!origin) {
-      return { origin: null, radius_m: NEARBY_RADIUS_M, source, stalls: [] };
-    }
     const sql = await getSql();
+    const { loadSimConfig } = await import("@/lib/sim-config");
+    const cfg = await loadSimConfig(sql);
+    const radius = cfg.nearbyRadiusM;
+    if (!origin) {
+      return { origin: null, radius_m: radius, source, stalls: [] };
+    }
     const { releaseExpiredRentals } = await import("@/lib/occupancy");
     await releaseExpiredRentals(sql);
-    const stalls = await listStallsNear(sql, origin.lat, origin.lng, NEARBY_RADIUS_M, context.userId);
+    const stalls = await listStallsNear(sql, origin.lat, origin.lng, radius, context.userId);
     const { loadMaleVector, rankByAttract } = await import("@/lib/attract");
     const { loadMaleEcon } = await import("@/lib/econ");
     const [male, econ] = await Promise.all([
       loadMaleVector(sql, context.userId),
       loadMaleEcon(sql, context.userId),
     ]);
-    return { origin, radius_m: NEARBY_RADIUS_M, source, stalls: rankByAttract(male, stalls, econ) };
+    return { origin, radius_m: radius, source, stalls: rankByAttract(male, stalls, econ) };
   });

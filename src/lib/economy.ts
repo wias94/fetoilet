@@ -3,6 +3,7 @@ import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql, type Sql } from "@/lib/db";
 import { holdingCut, splitFen, PLATFORM_ID, PLATFORM_SALE_FEN, PLATFORM_RENT_FEN } from "@/lib/yield";
+import { loadSimConfig } from "@/lib/sim-config";
 
 async function ensureWallet(sql: Sql, userId: string) {
   await sql`
@@ -88,7 +89,8 @@ export async function settleUse(
   if (!opts.ownerId || opts.ownerId.startsWith("seed:") || opts.grossFen <= 0) {
     return { ownerFen: 0, platformFen: 0, ownerSharePct: 100, platformSharePct: 0, weeks: 0, family: false };
   }
-  const cut = holdingCut(opts.relation, opts.ownedAt);
+  const cfg = await loadSimConfig(sql);
+  const cut = holdingCut(opts.relation, opts.ownedAt, new Date(), cfg);
   const { ownerFen, platformFen } = splitFen(opts.grossFen, cut);
   await creditOwner(
     sql,

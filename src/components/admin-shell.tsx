@@ -5,7 +5,7 @@ import { Wordmark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type AdminPath = "/admin" | "/admin/users" | "/admin/stalls" | "/admin/orders" | "/admin/push";
+type AdminPath = "/admin" | "/admin/users" | "/admin/stalls" | "/admin/orders" | "/admin/push" | "/admin/sim";
 
 export function AdminShell({ children }: { children: ReactNode }) {
   return (
@@ -20,6 +20,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <HeaderLink to="/admin/users" label="用户" />
             <HeaderLink to="/admin/stalls" label="货" />
             <HeaderLink to="/admin/orders" label="单" />
+            <HeaderLink to="/admin/sim" label="模拟" />
             <HeaderLink to="/admin/push" label="推流" />
           </nav>
           <Button
@@ -73,11 +74,12 @@ function MobileTabBar() {
     { to: "/admin/users", label: "用户", icon: Users, active: pathname.startsWith("/admin/users") },
     { to: "/admin/stalls", label: "货", icon: Package, active: pathname.startsWith("/admin/stalls") },
     { to: "/admin/orders", label: "单", icon: Receipt, active: pathname.startsWith("/admin/orders") },
+    { to: "/admin/sim", label: "模拟", icon: LayoutGrid, active: pathname.startsWith("/admin/sim") },
     { to: "/admin/push", label: "推流", icon: Megaphone, active: pathname.startsWith("/admin/push") },
   ];
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
-      <ul className="mx-auto grid max-w-lg grid-cols-5">
+      <ul className="mx-auto grid max-w-lg grid-cols-6">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (

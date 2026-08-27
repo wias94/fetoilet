@@ -77,12 +77,14 @@ export const placeInquiry = createServerFn({ method: "POST" })
     if (profile.busy) throw new Error("使用中，先到先得");
     const { refreshUserFromSim } = await import("@/lib/location-sim");
     const { getUserState } = await import("@/lib/behavior");
-    const { distanceM, NEARBY_RADIUS_M } = await import("@/lib/geo");
+    const { distanceM } = await import("@/lib/geo");
+    const { loadSimConfig } = await import("@/lib/sim-config");
+    const cfg = await loadSimConfig(sql);
     await refreshUserFromSim(context.userId);
     const state = await getUserState(context.userId);
     const lat = state?.location?.lat;
     const lng = state?.location?.lng;
-    if (lat == null || lng == null) throw new Error("先开定位，只能点附近 3 公里内的肉厕");
+    if (lat == null || lng == null) throw new Error("先开定位，只能点附近的肉厕");
     const here = await sql<{ lat: number | null; lng: number | null }>`
       select lat, lng from stalls where id = ${profile.id} limit 1
     `;
@@ -90,7 +92,7 @@ export const placeInquiry = createServerFn({ method: "POST" })
     const slng = here[0]?.lng;
     if (slat == null || slng == null) throw new Error("这具肉厕还没有位置，不能点");
     const far = distanceM(lat, lng, Number(slat), Number(slng));
-    if (far > NEARBY_RADIUS_M) throw new Error(`超出 3 公里（现在 ${Math.round(far)} 米），只能点附近的`);
+    if (far > cfg.nearbyRadiusM) throw new Error(`超出附近范围（现在 ${Math.round(far)} 米）`);
     const id = crypto.randomUUID();
     const locked = await lockRental(sql, profile.id, id);
     if (!locked) throw new Error("被人先点了。使用中 30 分钟内货架不可见");
@@ -340,7 +342,7 @@ export const useInquiry = createServerFn({ method: "POST" })
       sql,
       context.userId,
       rows[0].profile_id,
-      stall[0]?.owner_id === context.userId ? 1.35 : 1,
+      stall[0]?.owner_id === context.userId ? (await import("@/lib/sim-config").then((m) => m.loadSimConfig(sql))).selfUseSatiation : 1,
     );
     if (stall[0]?.owner_id === context.userId) {
       await maybeListFromBoredom(sql, context.userId, rows[0].profile_id);

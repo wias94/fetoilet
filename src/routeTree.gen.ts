@@ -24,6 +24,7 @@ import { Route as WorkRouteImport } from './routes/work'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminPushRouteImport } from './routes/admin.push'
+import { Route as AdminSimRouteImport } from './routes/admin.sim'
 import { Route as AdminStallsRouteImport } from './routes/admin.stalls'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as ApiMeRouteImport } from './routes/api/me'
@@ -119,6 +120,11 @@ const AdminOrdersRoute = AdminOrdersRouteImport.update({
 const AdminPushRoute = AdminPushRouteImport.update({
   id: '/push',
   path: '/push',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSimRoute = AdminSimRouteImport.update({
+  id: '/sim',
+  path: '/sim',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminStallsRoute = AdminStallsRouteImport.update({
@@ -242,6 +248,7 @@ export interface FileRoutesByFullPath {
   '/work': typeof WorkRouteWithChildren
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/push': typeof AdminPushRoute
+  '/admin/sim': typeof AdminSimRoute
   '/admin/stalls': typeof AdminStallsRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/me': typeof ApiMeRoute
@@ -277,6 +284,7 @@ export interface FileRoutesByTo {
   '/nearby': typeof NearbyRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/push': typeof AdminPushRoute
+  '/admin/sim': typeof AdminSimRoute
   '/admin/stalls': typeof AdminStallsRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/me': typeof ApiMeRoute
@@ -315,6 +323,7 @@ export interface FileRoutesById {
   '/work': typeof WorkRouteWithChildren
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/push': typeof AdminPushRoute
+  '/admin/sim': typeof AdminSimRoute
   '/admin/stalls': typeof AdminStallsRoute
   '/admin/users': typeof AdminUsersRoute
   '/api/me': typeof ApiMeRoute
@@ -355,6 +364,7 @@ export interface FileRouteTypes {
     | '/work'
     | '/admin/orders'
     | '/admin/push'
+    | '/admin/sim'
     | '/admin/stalls'
     | '/admin/users'
     | '/api/me'
@@ -390,6 +400,7 @@ export interface FileRouteTypes {
     | '/nearby'
     | '/admin/orders'
     | '/admin/push'
+    | '/admin/sim'
     | '/admin/stalls'
     | '/admin/users'
     | '/api/me'
@@ -427,6 +438,7 @@ export interface FileRouteTypes {
     | '/work'
     | '/admin/orders'
     | '/admin/push'
+    | '/admin/sim'
     | '/admin/stalls'
     | '/admin/users'
     | '/api/me'
@@ -579,6 +591,13 @@ declare module '@tanstack/react-router' {
       path: '/push'
       fullPath: '/admin/push'
       preLoaderRoute: typeof AdminPushRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/sim': {
+      id: '/admin/sim'
+      path: '/sim'
+      fullPath: '/admin/sim'
+      preLoaderRoute: typeof AdminSimRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/stalls': {
@@ -734,6 +753,7 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminOrdersRoute: typeof AdminOrdersRoute
   AdminPushRoute: typeof AdminPushRoute
+  AdminSimRoute: typeof AdminSimRoute
   AdminStallsRoute: typeof AdminStallsRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -742,6 +762,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminOrdersRoute: AdminOrdersRoute,
   AdminPushRoute: AdminPushRoute,
+  AdminSimRoute: AdminSimRoute,
   AdminStallsRoute: AdminStallsRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
