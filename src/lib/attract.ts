@@ -1,4 +1,5 @@
 import type { Sql } from "@/lib/db";
+import { scoreWithEcon, type EconKey } from "@/lib/econ";
 import { TASTE_KEYS, type BudgetBand, type CondomPref, type SessionStyle } from "@/lib/male-params";
 import type { Profile } from "@/lib/profiles";
 
@@ -193,32 +194,6 @@ export function defaultMaleInput(age: number | null): MaleAttractInput {
   };
 }
 
-/** 挂牌价：把「折后还能赚多少次」折现。家人、持有越久越便宜，好卖。 */
-export function suggestListFen(p: Profile) {
-  const weeks = p.holdWeeks ?? 0;
-  const share = (p.ownerSharePct ?? 100) / 100;
-  const family = ["母亲", "妻子", "女儿", "兄妹"].includes(p.relation ?? "");
-  let uses = 16 * share;
-  if (family) uses *= 0.82;
-  uses *= Math.max(0.45, 1 - weeks * 0.08);
-  const fen = Math.round((p.hourFen * uses) / 100) * 100;
-  const lo = p.hourFen * 5;
-  const hi = p.hourFen * 36;
-  return Math.max(lo, Math.min(hi, Math.max(100, fen)));
-}
-
-export function wouldBuy(opts: {
-  score: number;
-  hourFen: number;
-  listedFen: number;
-  walletFen?: number | null;
-}) {
-  if (opts.score < 0.22 || opts.listedFen <= 0) return false;
-  if (opts.walletFen != null && opts.listedFen > opts.walletFen) return false;
-  const fair = opts.hourFen * (8 + 40 * opts.score);
-  return opts.listedFen <= fair * 1.08;
-}
-
 export async function loadMaleVector(sql: Sql, userId: string): Promise<AttractVec> {
   const ageRows = await sql<{ age: number | null }>`
     select age from user_state where user_id = ${userId} limit 1
@@ -275,9 +250,17 @@ export async function loadMaleVector(sql: Sql, userId: string): Promise<AttractV
   });
 }
 
-export function rankByAttract(male: AttractVec, stalls: Profile[]) {
+export function rankByAttract(
+  male: AttractVec,
+  stalls: Profile[],
+  econ?: import("@/lib/econ").EconVec | Record<EconKey, number>,
+) {
   return [...stalls]
-    .map((p) => ({ p, score: attractiveness(male, stallVector(p)) }))
+    .map((p) => {
+      const a = attractiveness(male, stallVector(p));
+      const score = econ ? scoreWithEcon(a, p.hourFen, econ) : a;
+      return { p, score };
+    })
     .sort((a, b) => b.score - a.score || (a.p.distanceM ?? 0) - (b.p.distanceM ?? 0))
     .map((row) => row.p);
 }

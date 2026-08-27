@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import pg from "pg";
-import { deriveMale } from "./male-derive.mjs";
+import { deriveMale, deriveEcon } from "./male-derive.mjs";
 
 const env = Object.fromEntries(
   readFileSync(new URL("../.env.local", import.meta.url), "utf8")
@@ -99,6 +99,7 @@ for (const u of men.rows) {
     novelty: derived.novelty,
     risk: derived.risk,
     budget_band: derived.budget_band,
+    econ: deriveEcon(derived, src),
   });
 }
 
@@ -134,6 +135,32 @@ for (const part of chunk(records, 200)) {
       sim_enabled = true,
       updated_at = now()`,
     params,
+  );
+  const eparams = [];
+  const evalues = [];
+  let j = 1;
+  for (const r of part) {
+    const e = r.econ;
+    const row = [r.user_id, e.cash_tight, e.bargain, e.flip, e.hold, e.rent, e.prestige, e.family_liquidate, e.use_over_own];
+    const slots = row.map(() => `$${j++}`);
+    evalues.push(`(${slots.join(",")})`);
+    eparams.push(...row);
+  }
+  await sql.query(
+    `insert into behavior_econ (
+      user_id, cash_tight, bargain, flip, hold, rent, prestige, family_liquidate, use_over_own
+    ) values ${evalues.join(",")}
+    on conflict (user_id) do update set
+      cash_tight = excluded.cash_tight,
+      bargain = excluded.bargain,
+      flip = excluded.flip,
+      hold = excluded.hold,
+      rent = excluded.rent,
+      prestige = excluded.prestige,
+      family_liquidate = excluded.family_liquidate,
+      use_over_own = excluded.use_over_own,
+      updated_at = now()`,
+    eparams,
   );
   const ages = part.map((r) => r.age);
   const ids = part.map((r) => r.user_id);

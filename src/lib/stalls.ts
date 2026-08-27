@@ -486,9 +486,10 @@ export const listOwnedStalls = createServerFn({ method: "GET" })
     const list = rows.map(toProfile);
     const due = list.filter((p) => !p.listedFen && (p.holdWeeks ?? 0) >= 1);
     if (due.length) {
-      const { suggestListFen } = await import("@/lib/attract");
+      const { suggestListFen, stallUsage } = await import("@/lib/econ");
+      const usage = await stallUsage(sql, due.map((p) => p.id));
       for (const p of due) {
-        const fen = suggestListFen(p);
+        const fen = suggestListFen(p, usage.get(p.id));
         await sql`
           update stalls set listed_fen = ${fen}, updated_at = now()
           where id = ${p.id} and owner_id = ${context.userId} and listed_fen is null

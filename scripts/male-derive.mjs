@@ -58,3 +58,16 @@ export function deriveMale(axes, owned, extra = {}) {
   const budget_band = a.budget < 0.34 ? "低" : a.budget < 0.66 ? "中" : "高";
   return { taste, session_style, condom_pref, objectify, novelty, risk, budget_band };
 }
+
+export function deriveEcon(derived, axes) {
+  const tight = derived.budget_band === "低" ? 0.85 : derived.budget_band === "高" ? 0.12 : 0.42;
+  const cash_tight = round2(tight * 0.7 + (1 - clamp01(axes.activity_budget)) * 0.3);
+  const bargain = round2(cash_tight * 0.55 + (1 - derived.risk) * 0.25 + derived.novelty * 0.1);
+  const flip = round2(derived.novelty * 0.6 + clamp01(axes.spontaneity) * 0.4);
+  const hold = round2(clamp01(axes.routine_preference) * 0.55 + (derived.session_style === "包厕" ? 0.4 : 0.1));
+  const rent = round2((derived.session_style === "快餐灌注" ? 0.55 : 0.15) + cash_tight * 0.35);
+  const prestige = round2((1 - cash_tight) * 0.5 + derived.objectify * 0.35);
+  const family_liquidate = round2(clamp01(axes.family_orientation) * 0.4 + derived.objectify * 0.4 + flip * 0.2);
+  const use_over_own = round2(rent * 0.65 + (1 - hold) * 0.35);
+  return { cash_tight, bargain, flip, hold, rent, prestige, family_liquidate, use_over_own };
+}

@@ -68,13 +68,17 @@ export async function settleUse(
       select listed_fen, hour_fen, relation from stalls where id = ${opts.stallId} limit 1
     `;
     if (stall[0] && stall[0].listed_fen == null) {
-      const { suggestListFen } = await import("@/lib/attract");
-      const fen = suggestListFen({
-        hourFen: Number(stall[0].hour_fen),
-        relation: stall[0].relation,
-        holdWeeks: cut.weeks,
-        ownerSharePct: cut.ownerSharePct,
-      } as import("@/lib/profiles").Profile);
+      const { suggestListFen, stallUsage } = await import("@/lib/econ");
+      const usage = await stallUsage(sql, [opts.stallId]);
+      const fen = suggestListFen(
+        {
+          hourFen: Number(stall[0].hour_fen),
+          relation: stall[0].relation,
+          holdWeeks: cut.weeks,
+          ownerSharePct: cut.ownerSharePct,
+        } as import("@/lib/profiles").Profile,
+        usage.get(opts.stallId) ?? { used7: 1, usedAll: 1 },
+      );
       await sql`
         update stalls set listed_fen = ${fen}, updated_at = now()
         where id = ${opts.stallId} and listed_fen is null

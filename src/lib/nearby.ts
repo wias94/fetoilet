@@ -59,6 +59,10 @@ export const listVisibleStalls = createServerFn({ method: "POST" })
     const sql = await getSql();
     const stalls = await listStallsNear(sql, origin.lat, origin.lng, NEARBY_RADIUS_M, context.userId);
     const { loadMaleVector, rankByAttract } = await import("@/lib/attract");
-    const male = await loadMaleVector(sql, context.userId);
-    return { origin, radius_m: NEARBY_RADIUS_M, source, stalls: rankByAttract(male, stalls) };
+    const { loadMaleEcon } = await import("@/lib/econ");
+    const [male, econ] = await Promise.all([
+      loadMaleVector(sql, context.userId),
+      loadMaleEcon(sql, context.userId),
+    ]);
+    return { origin, radius_m: NEARBY_RADIUS_M, source, stalls: rankByAttract(male, stalls, econ) };
   });
