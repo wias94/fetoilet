@@ -6,8 +6,7 @@ from pathlib import Path
 pop = {}
 with open("/tmp/pop.csv", encoding="utf-8-sig", newline="") as f:
     for row in csv.DictReader(f):
-        if row.get("性别") == "男":
-            pop[row["person_id"]] = row
+        pop[row["person_id"]] = row
 prof = {}
 with open("/tmp/prof.csv", encoding="utf-8-sig", newline="") as f:
     for row in csv.DictReader(f):
@@ -23,6 +22,7 @@ for pid, p in pop.items():
             return 0.5
     out[pid] = {
         "age": int(p.get("年龄") or 0),
+        "gender": p.get("性别") or "",
         "job": p.get("具体职位") or "",
         "family_status": p.get("家庭状态") or "",
         "sociability": n("sociability"),
@@ -38,5 +38,5 @@ for pid, p in pop.items():
         "communication_style": f.get("communication_style") or "",
         "personality_summary": f.get("personality_summary") or "",
     }
-Path("/tmp/male-axes.json").write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
-print("wrote", len(out))
+Path("/tmp/person-axes.json").write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
+print("wrote", len(out), "men", sum(1 for v in out.values() if v["gender"] == "男"))

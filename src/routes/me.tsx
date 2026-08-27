@@ -18,8 +18,7 @@ import {
 } from "@/lib/owners";
 import { getProfile, type Profile } from "@/lib/profiles";
 import { listOwnedStalls, listPublicStalls } from "@/lib/stalls";
-import { getMyMaleProfile } from "@/lib/male-profile";
-import { topTastes } from "@/lib/male-params";
+import { getMyMaleAccount, saveMyMaleAccount } from "@/lib/male-account";
 import {
   actOwnerInquiry,
   listOwnerInquiries,
@@ -46,17 +45,19 @@ function MePage() {
   const [orders, setOrders] = useState<Inquiry[]>([]);
   const [claimToken, setClaimToken] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
-  const [profile, setProfile] = useState<Awaited<ReturnType<typeof getMyMaleProfile>>>(null);
+  const [account, setAccount] = useState<{ name: string; age: number | null } | null>(null);
+  const [nameDraft, setNameDraft] = useState("");
+  const [ageDraft, setAgeDraft] = useState("");
 
   async function refresh() {
-    const [tok, list, w, c, o, led, mp] = await Promise.all([
+    const [tok, list, w, c, o, led, acc] = await Promise.all([
       getMyOwnerToken(),
       listOwnedStalls(),
       getMyWallet(),
       listClaimRequests(),
       listOwnerInquiries(),
       listMyLedger(),
-      getMyMaleProfile().catch(() => null),
+      getMyMaleAccount().catch(() => null),
     ]);
     setToken(tok.token);
     setOwned(list);
@@ -64,7 +65,11 @@ function MePage() {
     setClaims(c);
     setOrders(o);
     setLedger(led.map((r) => ({ id: r.id, fen: r.fen, note: r.note })));
-    setProfile(mp);
+    if (acc) {
+      setAccount(acc);
+      setNameDraft(acc.name);
+      setAgeDraft(acc.age != null ? String(acc.age) : "");
+    }
   }
 
   useEffect(() => {
@@ -106,26 +111,50 @@ function MePage() {
         <div className="flex items-center gap-3">
           <AuthSlot />
           <div className="min-w-0">
-            <p className="truncate font-medium">{user.displayName ?? "客人"}</p>
-            <p className="truncate text-sm text-muted">{user.primaryEmail}</p>
+            <p className="truncate font-medium">{account?.name || user.displayName || "客人"}</p>
+            <p className="truncate text-sm text-muted">
+              {account?.age ? `${account.age} 岁 · ` : ""}
+              {user.primaryEmail}
+            </p>
           </div>
         </div>
         <p className="mt-4 font-display text-2xl font-semibold tabular-nums">
           {wallet == null ? "……" : formatFen(wallet)}
         </p>
         <p className="mt-1 text-sm text-muted">名下肉厕被使用后，收益结算至此。无主肉厕被使用后收益为零。</p>
-        {profile && (
-          <div className="mt-4 border-t border-border/70 pt-3">
-            <p className="text-sm text-muted">使用倾向</p>
-            <p className="mt-1 text-sm">
-              {profile.sessionStyle} · {profile.condomPref} · 预算{profile.budgetBand}
-            </p>
-            <p className="mt-1 text-sm text-muted">
-              口味 {topTastes(profile.taste).join(" / ") || "未标"}
-              {profile.job ? ` · ${profile.job}` : ""}
-            </p>
-          </div>
-        )}
+        <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border/70 pt-3">
+          <Input
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            placeholder="姓名"
+            maxLength={16}
+          />
+          <Input
+            value={ageDraft}
+            onChange={(e) => setAgeDraft(e.target.value.replace(/[^\d]/g, ""))}
+            placeholder="年龄"
+            inputMode="numeric"
+          />
+          <Button
+            type="button"
+            className="col-span-2"
+            variant="secondary"
+            disabled={busy !== null}
+            onClick={() => {
+              const age = Number(ageDraft);
+              setBusy("account");
+              void saveMyMaleAccount({ data: { name: nameDraft, age } })
+                .then((row) => {
+                  setAccount(row);
+                  toast("资料已更新");
+                })
+                .catch((err) => toast(err instanceof Error ? err.message : "没存成"))
+                .finally(() => setBusy(null));
+            }}
+          >
+            保存姓名和年龄
+          </Button>
+        </div>
         {ledger.length > 0 && (
           <ul className="mt-4 space-y-1.5 border-t border-border/70 pt-3">
             {ledger.slice(0, 6).map((row) => (

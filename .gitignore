@@ -6,4 +6,4 @@ node_modules
 screenshots
 artifacts
 *.log
-.DS_Store
+.grok/memory.md
