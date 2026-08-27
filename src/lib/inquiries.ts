@@ -310,20 +310,25 @@ export const useInquiry = createServerFn({ method: "POST" })
       select owner_id, hour_fen, name from stalls where id = ${rows[0].profile_id} limit 1
     `;
     if (stall[0]) {
-      const { creditOwner } = await import("@/lib/economy");
-      await creditOwner(
-        sql,
-        stall[0].owner_id,
-        Number(stall[0].hour_fen),
-        rows[0].id,
-        `灌 ${stall[0].name}`,
-      );
+      const ownerId = stall[0].owner_id;
+      const selfUse = Boolean(ownerId && ownerId === context.userId);
+      if (!selfUse) {
+        const { creditOwner } = await import("@/lib/economy");
+        await creditOwner(
+          sql,
+          ownerId,
+          Number(stall[0].hour_fen),
+          rows[0].id,
+          `灌 ${stall[0].name}`,
+        );
+      }
     }
     const { recordEvent } = await import("@/lib/behavior");
     await recordEvent({
       userId: context.userId,
       kind: "inquiry_use",
       targetId: rows[0].profile_id,
+      payload: { free: Boolean(stall[0]?.owner_id && stall[0].owner_id === context.userId) },
     });
     return toInquiry(rows[0]);
   });

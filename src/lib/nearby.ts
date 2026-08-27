@@ -57,6 +57,6 @@ export const listVisibleStalls = createServerFn({ method: "POST" })
       return { origin: null, radius_m: NEARBY_RADIUS_M, source, stalls: [] };
     }
     const sql = await getSql();
-    const stalls = await listStallsNear(sql, origin.lat, origin.lng, NEARBY_RADIUS_M);
+    const stalls = await listStallsNear(sql, origin.lat, origin.lng, NEARBY_RADIUS_M, context.userId);
     return { origin, radius_m: NEARBY_RADIUS_M, source, stalls };
   });

@@ -63,7 +63,9 @@ export function InquirySheet({
             点单使用肉厕 {profile.name}
           </Drawer.Title>
           <p className="px-5 text-sm text-muted">
-            {formatFen(profile.hourFen)} / 次 · 通宵 {formatFen(profile.nightFen)}
+            {profile.mine
+              ? "名下便器 · 主人自用免费"
+              : `${formatFen(profile.hourFen)} / 次 · 通宵 ${formatFen(profile.nightFen)}`}
           </p>
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
             <p className="text-sm font-medium">使用时段</p>

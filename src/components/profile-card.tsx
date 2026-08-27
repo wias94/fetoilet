@@ -30,7 +30,9 @@ export function ProfileCard({ profile: p }: { profile: Profile }) {
                 {p.heightCm}cm/{p.weightKg ?? "—"}kg
               </p>
             </div>
-            <span className="shrink-0 tabular-nums text-sm">{formatFen(p.hourFen)}/次</span>
+            <span className="shrink-0 tabular-nums text-sm">
+              {p.mine ? "免费" : `${formatFen(p.hourFen)}/次`}
+            </span>
           </div>
         </div>
         {p.online && (

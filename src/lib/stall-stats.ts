@@ -151,10 +151,12 @@ export const getMyStallStats = createServerFn({ method: "GET" })
     stats.ratingAvg = Number(rating[0]?.avg ?? 0);
     stats.ratingCount = Number(rating[0]?.n ?? 0);
 
-    const dayRows = await sql<{ d: string; n: number }>`
+    const ownerId = stall[0].owner_id;
+    const dayRows = await sql<{ d: string; n: number; paid: number }>`
       select
         (coalesce(updated_at, created_at) at time zone 'Asia/Shanghai')::date::text as d,
-        count(*)::int as n
+        count(*)::int as n,
+        count(*) filter (where user_id is distinct from ${ownerId})::int as paid
       from inquiries
       where profile_id = ${id}
         and coalesce(status, 'pending') = 'used'
@@ -162,15 +164,17 @@ export const getMyStallStats = createServerFn({ method: "GET" })
       group by 1
       order by 1
     `;
-    const byDate = new Map(dayRows.map((r) => [r.d, Number(r.n)]));
+    const byDate = new Map(dayRows.map((r) => [r.d, { n: Number(r.n), paid: Number(r.paid) }]));
     const days: DayStat[] = [];
     const now = new Date();
     for (let i = 6; i >= 0; i -= 1) {
       const stamp = new Date(now.getTime() - i * 86400000);
       const shanghai = new Date(stamp.getTime() + 8 * 3600000);
       const key = shanghai.toISOString().slice(0, 10);
-      const used = byDate.get(key) ?? 0;
-      days.push({ date: key, used, fen: used * hourFen });
+      const row = byDate.get(key);
+      const used = row?.n ?? 0;
+      const paid = row?.paid ?? 0;
+      days.push({ date: key, used, fen: paid * hourFen });
     }
     stats.days = days;
     return stats;

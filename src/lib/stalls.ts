@@ -225,7 +225,13 @@ async function ensureSeeded(sql: Sql) {
   await ensureGtaPeople(sql);
 }
 
-export async function listStallsNear(sql: Sql, lat: number, lng: number, radiusM = NEARBY_RADIUS_M) {
+export async function listStallsNear(
+  sql: Sql,
+  lat: number,
+  lng: number,
+  radiusM = NEARBY_RADIUS_M,
+  viewerId?: string,
+) {
   await ensureSeeded(sql);
   const rows = await sql<StallRow>`
     select s.*,
@@ -243,14 +249,18 @@ export async function listStallsNear(sql: Sql, lat: number, lng: number, radiusM
   return rows
     .map((row) => {
       const d = distanceM(lat, lng, Number(row.lat), Number(row.lng));
-      return { ...toProfile(row), distanceM: d };
+      return {
+        ...toProfile(row),
+        distanceM: d,
+        mine: Boolean(viewerId && row.owner_id === viewerId),
+      };
     })
     .filter((p) => (p.distanceM ?? Infinity) <= radiusM)
     .sort((a, b) => (a.distanceM ?? 0) - (b.distanceM ?? 0))
     .slice(0, 80);
 }
 
-export async function findStall(sql: Sql, id: string) {
+export async function findStall(sql: Sql, id: string, viewerId?: string) {
   await ensureSeeded(sql);
   const rows = await sql<StallRow>`
     select s.*,
@@ -265,7 +275,9 @@ export async function findStall(sql: Sql, id: string) {
     where s.id = ${id} and coalesce(s.hidden, false) = false
     limit 1
   `;
-  return rows[0] ? toProfile(rows[0]) : undefined;
+  return rows[0]
+    ? { ...toProfile(rows[0]), mine: Boolean(viewerId && rows[0].owner_id === viewerId) }
+    : undefined;
 }
 
 export const listPublicStalls = createServerFn({ method: "GET" }).handler(async () => {
@@ -292,7 +304,9 @@ export const getPublicStall = createServerFn({ method: "GET" })
   .validator((data: unknown) => z.object({ id: z.string().min(1) }).parse(data))
   .handler(async ({ data }) => {
     const sql = await getSql();
-    return (await findStall(sql, data.id)) ?? null;
+    const { getSessionUser } = await import("@/lib/auth/verify.server");
+    const user = await getSessionUser();
+    return (await findStall(sql, data.id, user?.id)) ?? null;
   });
 
 export const getMyStall = createServerFn({ method: "GET" })

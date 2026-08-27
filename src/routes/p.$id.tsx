@@ -176,12 +176,19 @@ function ProfilePage() {
           <div className="mt-6 space-y-2 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-muted">单次使用</span>
-              <span className="tabular-nums font-medium">{formatFen(profile.hourFen)}</span>
+              <span className="tabular-nums font-medium">
+                {profile.mine ? "免费" : formatFen(profile.hourFen)}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted">通宵占坑</span>
-              <span className="tabular-nums font-medium">{formatFen(profile.nightFen)}</span>
+              <span className="tabular-nums font-medium">
+                {profile.mine ? "免费" : formatFen(profile.nightFen)}
+              </span>
             </div>
+            {profile.mine ? (
+              <p className="pt-1 text-xs text-muted">名下便器，主人使用不产生费用，也不计入收益。</p>
+            ) : null}
           </div>
           <Button className="mt-6 w-full" onClick={() => setOpen(true)}>
             提交点单
