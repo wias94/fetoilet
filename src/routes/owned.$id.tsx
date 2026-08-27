@@ -191,7 +191,7 @@ function OwnedStallPage() {
             <p className="mt-2 text-sm leading-relaxed text-muted">
               名下第 {hold.weeks + 1} 周。
               {hold.family ? "家人每周掉 20%，最多平台拿 80%。" : "每周掉 10%，最多平台拿 50%。"}
-              卖掉后新主人从 100% 重新计。主人自用免费、不进账。
+              卖掉后新主人从 100% 重新计。主人自用免费、不进账。玩厌了且分成已经下滑，才会自动挂转让。
             </p>
           </>
         ) : (

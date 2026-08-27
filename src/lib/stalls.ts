@@ -528,32 +528,6 @@ export const listOwnedStalls = createServerFn({ method: "GET" })
     const list = rows.map(toProfile);
     const { applyLivePrices } = await import("@/lib/pricing");
     const priced = await applyLivePrices(sql, rows, list);
-    const due = priced.filter((p) => !p.listedFen && (p.holdWeeks ?? 0) >= 1 && !p.platformStock);
-    if (due.length) {
-      const { quoteSaleFen, loadMarket, loadOwnerEcons } = await import("@/lib/pricing");
-      const { stallUsage } = await import("@/lib/econ");
-      const market = await loadMarket(sql);
-      const usage = await stallUsage(sql, due.map((p) => p.id));
-      const econs = await loadOwnerEcons(sql, [context.userId]);
-      const econ = econs.get(context.userId);
-      for (const p of due) {
-        const row = rows.find((r) => r.id === p.id);
-        const fen = quoteSaleFen({
-          ownerId: context.userId,
-          profile: p,
-          baseHourFen: Number(row?.base_hour_fen ?? row?.hour_fen ?? p.hourFen),
-          market,
-          econ,
-          used7: usage.get(p.id)?.used7,
-          usedAll: usage.get(p.id)?.usedAll,
-        });
-        await sql`
-          update stalls set listed_fen = ${fen}, hour_fen = ${p.hourFen}, updated_at = now()
-          where id = ${p.id} and owner_id = ${context.userId} and listed_fen is null
-        `;
-        p.listedFen = fen;
-      }
-    }
     for (const p of priced) {
       await sql`update stalls set hour_fen = ${p.hourFen}, updated_at = now() where id = ${p.id} and owner_id = ${context.userId}`;
     }

@@ -335,13 +335,16 @@ export const useInquiry = createServerFn({ method: "POST" })
       targetId: rows[0].profile_id,
       payload: { free: Boolean(stall[0]?.owner_id && stall[0].owner_id === context.userId) },
     });
-    const { bumpSatiation } = await import("@/lib/occupancy");
+    const { bumpSatiation, maybeListFromBoredom } = await import("@/lib/occupancy");
     await bumpSatiation(
       sql,
       context.userId,
       rows[0].profile_id,
-      stall[0]?.owner_id === context.userId ? 1 : 1,
+      stall[0]?.owner_id === context.userId ? 1.35 : 1,
     );
+    if (stall[0]?.owner_id === context.userId) {
+      await maybeListFromBoredom(sql, context.userId, rows[0].profile_id);
+    }
     return toInquiry(rows[0]);
   });
 

@@ -58,3 +58,57 @@ export async function bumpSatiation(sql: Sql, maleId: string, stallId: string, a
       updated_at = now()
   `;
 }
+
+/** 厌腻 × 收益下滑才挂转让。单看满一周不挂。 */
+export async function maybeListFromBoredom(sql: Sql, ownerId: string, stallId: string) {
+  if (!ownerId || ownerId === "platform" || ownerId.startsWith("seed:")) return null;
+  const stall = await sql<{
+    listed_fen: number | null;
+    hour_fen: number;
+    base_hour_fen: number | null;
+    relation: string | null;
+    owned_at: string | null;
+    name: string;
+  }>`
+    select listed_fen, hour_fen, base_hour_fen, relation, owned_at, name
+    from stalls where id = ${stallId} and owner_id = ${ownerId} limit 1
+  `;
+  if (!stall[0] || stall[0].listed_fen != null) return null;
+  const { holdingCut } = await import("@/lib/yield");
+  const cut = holdingCut(stall[0].relation, stall[0].owned_at);
+  if (cut.platformSharePct <= 0) return null;
+  const sat = await sql<{ uses: number; value: number }>`
+    select uses, value from behavior_satiation
+    where male_id = ${ownerId} and stall_id = ${stallId} limit 1
+  `;
+  const uses = Number(sat[0]?.uses ?? 0);
+  const sat01 = 1 - Math.exp(-uses / 4);
+  const { loadMaleEcon } = await import("@/lib/econ");
+  const econ = await loadMaleEcon(sql, ownerId);
+  const taste = cut.family ? econ.family_liquidate : econ.flip;
+  const pressure = sat01 * (cut.platformSharePct / 100) * (0.5 + 0.5 * taste);
+  if (pressure < 0.14) return null;
+  const { quoteSaleFen, loadMarket } = await import("@/lib/pricing");
+  const { stallUsage } = await import("@/lib/econ");
+  const market = await loadMarket(sql);
+  const usage = await stallUsage(sql, [stallId]);
+  const fen = quoteSaleFen({
+    ownerId,
+    profile: {
+      hourFen: Number(stall[0].base_hour_fen ?? stall[0].hour_fen),
+      relation: stall[0].relation,
+      holdWeeks: cut.weeks,
+      ownerSharePct: cut.ownerSharePct,
+    } as import("@/lib/profiles").Profile,
+    baseHourFen: Number(stall[0].base_hour_fen ?? stall[0].hour_fen),
+    market,
+    econ,
+    used7: usage.get(stallId)?.used7,
+    usedAll: usage.get(stallId)?.usedAll,
+  });
+  await sql`
+    update stalls set listed_fen = ${fen}, updated_at = now()
+    where id = ${stallId} and owner_id = ${ownerId} and listed_fen is null
+  `;
+  return fen;
+}
