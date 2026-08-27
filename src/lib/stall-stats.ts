@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
+import { holdingCut, splitFen } from "@/lib/yield";
 
 export type DayStat = {
   date: string;
@@ -26,6 +27,9 @@ export type StallStats = {
   allFen: number;
   acceptRate: number | null;
   hasOwner: boolean;
+  holdWeeks: number;
+  ownerSharePct: number;
+  platformSharePct: number;
   days: DayStat[];
 };
 
@@ -50,6 +54,9 @@ function emptyStats(): StallStats {
     allFen: 0,
     acceptRate: null,
     hasOwner: false,
+    holdWeeks: 0,
+    ownerSharePct: 100,
+    platformSharePct: 0,
     days: EMPTY_DAYS,
   };
 }
@@ -64,8 +71,10 @@ export const getMyStallStats = createServerFn({ method: "GET" })
       hour_fen: number;
       online: boolean;
       owner_id: string | null;
+      relation: string | null;
+      owned_at: string | null;
     }>`
-      select id, name, hour_fen, online, owner_id
+      select id, name, hour_fen, online, owner_id, relation, owned_at
       from stalls
       where user_id = ${context.userId}
       limit 1
@@ -75,11 +84,16 @@ export const getMyStallStats = createServerFn({ method: "GET" })
     const id = stall[0].id;
     const hourFen = Number(stall[0].hour_fen);
     const hasOwner = Boolean(stall[0].owner_id && !String(stall[0].owner_id).startsWith("seed:"));
+    const cut = holdingCut(stall[0].relation, stall[0].owned_at);
+    const ownerUnit = splitFen(hourFen, cut).ownerFen;
     const stats = emptyStats();
     stats.stallName = stall[0].name;
     stats.hourFen = hourFen;
     stats.online = Boolean(stall[0].online);
     stats.hasOwner = hasOwner;
+    stats.holdWeeks = cut.weeks;
+    stats.ownerSharePct = hasOwner ? cut.ownerSharePct : 0;
+    stats.platformSharePct = hasOwner ? cut.platformSharePct : 0;
 
     const today = await sql<{
       called: number;
@@ -174,7 +188,7 @@ export const getMyStallStats = createServerFn({ method: "GET" })
       const row = byDate.get(key);
       const used = row?.n ?? 0;
       const paid = row?.paid ?? 0;
-      days.push({ date: key, used, fen: paid * hourFen });
+      days.push({ date: key, used, fen: paid * ownerUnit });
     }
     stats.days = days;
     return stats;

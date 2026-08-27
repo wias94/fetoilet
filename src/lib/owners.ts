@@ -88,7 +88,7 @@ export const claimByStallToken = createServerFn({ method: "POST" })
     if (!stall[0]) throw new Error("便器口令不对");
     if (stall[0].owner_id) throw new Error("这具已有主，去买");
     const taken = await sql<{ id: string }>`
-      update stalls set owner_id = ${context.userId}, listed_fen = null, updated_at = now()
+      update stalls set owner_id = ${context.userId}, listed_fen = null, owned_at = now(), updated_at = now()
       where id = ${stall[0].id} and owner_id is null
       returning id
     `;
@@ -180,7 +180,7 @@ export const answerClaim = createServerFn({ method: "POST" })
       throw new Error("已经有主了");
     }
     const taken = await sql<{ id: string }>`
-      update stalls set owner_id = ${context.userId}, listed_fen = null, updated_at = now()
+      update stalls set owner_id = ${context.userId}, listed_fen = null, owned_at = now(), updated_at = now()
       where id = ${row[0].stall_id} and owner_id is null
       returning id
     `;
@@ -207,7 +207,7 @@ export const claimAfterUse = createServerFn({ method: "POST" })
     if (!stall[0]) throw new Error("没这具");
     if (stall[0].owner_id) throw new Error("这具已有主");
     const taken = await sql<{ id: string }>`
-      update stalls set owner_id = ${context.userId}, listed_fen = null, updated_at = now()
+      update stalls set owner_id = ${context.userId}, listed_fen = null, owned_at = now(), updated_at = now()
       where id = ${stall[0].id} and owner_id is null
       returning id
     `;

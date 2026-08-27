@@ -306,21 +306,28 @@ export const useInquiry = createServerFn({ method: "POST" })
       returning id, profile_id, profile_name, slot, note, status, created_at, updated_at
     `;
     if (!rows[0]) throw new Error("没用成");
-    const stall = await sql<{ owner_id: string | null; hour_fen: number; name: string }>`
-      select owner_id, hour_fen, name from stalls where id = ${rows[0].profile_id} limit 1
+    const stall = await sql<{
+      owner_id: string | null;
+      hour_fen: number;
+      name: string;
+      relation: string | null;
+      owned_at: string | null;
+    }>`
+      select owner_id, hour_fen, name, relation, owned_at from stalls where id = ${rows[0].profile_id} limit 1
     `;
     if (stall[0]) {
       const ownerId = stall[0].owner_id;
       const selfUse = Boolean(ownerId && ownerId === context.userId);
       if (!selfUse) {
-        const { creditOwner } = await import("@/lib/economy");
-        await creditOwner(
-          sql,
+        const { settleUse } = await import("@/lib/economy");
+        await settleUse(sql, {
           ownerId,
-          Number(stall[0].hour_fen),
-          rows[0].id,
-          `灌 ${stall[0].name}`,
-        );
+          grossFen: Number(stall[0].hour_fen),
+          inquiryId: rows[0].id,
+          stallName: stall[0].name,
+          relation: stall[0].relation,
+          ownedAt: stall[0].owned_at,
+        });
       }
     }
     const { recordEvent } = await import("@/lib/behavior");

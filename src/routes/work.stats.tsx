@@ -62,7 +62,7 @@ function WorkStatsPage() {
       <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">{stats.stallName}</h1>
       <p className="mt-1 text-sm text-muted">
         {stats.online ? "本厕已上架，可供点单灌注" : "本厕已下架，货架暂不展示"}
-        {stats.hasOwner ? " · 有所属人，收益归所属人" : " · 无主，被使用后收益为零"}
+        {stats.hasOwner ? " · 有所属人，收益按持有周数分成" : " · 无主，被使用后收益为零"}
       </p>
 
       <section className="mt-5 rounded-2xl bg-surface px-5 py-6 shadow-border">
@@ -72,7 +72,7 @@ function WorkStatsPage() {
         </p>
         <p className="mt-2 text-sm text-muted">
           {stats.hasOwner
-            ? "收益计入所属人账户，本厕不单独结算。"
+            ? `名下第 ${stats.holdWeeks + 1} 周。外人使用后主人拿 ${stats.ownerSharePct}%，平台抽 ${stats.platformSharePct}%。主人自用免费。`
             : "无主肉厕。被使用后收益为零。可将便器口令交付客户申请收编。"}
         </p>
       </section>

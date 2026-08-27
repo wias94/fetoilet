@@ -56,6 +56,7 @@ export type AdminOverview = {
   orders: number;
   used: number;
   reviews: number;
+  platformFen: number;
 };
 
 export const adminOverview = createServerFn({ method: "GET" })
@@ -72,6 +73,9 @@ export const adminOverview = createServerFn({ method: "GET" })
       from inquiries
     `;
     const reviews = await sql<{ n: number }>`select count(*)::int as n from reviews`;
+    const platform = await sql<{ fen: number | null }>`
+      select fen from wallets where user_id = 'platform' limit 1
+    `;
     return {
       users: Number(users[0]?.n ?? 0),
       stalls: Number(stalls[0]?.n ?? 0),
@@ -79,6 +83,7 @@ export const adminOverview = createServerFn({ method: "GET" })
       orders: Number(orders[0]?.n ?? 0),
       used: Number(orders[0]?.used ?? 0),
       reviews: Number(reviews[0]?.n ?? 0),
+      platformFen: Number(platform[0]?.fen ?? 0),
     };
   });
 

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql, type Sql } from "@/lib/db";
+import { holdingCut, splitFen, PLATFORM_ID } from "@/lib/yield";
 
 async function ensureWallet(sql: Sql, userId: string) {
   await sql`
@@ -16,15 +17,52 @@ export async function creditOwner(
   fen: number,
   inquiryId: string,
   note: string,
+  kind = "use",
 ) {
   if (!ownerId || ownerId.startsWith("seed:") || fen <= 0) return 0;
   await ensureWallet(sql, ownerId);
   await sql`update wallets set fen = fen + ${fen} where user_id = ${ownerId}`;
   await sql`
     insert into ledger (id, user_id, fen, kind, ref_id, note)
-    values (${crypto.randomUUID()}, ${ownerId}, ${fen}, 'use', ${inquiryId}, ${note})
+    values (${crypto.randomUUID()}, ${ownerId}, ${fen}, ${kind}, ${inquiryId}, ${note})
   `;
   return fen;
+}
+
+export async function settleUse(
+  sql: Sql,
+  opts: {
+    ownerId: string | null | undefined;
+    grossFen: number;
+    inquiryId: string;
+    stallName: string;
+    relation: string | null;
+    ownedAt: string | Date | null;
+  },
+) {
+  if (!opts.ownerId || opts.ownerId.startsWith("seed:") || opts.grossFen <= 0) {
+    return { ownerFen: 0, platformFen: 0, ownerSharePct: 100, platformSharePct: 0, weeks: 0, family: false };
+  }
+  const cut = holdingCut(opts.relation, opts.ownedAt);
+  const { ownerFen, platformFen } = splitFen(opts.grossFen, cut);
+  await creditOwner(
+    sql,
+    opts.ownerId,
+    ownerFen,
+    opts.inquiryId,
+    `灌 ${opts.stallName} · 主人 ${cut.ownerSharePct}%`,
+  );
+  if (platformFen > 0) {
+    await creditOwner(
+      sql,
+      PLATFORM_ID,
+      platformFen,
+      opts.inquiryId,
+      `抽成 ${opts.stallName} · 持有第 ${cut.weeks + 1} 周 ${cut.platformSharePct}%`,
+      "cut",
+    );
+  }
+  return { ownerFen, platformFen, ...cut };
 }
 
 export const getMyWallet = createServerFn({ method: "GET" })
@@ -111,7 +149,7 @@ export const buyStall = createServerFn({ method: "POST" })
       values (${crypto.randomUUID()}, ${stall[0].owner_id}, ${price}, 'sell', ${stall[0].id}, ${`卖掉 ${stall[0].name}`})
     `;
     const moved = await sql<{ id: string }>`
-      update stalls set owner_id = ${context.userId}, listed_fen = null, updated_at = now()
+      update stalls set owner_id = ${context.userId}, listed_fen = null, owned_at = now(), updated_at = now()
       where id = ${stall[0].id} and owner_id = ${stall[0].owner_id} and listed_fen = ${price}
       returning id
     `;

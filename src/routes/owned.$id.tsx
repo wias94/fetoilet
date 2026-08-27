@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { setStallListed } from "@/lib/economy";
+import { getOwnedStall } from "@/lib/stalls";
 import { getOwnedStallLogin, resetOwnedStallLogin } from "@/lib/stall-account";
 
 export const Route = createFileRoute("/owned/$id")({ component: OwnedStallPage });
@@ -18,6 +19,7 @@ function OwnedStallPage() {
   const [busy, setBusy] = useState(false);
   const [issued, setIssued] = useState<{ email: string; password: string } | null>(null);
   const [loginEmail, setLoginEmail] = useState<string | null>(null);
+  const [hold, setHold] = useState<{ weeks: number; owner: number; platform: number; family: boolean } | null>(null);
 
   useEffect(() => {
     try {
@@ -39,6 +41,17 @@ function OwnedStallPage() {
       .catch(() => {
         if (!cancelled) setLoginEmail(null);
       });
+    void getOwnedStall({ data: { id } })
+      .then((row) => {
+        if (cancelled || !row) return;
+        setHold({
+          weeks: row.holdWeeks ?? 0,
+          owner: row.ownerSharePct ?? 100,
+          platform: row.platformSharePct ?? 0,
+          family: ["母亲", "妻子", "女儿", "兄妹"].includes(row.relation ?? ""),
+        });
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -143,6 +156,23 @@ function OwnedStallPage() {
           </Button>
         </div>
       )}
+      <div className="mb-8 rounded-2xl bg-surface p-5 shadow-border">
+        <p className="text-sm text-muted">持有分成</p>
+        {hold ? (
+          <>
+            <p className="mt-1 font-display text-2xl font-semibold tabular-nums">
+              主人 {hold.owner}% · 平台 {hold.platform}%
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              名下第 {hold.weeks + 1} 周。
+              {hold.family ? "家人每周掉 20%，最多平台拿 80%。" : "每周掉 10%，最多平台拿 50%。"}
+              卖掉后新主人从 100% 重新计。主人自用免费、不进账。
+            </p>
+          </>
+        ) : (
+          <p className="mt-2 text-sm text-muted">读取分成…</p>
+        )}
+      </div>
       <div className="mb-8 rounded-2xl bg-surface p-5 shadow-border">
         <p className="text-sm text-muted">挂牌转给别的男人</p>
         <p className="mt-2 text-sm leading-relaxed text-muted">填价格就上架。别人付钱，这具就换主。</p>

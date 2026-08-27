@@ -287,7 +287,9 @@ function MePage() {
                     {p.relation ? <span className="ml-2 text-sm font-normal text-muted">{p.relation}</span> : null}
                   </span>
                   <span className="text-sm text-muted">
-                    {p.listedFen ? `卖 ${formatFen(p.listedFen)}` : p.online ? "可灌" : "收着"}
+                    {p.listedFen
+                      ? `卖 ${formatFen(p.listedFen)}`
+                      : `${p.ownerSharePct ?? 100}% · ${p.online ? "可灌" : "收着"}`}
                   </span>
                 </Link>
               </li>

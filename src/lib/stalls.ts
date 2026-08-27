@@ -3,6 +3,7 @@ import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql, type Sql } from "@/lib/db";
 import { distanceM, NEARBY_RADIUS_M } from "@/lib/geo";
+import { holdingCut } from "@/lib/yield";
 import {
   PLACE_PRESETS,
   PROFILES,
@@ -140,6 +141,7 @@ type StallRow = {
   person_id?: string | null;
   lat?: number | null;
   lng?: number | null;
+  owned_at?: string | null;
 };
 
 export type MineStall = Profile & { hasOwner: boolean; stallToken: string | null };
@@ -168,6 +170,7 @@ function parseExtras(value: ExtraFee[] | string[] | string | null | undefined): 
 }
 
 function toProfile(row: StallRow): Profile {
+  const cut = holdingCut(row.relation, row.owned_at);
   return {
     id: row.id,
     name: row.name,
@@ -211,6 +214,9 @@ function toProfile(row: StallRow): Profile {
     reviewPref: row.review_pref || LISTING_DEFAULTS.reviewPref,
     depositFen: Number(row.deposit_fen ?? LISTING_DEFAULTS.depositFen),
     personId: row.person_id ?? null,
+    holdWeeks: row.owner_id ? cut.weeks : undefined,
+    ownerSharePct: row.owner_id ? cut.ownerSharePct : undefined,
+    platformSharePct: row.owner_id ? cut.platformSharePct : undefined,
   };
 }
 
@@ -376,6 +382,11 @@ export const saveMyStall = createServerFn({ method: "POST" })
           services = ${JSON.stringify(data.services)}::jsonb,
           work = ${work},
           owner_id = ${ownerId},
+          owned_at = case
+            when ${ownerId}::text is not null and owner_id is distinct from ${ownerId} then now()
+            when ${ownerId}::text is null then null
+            else owned_at
+          end,
           weight_kg = ${data.weightKg},
           identity = ${data.identity},
           job = ${data.job},
@@ -402,7 +413,7 @@ export const saveMyStall = createServerFn({ method: "POST" })
       await sql`
         insert into stalls (
           id, user_id, name, age, height_cm, cup, tags, image, online,
-          hour_fen, night_fen, eta_min, places, bio, services, work, owner_id,
+          hour_fen, night_fen, eta_min, places, bio, services, work, owner_id, owned_at,
           weight_kg, identity, job, personality, marriage, demeanor, moan, skill_level, orgasm, feel,
           persona, selling_points, hours_tag, daily_quota, travel, condom, extras,
           review_pref, deposit_fen
@@ -411,6 +422,7 @@ export const saveMyStall = createServerFn({ method: "POST" })
           ${JSON.stringify(data.tags)}::jsonb, ${image}, ${data.online},
           ${data.hourFen}, ${data.nightFen}, ${data.etaMin}, ${JSON.stringify(data.places)}::jsonb,
           ${data.bio}, ${JSON.stringify(data.services)}::jsonb, ${work}, ${ownerId},
+          ${ownerId ? new Date() : null},
           ${data.weightKg}, ${data.identity}, ${data.job}, ${data.personality}, ${data.marriage}, ${data.demeanor}, ${data.moan},
           ${data.skillLevel}, ${data.orgasm}, ${data.feel}, ${data.persona},
           ${JSON.stringify(data.sellingPoints)}::jsonb, ${data.hoursTag}, ${data.dailyQuota},
@@ -580,7 +592,7 @@ export const createOwnedStall = createServerFn({ method: "POST" })
       insert into stalls (
         id, user_id, name, age, height_cm, cup, tags, image, online,
         hour_fen, night_fen, eta_min, places, bio, services, work, owner_id,
-        stall_token, relation,
+        stall_token, relation, owned_at,
         weight_kg, identity, job, personality, marriage, demeanor, moan, skill_level, orgasm, feel,
         persona, selling_points, hours_tag, daily_quota, travel, condom, extras,
         review_pref, deposit_fen
@@ -589,7 +601,7 @@ export const createOwnedStall = createServerFn({ method: "POST" })
         ${JSON.stringify(data.tags)}::jsonb, ${image}, ${data.online},
         ${data.hourFen}, ${data.nightFen}, ${data.etaMin}, ${JSON.stringify(data.places)}::jsonb,
         ${data.bio}, ${JSON.stringify(data.services)}::jsonb, ${work}, ${context.userId},
-        ${token}, ${data.relation},
+        ${token}, ${data.relation}, now(),
         ${data.weightKg}, ${data.identity}, ${data.job}, ${data.personality}, ${data.marriage}, ${data.demeanor}, ${data.moan},
         ${data.skillLevel}, ${data.orgasm}, ${data.feel}, ${data.persona},
         ${JSON.stringify(data.sellingPoints)}::jsonb, ${data.hoursTag}, ${data.dailyQuota},
