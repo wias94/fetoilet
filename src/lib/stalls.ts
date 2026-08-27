@@ -106,6 +106,7 @@ type StallRow = {
   online: boolean;
   hour_fen: number;
   night_fen: number;
+  base_hour_fen?: number | null;
   eta_min: number;
   places: string[] | string;
   bio: string;
@@ -260,18 +261,27 @@ export async function listStallsNear(
       and s.online = true
       and (s.busy_until is null or s.busy_until <= now())
   `;
-  return rows
+  const near = rows
     .map((row) => {
       const d = distanceM(lat, lng, Number(row.lat), Number(row.lng));
       return {
-        ...toProfile(row),
-        distanceM: d,
-        mine: Boolean(viewerId && row.owner_id === viewerId),
+        row,
+        p: {
+          ...toProfile(row),
+          distanceM: d,
+          mine: Boolean(viewerId && row.owner_id === viewerId),
+        },
       };
     })
-    .filter((p) => (p.distanceM ?? Infinity) <= radiusM)
-    .sort((a, b) => (a.distanceM ?? 0) - (b.distanceM ?? 0))
+    .filter((x) => (x.p.distanceM ?? Infinity) <= radiusM)
+    .sort((a, b) => (a.p.distanceM ?? 0) - (b.p.distanceM ?? 0))
     .slice(0, 80);
+  const { applyLivePrices } = await import("@/lib/pricing");
+  return applyLivePrices(
+    sql,
+    near.map((x) => x.row),
+    near.map((x) => x.p),
+  );
 }
 
 export async function findStall(sql: Sql, id: string, viewerId?: string) {
@@ -289,9 +299,11 @@ export async function findStall(sql: Sql, id: string, viewerId?: string) {
     where s.id = ${id} and coalesce(s.hidden, false) = false
     limit 1
   `;
-  return rows[0]
-    ? { ...toProfile(rows[0]), mine: Boolean(viewerId && rows[0].owner_id === viewerId) }
-    : undefined;
+  if (!rows[0]) return undefined;
+  const p = { ...toProfile(rows[0]), mine: Boolean(viewerId && rows[0].owner_id === viewerId) };
+  const { applyLivePrices } = await import("@/lib/pricing");
+  const [priced] = await applyLivePrices(sql, [rows[0]], [p]);
+  return priced;
 }
 
 export const listPublicStalls = createServerFn({ method: "GET" }).handler(async () => {
@@ -311,7 +323,8 @@ export const listPublicStalls = createServerFn({ method: "GET" }).handler(async 
     order by coalesce(s.featured, false) desc, s.online desc, s.created_at desc
     limit 80
   `;
-  return rows.map(toProfile);
+  const { applyLivePrices } = await import("@/lib/pricing");
+  return applyLivePrices(sql, rows, rows.map(toProfile));
 });
 
 export const getPublicStall = createServerFn({ method: "GET" })
@@ -513,20 +526,38 @@ export const listOwnedStalls = createServerFn({ method: "GET" })
       order by updated_at desc
     `;
     const list = rows.map(toProfile);
-    const due = list.filter((p) => !p.listedFen && (p.holdWeeks ?? 0) >= 1);
+    const { applyLivePrices } = await import("@/lib/pricing");
+    const priced = await applyLivePrices(sql, rows, list);
+    const due = priced.filter((p) => !p.listedFen && (p.holdWeeks ?? 0) >= 1 && !p.platformStock);
     if (due.length) {
-      const { suggestListFen, stallUsage } = await import("@/lib/econ");
+      const { quoteSaleFen, loadMarket, loadOwnerEcons } = await import("@/lib/pricing");
+      const { stallUsage } = await import("@/lib/econ");
+      const market = await loadMarket(sql);
       const usage = await stallUsage(sql, due.map((p) => p.id));
+      const econs = await loadOwnerEcons(sql, [context.userId]);
+      const econ = econs.get(context.userId);
       for (const p of due) {
-        const fen = suggestListFen(p, usage.get(p.id));
+        const row = rows.find((r) => r.id === p.id);
+        const fen = quoteSaleFen({
+          ownerId: context.userId,
+          profile: p,
+          baseHourFen: Number(row?.base_hour_fen ?? row?.hour_fen ?? p.hourFen),
+          market,
+          econ,
+          used7: usage.get(p.id)?.used7,
+          usedAll: usage.get(p.id)?.usedAll,
+        });
         await sql`
-          update stalls set listed_fen = ${fen}, updated_at = now()
+          update stalls set listed_fen = ${fen}, hour_fen = ${p.hourFen}, updated_at = now()
           where id = ${p.id} and owner_id = ${context.userId} and listed_fen is null
         `;
         p.listedFen = fen;
       }
     }
-    return list;
+    for (const p of priced) {
+      await sql`update stalls set hour_fen = ${p.hourFen}, updated_at = now() where id = ${p.id} and owner_id = ${context.userId}`;
+    }
+    return priced;
   });
 
 export const getOwnedStall = createServerFn({ method: "GET" })
@@ -568,6 +599,7 @@ export const saveOwnedStall = createServerFn({ method: "POST" })
         image = ${image},
         online = ${data.online},
         hour_fen = ${data.hourFen},
+        base_hour_fen = ${data.hourFen},
         night_fen = ${data.nightFen},
         eta_min = ${data.etaMin},
         places = ${JSON.stringify(data.places)}::jsonb,
@@ -634,7 +666,7 @@ export const createOwnedStall = createServerFn({ method: "POST" })
     await sql`
       insert into stalls (
         id, user_id, name, age, height_cm, cup, tags, image, online,
-        hour_fen, night_fen, eta_min, places, bio, services, work, owner_id,
+        hour_fen, night_fen, base_hour_fen, eta_min, places, bio, services, work, owner_id,
         stall_token, relation, owned_at,
         weight_kg, identity, job, personality, marriage, demeanor, moan, skill_level, orgasm, feel,
         persona, selling_points, hours_tag, daily_quota, travel, condom, extras,
@@ -642,7 +674,7 @@ export const createOwnedStall = createServerFn({ method: "POST" })
       ) values (
         ${id}, ${login.userId}, ${data.name}, ${data.age}, ${data.heightCm}, ${data.cup},
         ${JSON.stringify(data.tags)}::jsonb, ${image}, true,
-        ${data.hourFen}, ${data.nightFen}, ${data.etaMin}, ${JSON.stringify(data.places)}::jsonb,
+        ${data.hourFen}, ${data.nightFen}, ${data.hourFen}, ${data.etaMin}, ${JSON.stringify(data.places)}::jsonb,
         ${data.bio}, ${JSON.stringify(data.services)}::jsonb, ${work}, ${context.userId},
         ${token}, ${data.relation}, now(),
         ${data.weightKg}, ${data.identity}, ${data.job}, ${data.personality}, ${data.marriage}, ${data.demeanor}, ${data.moan},

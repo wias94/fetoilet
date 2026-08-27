@@ -302,20 +302,23 @@ export const useInquiry = createServerFn({ method: "POST" })
     const stall = await sql<{
       owner_id: string | null;
       hour_fen: number;
+      base_hour_fen: number | null;
       name: string;
       relation: string | null;
       owned_at: string | null;
     }>`
-      select owner_id, hour_fen, name, relation, owned_at from stalls where id = ${rows[0].profile_id} limit 1
+      select owner_id, hour_fen, base_hour_fen, name, relation, owned_at from stalls where id = ${rows[0].profile_id} limit 1
     `;
     if (stall[0]) {
       const ownerId = stall[0].owner_id;
       const selfUse = Boolean(ownerId && ownerId === context.userId);
       if (!selfUse) {
+        const { quoteStallNow } = await import("@/lib/pricing");
+        const grossFen = await quoteStallNow(sql, { ...stall[0], id: rows[0].profile_id });
         const { settleUse } = await import("@/lib/economy");
         await settleUse(sql, {
           ownerId,
-          grossFen: Number(stall[0].hour_fen),
+          grossFen,
           inquiryId: rows[0].id,
           stallId: rows[0].profile_id,
           stallName: stall[0].name,
