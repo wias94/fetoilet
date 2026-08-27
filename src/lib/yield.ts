@@ -1,4 +1,7 @@
 export const PLATFORM_ID = "platform";
+/** 平台收编的无主货：转让一口价、出租一口价（分）。 */
+export const PLATFORM_SALE_FEN = 1000;
+export const PLATFORM_RENT_FEN = 200;
 
 export const FAMILY_RELATIONS = ["母亲", "妻子", "女儿", "兄妹"] as const;
 

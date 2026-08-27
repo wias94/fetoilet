@@ -192,8 +192,9 @@ function toProfile(row: StallRow): Profile {
     work: row.work,
     ratingAvg: Number(row.rating_avg ?? 0),
     ratingCount: Number(row.rating_count ?? 0),
-    owned: Boolean(row.owner_id && !String(row.owner_id).startsWith("seed:")),
+    owned: Boolean(row.owner_id && !String(row.owner_id).startsWith("seed:") && row.owner_id !== "platform"),
     unowned: !row.owner_id,
+    platformStock: row.owner_id === "platform",
     listedFen: row.listed_fen == null ? null : Number(row.listed_fen),
     relation: row.relation ?? null,
     locationId: row.location_id ?? null,
@@ -366,6 +367,10 @@ export const saveMyStall = createServerFn({ method: "POST" })
       const { lookupOwnerId } = await import("@/lib/owners");
       ownerId = await lookupOwnerId(data.ownerToken);
     }
+    if (!ownerId) {
+      const { PLATFORM_ID } = await import("@/lib/yield");
+      ownerId = PLATFORM_ID;
+    }
     let image = data.image;
     if (isUserPhoto(data.image)) {
       const { putStallJpeg } = await import("@/lib/r2.server");
@@ -435,6 +440,17 @@ export const saveMyStall = createServerFn({ method: "POST" })
           ${data.travel}, ${data.condom}, ${JSON.stringify(data.extras)}::jsonb,
           ${data.reviewPref}, ${data.depositFen}
         )
+      `;
+    }
+    if (ownerId === "platform") {
+      const { PLATFORM_SALE_FEN, PLATFORM_RENT_FEN } = await import("@/lib/yield");
+      const { ensurePlatform } = await import("@/lib/economy");
+      await ensurePlatform(sql);
+      await sql`
+        update stalls
+        set listed_fen = ${PLATFORM_SALE_FEN}, hour_fen = ${PLATFORM_RENT_FEN}, owner_id = ${ownerId},
+            owned_at = coalesce(owned_at, now()), updated_at = now()
+        where user_id = ${context.userId}
       `;
     }
     const rows = await sql<StallRow>`

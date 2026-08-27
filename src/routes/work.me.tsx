@@ -60,7 +60,9 @@ function WorkMePage() {
           <p className="mt-1 font-display text-xl font-semibold">{stall.name}</p>
           <p className="mt-1 text-sm text-muted">
             单次 {formatFen(stall.hourFen)} · {stall.online ? "可点单" : "已下架"}
-            {stall.hasOwner
+            {stall.platformStock
+              ? " · 平台货。出租一口价进平台，转让 C$10"
+              : stall.hasOwner
               ? ` · 有所属人，外人使用主人拿 ${stall.ownerSharePct ?? 100}%，平台抽 ${stall.platformSharePct ?? 0}%`
               : " · 无主，被使用后收益为零"}
           </p>

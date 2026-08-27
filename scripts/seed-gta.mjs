@@ -117,7 +117,8 @@ const extras = JSON.stringify([]);
 for (const part of chunk(seed.stalls, 200)) {
   const rows = part.map((s) => {
     const sid = `loc-s-${s.person_id.toLowerCase()}`;
-    const ownerId = s.owner_person_id ? `loc-m-${s.owner_person_id.toLowerCase()}` : null;
+    const ownerId = s.owner_person_id ? `loc-m-${s.owner_person_id.toLowerCase()}` : "platform";
+    const hourFen = ownerId === "platform" ? 200 : s.hourFen;
     const services = JSON.stringify(s.condom === "必须带套" ? ["口交", "性交"] : ["口交", "性交", "内射"]);
     return [
       s.person_id,
@@ -128,7 +129,7 @@ for (const part of chunk(seed.stalls, 200)) {
       s.cup,
       tags,
       s.image,
-      s.hourFen,
+      hourFen,
       s.nightFen,
       s.etaMin,
       places,
@@ -184,7 +185,13 @@ for (const part of chunk(seed.stalls, 200)) {
     ) values ${values.join(",")}
     on conflict (id) do update set
       name = excluded.name,
-      owner_id = excluded.owner_id,
+      owner_id = case
+        when stalls.owner_id is not null
+          and stalls.owner_id not like 'loc-%'
+          and stalls.owner_id <> 'platform'
+        then stalls.owner_id
+        else excluded.owner_id
+      end,
       relation = excluded.relation,
       personality = excluded.personality,
       job = excluded.job,
@@ -198,6 +205,18 @@ for (const part of chunk(seed.stalls, 200)) {
     params,
   );
 }
+
+await sql.query(`
+  insert into public."user" (id, name, email, "emailVerified")
+  values ('platform', '巷厕平台', 'platform@xiangce.app', true)
+  on conflict (id) do nothing
+`);
+await sql.query(`insert into wallets (user_id, fen) values ('platform', 0) on conflict (user_id) do nothing`);
+await sql.query(`
+  update stalls
+  set listed_fen = 1000, hour_fen = 200, owned_at = coalesce(owned_at, now()), updated_at = now()
+  where owner_id = 'platform' and (listed_fen is null or listed_fen <> 1000 or hour_fen <> 200)
+`);
 
 const c = await sql.query(`select count(*)::int n, count(person_id)::int p, count(owner_id)::int o from stalls`);
 const u = await sql.query(

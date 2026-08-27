@@ -2,12 +2,34 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql, type Sql } from "@/lib/db";
-import { holdingCut, splitFen, PLATFORM_ID } from "@/lib/yield";
+import { holdingCut, splitFen, PLATFORM_ID, PLATFORM_SALE_FEN, PLATFORM_RENT_FEN } from "@/lib/yield";
 
 async function ensureWallet(sql: Sql, userId: string) {
   await sql`
     insert into wallets (user_id, fen) values (${userId}, 0)
     on conflict (user_id) do nothing
+  `;
+}
+
+export async function ensurePlatform(sql: Sql) {
+  await sql`
+    insert into "user" (id, name, email, "emailVerified")
+    values (${PLATFORM_ID}, '巷厕平台', 'platform@xiangce.app', true)
+    on conflict (id) do nothing
+  `;
+  await ensureWallet(sql, PLATFORM_ID);
+}
+
+export async function adoptUnownedToPlatform(sql: Sql) {
+  await ensurePlatform(sql);
+  await sql`
+    update stalls
+    set owner_id = ${PLATFORM_ID},
+        listed_fen = ${PLATFORM_SALE_FEN},
+        hour_fen = ${PLATFORM_RENT_FEN},
+        owned_at = coalesce(owned_at, now()),
+        updated_at = now()
+    where owner_id is null
   `;
 }
 

@@ -20,6 +20,7 @@ export type Profile = {
   ratingCount: number;
   owned?: boolean;
   unowned?: boolean;
+  platformStock?: boolean;
   listedFen?: number | null;
   relation?: string | null;
   locationId?: string | null;
