@@ -4,53 +4,59 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { getUserState, listNearby, upsertLocation } from "@/lib/behavior";
 import { NEARBY_RADIUS_M } from "@/lib/geo";
 
-/** Markham centre — used when the client has no fix yet. */
-const FALLBACK = { lat: 43.8561, lng: -79.337 };
+import { getSql } from "@/lib/db";
+import { listStallsNear } from "@/lib/stalls";
 
-export function formatDistance(m: number) {
-  if (m < 1000) return `${m} 米`;
-  return `${(m / 1000).toFixed(1)} 公里`;
+const Fix = z.object({
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+});
+
+async function resolveOrigin(userId: string, data: { lat?: number; lng?: number }) {
+  const { refreshUserFromSim } = await import("@/lib/location-sim");
+  await refreshUserFromSim(userId);
+
+  let lat = data.lat;
+  let lng = data.lng;
+  let source: "gps" | "saved" | "none" = "saved";
+
+  if (lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng)) {
+    source = "gps";
+    await upsertLocation(userId, { lat, lng, source: "gps" }, { copyToStall: false });
+  } else {
+    const state = await getUserState(userId);
+    if (state?.location?.lat != null && state.location.lng != null) {
+      lat = state.location.lat;
+      lng = state.location.lng;
+      source = "saved";
+    } else {
+      return { origin: null as { lat: number; lng: number } | null, source: "none" as const };
+    }
+  }
+  return { origin: { lat, lng }, source };
 }
 
 export const fetchNearby = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((data: unknown) =>
-    z
-      .object({
-        lat: z.number().optional(),
-        lng: z.number().optional(),
-      })
-      .parse(data ?? {}),
-  )
+  .validator((data: unknown) => Fix.parse(data ?? {}))
   .handler(async ({ context, data }) => {
-    const { refreshUserFromSim } = await import("@/lib/location-sim");
-    await refreshUserFromSim(context.userId);
-
-    let lat = data.lat;
-    let lng = data.lng;
-    let source: "gps" | "saved" | "fallback" = "saved";
-
-    if (lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng)) {
-      source = "gps";
-      await upsertLocation(context.userId, { lat, lng, source: "gps" }, { copyToStall: false });
-    } else {
-      const state = await getUserState(context.userId);
-      if (state?.location?.lat != null && state.location.lng != null) {
-        lat = state.location.lat;
-        lng = state.location.lng;
-        source = "saved";
-      } else {
-        lat = FALLBACK.lat;
-        lng = FALLBACK.lng;
-        source = "fallback";
-      }
+    const { origin, source } = await resolveOrigin(context.userId, data);
+    if (!origin) {
+      return { origin: null, radius_m: NEARBY_RADIUS_M, source, stalls: [] };
     }
+    const stalls = await listNearby(origin.lat, origin.lng, NEARBY_RADIUS_M);
+    return { origin, radius_m: NEARBY_RADIUS_M, source, stalls };
+  });
 
-    const stalls = await listNearby(lat, lng, NEARBY_RADIUS_M);
-    return {
-      origin: { lat, lng },
-      radius_m: NEARBY_RADIUS_M,
-      source,
-      stalls,
-    };
+export const listVisibleStalls = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => Fix.parse(data ?? {}))
+  .handler(async ({ context, data }) => {
+    const { origin, source } = await resolveOrigin(context.userId, data);
+    if (!origin) {
+      return { origin: null, radius_m: NEARBY_RADIUS_M, source, stalls: [] };
+    }
+    const sql = await getSql();
+    const stalls = await listStallsNear(sql, origin.lat, origin.lng, NEARBY_RADIUS_M);
+    return { origin, radius_m: NEARBY_RADIUS_M, source, stalls };
   });

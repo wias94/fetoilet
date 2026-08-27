@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { fetchNearby, formatDistance } from "@/lib/nearby";
+import { fetchNearby } from "@/lib/nearby";
+import { formatDistance } from "@/lib/geo";
+import { readBrowserFix } from "@/lib/browser-geo";
 import { formatFen } from "@/lib/utils";
 
 export const Route = createFileRoute("/nearby")({
@@ -59,7 +61,7 @@ function NearbyList() {
       ? "按你此刻的定位，半径 3 公里"
       : data?.source === "saved"
         ? "按本账户上次坐标，半径 3 公里"
-        : "暂无定位，先按万锦中心 3 公里展示";
+        : "还没有定位，看不见附近的肉厕";
 
   return (
     <div>
@@ -77,7 +79,7 @@ function NearbyList() {
         <p className="mt-6 rounded-2xl bg-sunken px-4 py-5 text-sm text-muted">{error}</p>
       ) : !data?.stalls.length ? (
         <p className="mt-6 rounded-2xl bg-sunken px-4 py-5 text-sm text-muted">
-          3 公里内暂无可点肉厕。可到「选厕」看全部在册货。
+          3 公里内暂无可点肉厕。位置会随人移动，过几分钟再看。
         </p>
       ) : (
         <ul className="mt-5 space-y-3">
@@ -116,22 +118,4 @@ function NearbyList() {
       )}
     </div>
   );
-}
-
-function readBrowserFix(): Promise<{ lat: number; lng: number } | null> {
-  if (typeof navigator === "undefined" || !navigator.geolocation) return Promise.resolve(null);
-  return new Promise((resolve) => {
-    const timer = window.setTimeout(() => resolve(null), 2500);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        window.clearTimeout(timer);
-        resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-      },
-      () => {
-        window.clearTimeout(timer);
-        resolve(null);
-      },
-      { enableHighAccuracy: false, maximumAge: 180_000, timeout: 2200 },
-    );
-  });
 }

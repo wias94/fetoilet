@@ -72,6 +72,22 @@ export const placeInquiry = createServerFn({ method: "POST" })
     const profile = await findStall(sql, data.profileId);
     if (!profile) throw new Error("没这具肉便器");
     if (!profile.online) throw new Error("这具便器关着");
+    const { refreshUserFromSim } = await import("@/lib/location-sim");
+    const { getUserState } = await import("@/lib/behavior");
+    const { distanceM, NEARBY_RADIUS_M } = await import("@/lib/geo");
+    await refreshUserFromSim(context.userId);
+    const state = await getUserState(context.userId);
+    const lat = state?.location?.lat;
+    const lng = state?.location?.lng;
+    if (lat == null || lng == null) throw new Error("先开定位，只能点附近 3 公里内的肉厕");
+    const here = await sql<{ lat: number | null; lng: number | null }>`
+      select lat, lng from stalls where id = ${profile.id} limit 1
+    `;
+    const slat = here[0]?.lat;
+    const slng = here[0]?.lng;
+    if (slat == null || slng == null) throw new Error("这具肉厕还没有位置，不能点");
+    const far = distanceM(lat, lng, Number(slat), Number(slng));
+    if (far > NEARBY_RADIUS_M) throw new Error(`超出 3 公里（现在 ${Math.round(far)} 米），只能点附近的`);
     const id = crypto.randomUUID();
     const rows = await sql<Row>`
       insert into inquiries (id, user_id, profile_id, profile_name, slot, note, status)

@@ -1,6 +1,11 @@
 export const NEARBY_RADIUS_M = 3000;
 export const LOCATION_INTERVAL_MS = 3 * 60 * 1000;
 
+export function formatDistance(m: number) {
+  if (m < 1000) return `${m} 米`;
+  return `${(m / 1000).toFixed(1)} 公里`;
+}
+
 export type LocSource = "gps" | "fake" | "manual" | "ip";
 
 export type LocationFix = {

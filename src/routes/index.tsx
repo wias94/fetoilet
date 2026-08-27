@@ -7,13 +7,13 @@ import { Splash } from "@/components/splash";
 import { Input } from "@/components/ui/input";
 import { useEntry } from "@/lib/entry";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { TAGS, type TagId, onlineCount, searchProfiles } from "@/lib/profiles";
-import { listPublicStalls } from "@/lib/stalls";
+import { TAGS, type Profile, type TagId, onlineCount, searchProfiles } from "@/lib/profiles";
+import { readBrowserFix } from "@/lib/browser-geo";
+import { listVisibleStalls } from "@/lib/nearby";
 import { BroadcastBanner } from "@/components/broadcast-banner";
 import { cn, greetingForHour } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
-  loader: () => listPublicStalls(),
   component: Home,
 });
 
@@ -45,7 +45,8 @@ function Home() {
 }
 
 function HomeFeed() {
-  const stalls = Route.useLoaderData();
+  const [stalls, setStalls] = useState<Profile[] | null>(null);
+  const [source, setSource] = useState<"gps" | "saved" | "none" | "">("");
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState<TagId | "all">("all");
   const [shelf, setShelf] = useState<"all" | "unowned" | "sale">("all");
@@ -55,22 +56,45 @@ function HomeFeed() {
     setHello(greetingForHour(new Date().getHours()));
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const fix = await readBrowserFix();
+      const next = await listVisibleStalls({ data: fix ?? {} });
+      if (cancelled) return;
+      setStalls(next.stalls);
+      setSource(next.source);
+    })().catch(() => {
+      if (!cancelled) setStalls([]);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const list = useMemo(() => {
-    const rows = searchProfiles(stalls, query, tag);
+    const rows = searchProfiles(stalls ?? [], query, tag);
     if (shelf === "unowned") return rows.filter((p) => p.unowned);
     if (shelf === "sale") return rows.filter((p) => Boolean(p.listedFen));
     return rows;
   }, [stalls, query, tag, shelf]);
+
+  const hint =
+    source === "none"
+      ? "还没有定位。允许定位后，只能看到 3 公里内的肉厕。"
+      : source === "gps"
+        ? `附近 3 公里可点单 ${onlineCount(stalls ?? [])} 具。`
+        : `按你当前位置 3 公里，可点单 ${onlineCount(stalls ?? [])} 具。`;
 
   return (
     <div>
       <BroadcastBanner audience="seeker" />
       <p className="text-sm text-muted">{hello}</p>
       <h1 className="mt-1 font-display text-3xl font-semibold leading-tight tracking-tight">
-        在册肉厕
+        附近肉厕
       </h1>
       <p className="mt-2 max-w-md text-sm leading-relaxed text-muted">
-        当前可点单 {onlineCount(stalls)} 具。客户按挂牌条件使用本平台肉厕，就地灌注。请勿将其视为民事主体。
+        {hint} 货架只展示此刻你身边的。名下的母亲、女儿不在 3 公里内也不能点。
       </p>
 
       <div className="-mx-4 mt-5 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -122,9 +146,19 @@ function HomeFeed() {
         ))}
       </div>
 
-      {list.length === 0 ? (
+      {stalls == null ? (
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="h-56 animate-pulse rounded-2xl bg-fg/10" />
+          <div className="h-56 animate-pulse rounded-2xl bg-fg/10" />
+          <div className="h-56 animate-pulse rounded-2xl bg-fg/10" />
+        </div>
+      ) : list.length === 0 ? (
         <p className="mt-16 text-center text-sm text-muted">
-          {shelf === "sale" ? "没人挂牌。去「我的」把名下货标价。" : "这片没有肉便器。换个区再找。"}
+          {source === "none"
+            ? "没有定位，看不到附近的肉厕。"
+            : shelf === "sale"
+              ? "附近没人挂牌。"
+              : "3 公里内没有肉厕。"}
         </p>
       ) : (
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">

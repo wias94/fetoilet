@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql, type Sql } from "@/lib/db";
+import { distanceM, NEARBY_RADIUS_M } from "@/lib/geo";
 import {
   PLACE_PRESETS,
   PROFILES,
@@ -222,6 +223,31 @@ function autoWork(data: { online: boolean; tags: TagId[]; etaMin: number }) {
 async function ensureSeeded(sql: Sql) {
   const { ensureGtaPeople } = await import("@/lib/seed-gta");
   await ensureGtaPeople(sql);
+}
+
+export async function listStallsNear(sql: Sql, lat: number, lng: number, radiusM = NEARBY_RADIUS_M) {
+  await ensureSeeded(sql);
+  const rows = await sql<StallRow>`
+    select s.*,
+      coalesce(r.avg, 0) as rating_avg,
+      coalesce(r.n, 0) as rating_count
+    from stalls s
+    left join (
+      select profile_id, avg(score)::float as avg, count(*)::int as n
+      from reviews
+      group by profile_id
+    ) r on r.profile_id = s.id
+    where coalesce(s.hidden, false) = false
+      and s.lat is not null and s.lng is not null
+  `;
+  return rows
+    .map((row) => {
+      const d = distanceM(lat, lng, Number(row.lat), Number(row.lng));
+      return { ...toProfile(row), distanceM: d };
+    })
+    .filter((p) => (p.distanceM ?? Infinity) <= radiusM)
+    .sort((a, b) => (a.distanceM ?? 0) - (b.distanceM ?? 0))
+    .slice(0, 80);
 }
 
 export async function findStall(sql: Sql, id: string) {

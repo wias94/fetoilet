@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Heart } from "lucide-react";
 import type { Profile } from "@/lib/profiles";
 import { useFavorites } from "@/lib/favorites";
+import { formatDistance } from "@/lib/geo";
 import { formatFen } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,7 @@ export function ProfileCard({ profile: p }: { profile: Profile }) {
                 <span className="ml-1.5 font-sans text-sm font-normal text-fg/70">{p.age}</span>
               </p>
               <p className="mt-0.5 truncate text-xs text-fg/65">
+                {p.distanceM != null ? `${formatDistance(p.distanceM)} · ` : ""}
                 {p.persona ? `${p.persona} · ` : ""}
                 {p.heightCm}cm/{p.weightKg ?? "—"}kg
               </p>
