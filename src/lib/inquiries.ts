@@ -324,6 +324,7 @@ export const useInquiry = createServerFn({ method: "POST" })
           ownerId,
           grossFen: Number(stall[0].hour_fen),
           inquiryId: rows[0].id,
+          stallId: rows[0].profile_id,
           stallName: stall[0].name,
           relation: stall[0].relation,
           ownedAt: stall[0].owned_at,

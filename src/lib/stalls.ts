@@ -483,7 +483,20 @@ export const listOwnedStalls = createServerFn({ method: "GET" })
       where owner_id = ${context.userId}
       order by updated_at desc
     `;
-    return rows.map(toProfile);
+    const list = rows.map(toProfile);
+    const due = list.filter((p) => !p.listedFen && (p.holdWeeks ?? 0) >= 1);
+    if (due.length) {
+      const { suggestListFen } = await import("@/lib/attract");
+      for (const p of due) {
+        const fen = suggestListFen(p);
+        await sql`
+          update stalls set listed_fen = ${fen}, updated_at = now()
+          where id = ${p.id} and owner_id = ${context.userId} and listed_fen is null
+        `;
+        p.listedFen = fen;
+      }
+    }
+    return list;
   });
 
 export const getOwnedStall = createServerFn({ method: "GET" })

@@ -35,6 +35,7 @@ export async function settleUse(
     ownerId: string | null | undefined;
     grossFen: number;
     inquiryId: string;
+    stallId?: string;
     stallName: string;
     relation: string | null;
     ownedAt: string | Date | null;
@@ -61,6 +62,24 @@ export async function settleUse(
       `抽成 ${opts.stallName} · 持有第 ${cut.weeks + 1} 周 ${cut.platformSharePct}%`,
       "cut",
     );
+  }
+  if (cut.weeks >= 1 && opts.stallId) {
+    const stall = await sql<{ listed_fen: number | null; hour_fen: number; relation: string | null }>`
+      select listed_fen, hour_fen, relation from stalls where id = ${opts.stallId} limit 1
+    `;
+    if (stall[0] && stall[0].listed_fen == null) {
+      const { suggestListFen } = await import("@/lib/attract");
+      const fen = suggestListFen({
+        hourFen: Number(stall[0].hour_fen),
+        relation: stall[0].relation,
+        holdWeeks: cut.weeks,
+        ownerSharePct: cut.ownerSharePct,
+      } as import("@/lib/profiles").Profile);
+      await sql`
+        update stalls set listed_fen = ${fen}, updated_at = now()
+        where id = ${opts.stallId} and listed_fen is null
+      `;
+    }
   }
   return { ownerFen, platformFen, ...cut };
 }
