@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { setStallListed } from "@/lib/economy";
-import { getOwnedStall } from "@/lib/stalls";
+import { getOwnedStall, setOwnedStallOnline } from "@/lib/stalls";
 import { getOwnedStallLogin, resetOwnedStallLogin } from "@/lib/stall-account";
 
 export const Route = createFileRoute("/owned/$id")({ component: OwnedStallPage });
@@ -156,6 +156,31 @@ function OwnedStallPage() {
           </Button>
         </div>
       )}
+      <div className="mb-8 rounded-2xl bg-surface p-5 shadow-border">
+        <p className="text-sm text-muted">挂牌出租</p>
+        <p className="mt-2 text-sm leading-relaxed text-muted">
+          上架后必须接单，先到先得，使用 30 分钟内货架看不见这具。和下面的转让挂牌不是一回事。
+        </p>
+        <Button
+          className="mt-3"
+          type="button"
+          variant="secondary"
+          disabled={busy}
+          onClick={() => {
+            setBusy(true);
+            void getOwnedStall({ data: { id } })
+              .then((row) => {
+                if (!row) throw new Error("没这具");
+                return setOwnedStallOnline({ data: { id, online: !row.online } });
+              })
+              .then((row) => toast(row.online ? "已挂牌出租" : "已休息，出租货架不展示"))
+              .catch((err) => toast(err instanceof Error ? err.message : "没改成"))
+              .finally(() => setBusy(false));
+          }}
+        >
+          切换出租 / 休息
+        </Button>
+      </div>
       <div className="mb-8 rounded-2xl bg-surface p-5 shadow-border">
         <p className="text-sm text-muted">持有分成</p>
         {hold ? (

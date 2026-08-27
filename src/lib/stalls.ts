@@ -4,6 +4,7 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql, type Sql } from "@/lib/db";
 import { distanceM, NEARBY_RADIUS_M } from "@/lib/geo";
 import { holdingCut } from "@/lib/yield";
+import { isBusy } from "@/lib/occupancy";
 import {
   PLACE_PRESETS,
   PROFILES,
@@ -142,6 +143,8 @@ type StallRow = {
   lat?: number | null;
   lng?: number | null;
   owned_at?: string | null;
+  busy_until?: string | null;
+  busy_inquiry_id?: string | null;
 };
 
 export type MineStall = Profile & { hasOwner: boolean; stallToken: string | null };
@@ -217,6 +220,8 @@ function toProfile(row: StallRow): Profile {
     holdWeeks: row.owner_id ? cut.weeks : undefined,
     ownerSharePct: row.owner_id ? cut.ownerSharePct : undefined,
     platformSharePct: row.owner_id ? cut.platformSharePct : undefined,
+    busyUntil: row.busy_until ?? null,
+    busy: isBusy(row.busy_until ?? null),
   };
 }
 
@@ -251,6 +256,8 @@ export async function listStallsNear(
     ) r on r.profile_id = s.id
     where coalesce(s.hidden, false) = false
       and s.lat is not null and s.lng is not null
+      and s.online = true
+      and (s.busy_until is null or s.busy_until <= now())
   `;
   return rows
     .map((row) => {
@@ -373,7 +380,6 @@ export const saveMyStall = createServerFn({ method: "POST" })
           cup = ${data.cup},
           tags = ${JSON.stringify(data.tags)}::jsonb,
           image = ${image},
-          online = ${data.online},
           hour_fen = ${data.hourFen},
           night_fen = ${data.nightFen},
           eta_min = ${data.etaMin},
@@ -419,7 +425,7 @@ export const saveMyStall = createServerFn({ method: "POST" })
           review_pref, deposit_fen
         ) values (
           ${id}, ${context.userId}, ${data.name}, ${data.age}, ${data.heightCm}, ${data.cup},
-          ${JSON.stringify(data.tags)}::jsonb, ${image}, ${data.online},
+          ${JSON.stringify(data.tags)}::jsonb, ${image}, true,
           ${data.hourFen}, ${data.nightFen}, ${data.etaMin}, ${JSON.stringify(data.places)}::jsonb,
           ${data.bio}, ${JSON.stringify(data.services)}::jsonb, ${work}, ${ownerId},
           ${ownerId ? new Date() : null},
@@ -447,13 +453,26 @@ export const saveMyStall = createServerFn({ method: "POST" })
 export const setMyStallOnline = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: unknown) => z.object({ online: z.boolean() }).parse(data))
-  .handler(async ({ context, data }) => {
+  .handler(async ({ context }) => {
     const sql = await getSql();
     await ensureSeeded(sql);
     const rows = await sql<StallRow>`
       select * from stalls where user_id = ${context.userId} limit 1
     `;
     if (!rows[0]) throw new Error("还没登记这具便器");
+    throw new Error("休息由所属人控制。挂牌出租后必须接单");
+  });
+
+export const setOwnedStallOnline = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => z.object({ id: z.string().min(1), online: z.boolean() }).parse(data))
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    const rows = await sql<StallRow>`
+      select * from stalls where id = ${data.id} and owner_id = ${context.userId} limit 1
+    `;
+    if (!rows[0]) throw new Error("这具不是你的货");
+    if (isBusy(rows[0].busy_until)) throw new Error("使用中不能改休息，等这 30 分钟结束");
     const current = toProfile(rows[0]);
     const work = autoWork({
       tags: current.tags as StallInput["tags"],
@@ -463,14 +482,8 @@ export const setMyStallOnline = createServerFn({ method: "POST" })
     await sql`
       update stalls
       set online = ${data.online}, work = ${work}, updated_at = now()
-      where user_id = ${context.userId}
+      where id = ${data.id} and owner_id = ${context.userId}
     `;
-    const { recordEvent } = await import("@/lib/behavior");
-    await recordEvent({
-      userId: context.userId,
-      kind: data.online ? "stall_online" : "stall_offline",
-      targetId: current.id,
-    });
     return { ...current, online: data.online, work };
   });
 
@@ -612,7 +625,7 @@ export const createOwnedStall = createServerFn({ method: "POST" })
         review_pref, deposit_fen
       ) values (
         ${id}, ${login.userId}, ${data.name}, ${data.age}, ${data.heightCm}, ${data.cup},
-        ${JSON.stringify(data.tags)}::jsonb, ${image}, ${data.online},
+        ${JSON.stringify(data.tags)}::jsonb, ${image}, true,
         ${data.hourFen}, ${data.nightFen}, ${data.etaMin}, ${JSON.stringify(data.places)}::jsonb,
         ${data.bio}, ${JSON.stringify(data.services)}::jsonb, ${work}, ${context.userId},
         ${token}, ${data.relation}, now(),

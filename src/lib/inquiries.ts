@@ -69,9 +69,12 @@ export const placeInquiry = createServerFn({ method: "POST" })
     const { assertRole } = await import("@/lib/roles");
     await assertRole(context.userId, "male");
     const sql = await getSql();
+    const { releaseExpiredRentals, lockRental, unlockRental } = await import("@/lib/occupancy");
+    await releaseExpiredRentals(sql);
     const profile = await findStall(sql, data.profileId);
     if (!profile) throw new Error("没这具肉便器");
-    if (!profile.online) throw new Error("这具便器关着");
+    if (!profile.online) throw new Error("所属人已让这具休息，暂不出租");
+    if (profile.busy) throw new Error("使用中，先到先得");
     const { refreshUserFromSim } = await import("@/lib/location-sim");
     const { getUserState } = await import("@/lib/behavior");
     const { distanceM, NEARBY_RADIUS_M } = await import("@/lib/geo");
@@ -89,12 +92,17 @@ export const placeInquiry = createServerFn({ method: "POST" })
     const far = distanceM(lat, lng, Number(slat), Number(slng));
     if (far > NEARBY_RADIUS_M) throw new Error(`超出 3 公里（现在 ${Math.round(far)} 米），只能点附近的`);
     const id = crypto.randomUUID();
+    const locked = await lockRental(sql, profile.id, id);
+    if (!locked) throw new Error("被人先点了。使用中 30 分钟内货架不可见");
     const rows = await sql<Row>`
       insert into inquiries (id, user_id, profile_id, profile_name, slot, note, status)
-      values (${id}, ${context.userId}, ${profile.id}, ${profile.name}, ${data.slot}, ${data.note}, 'pending')
+      values (${id}, ${context.userId}, ${profile.id}, ${profile.name}, ${data.slot}, ${data.note}, 'accepted')
       returning id, profile_id, profile_name, slot, note, status, created_at, updated_at
     `;
-    if (!rows[0]) throw new Error("没叫成");
+    if (!rows[0]) {
+      await unlockRental(sql, id);
+      throw new Error("没叫成");
+    }
     const { recordEvent } = await import("@/lib/behavior");
     await recordEvent({
       userId: context.userId,
@@ -193,17 +201,10 @@ export const actOwnerInquiry = createServerFn({ method: "POST" })
     `;
     if (!current[0]) throw new Error("没这单");
     const from = toStatus(current[0].status);
-    const next =
-      data.action === "accept"
-        ? "accepted"
-        : data.action === "reject"
-          ? "rejected"
-          : "arrived";
-    if (data.action === "accept" || data.action === "reject") {
-      if (from !== "pending") throw new Error("这单已经动过了");
-    } else if (from !== "accepted") {
-      throw new Error("先接单才能到");
-    }
+    if (data.action === "reject") throw new Error("挂牌出租必须接单，不能拒");
+    if (data.action === "accept") throw new Error("出租单自动接，不用再点");
+    if (from !== "accepted") throw new Error("先到点「已到位」");
+    const next = "arrived";
     const rows = await sql<Row>`
       update inquiries
       set status = ${next}, updated_at = now()
@@ -231,17 +232,10 @@ export const actStallInquiry = createServerFn({ method: "POST" })
     `;
     if (!current[0]) throw new Error("没这单");
     const from = toStatus(current[0].status);
-    const next =
-      data.action === "accept"
-        ? "accepted"
-        : data.action === "reject"
-          ? "rejected"
-          : "arrived";
-    if (data.action === "accept" || data.action === "reject") {
-      if (from !== "pending") throw new Error("这单已经动过了");
-    } else if (from !== "accepted") {
-      throw new Error("先接单才能到");
-    }
+    if (data.action === "reject") throw new Error("挂牌出租必须接单，不能拒");
+    if (data.action === "accept") throw new Error("出租单自动接，不用再点");
+    if (from !== "accepted") throw new Error("先到位才能标到了");
+    const next = "arrived";
     const rows = await sql<Row>`
       update inquiries
       set status = ${next}, updated_at = now()
@@ -252,12 +246,7 @@ export const actStallInquiry = createServerFn({ method: "POST" })
     const { recordEvent } = await import("@/lib/behavior");
     await recordEvent({
       userId: context.userId,
-      kind:
-        data.action === "accept"
-          ? "inquiry_accept"
-          : data.action === "arrive"
-            ? "inquiry_arrive"
-            : "inquiry_cancel",
+      kind: "inquiry_arrive",
       targetId: rows[0].id,
     });
     return toInquiry(rows[0]);
@@ -275,14 +264,18 @@ export const cancelInquiry = createServerFn({ method: "POST" })
       limit 1
     `;
     if (!current[0]) throw new Error("没这单");
-    if (toStatus(current[0].status) !== "pending") throw new Error("已经接了，取消不了");
+    const from = toStatus(current[0].status);
+    if (from !== "pending" && from !== "accepted") throw new Error("已经在使用，取消不了");
     const rows = await sql<Row>`
       update inquiries
       set status = 'cancelled', updated_at = now()
-      where id = ${data.id} and user_id = ${context.userId} and coalesce(status, 'pending') = 'pending'
+      where id = ${data.id} and user_id = ${context.userId}
+        and coalesce(status, 'pending') in ('pending', 'accepted')
       returning id, profile_id, profile_name, slot, note, status, created_at, updated_at
     `;
     if (!rows[0]) throw new Error("没取消成");
+    const { unlockRental } = await import("@/lib/occupancy");
+    await unlockRental(sql, rows[0].id);
     return toInquiry(rows[0]);
   });
 
@@ -338,6 +331,13 @@ export const useInquiry = createServerFn({ method: "POST" })
       targetId: rows[0].profile_id,
       payload: { free: Boolean(stall[0]?.owner_id && stall[0].owner_id === context.userId) },
     });
+    const { bumpSatiation } = await import("@/lib/occupancy");
+    await bumpSatiation(
+      sql,
+      context.userId,
+      rows[0].profile_id,
+      stall[0]?.owner_id === context.userId ? 1 : 1,
+    );
     return toInquiry(rows[0]);
   });
 
@@ -346,7 +346,7 @@ export function seekerStatusLabel(status: InquiryStatus) {
     case "pending":
       return "待接单";
     case "accepted":
-      return "肉厕已接单，正在前往";
+      return "已锁定出租 30 分钟，肉厕正在前往";
     case "arrived":
       return "肉厕已到位，请确认使用";
     case "used":
@@ -363,7 +363,7 @@ export function stallStatusLabel(status: InquiryStatus) {
     case "pending":
       return "待本厕接单";
     case "accepted":
-      return "已接单，正在履约";
+      return "已自动接单，出租占用 30 分钟，正在履约";
     case "arrived":
       return "已到位，待客户确认使用";
     case "used":

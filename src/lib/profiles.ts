@@ -48,6 +48,8 @@ export type Profile = {
   holdWeeks?: number;
   ownerSharePct?: number;
   platformSharePct?: number;
+  busyUntil?: string | null;
+  busy?: boolean;
 };
 
 export const RELATIONS = ["母亲", "妻子", "女儿", "女友", "兄妹", "朋友", "同事", "其他"] as const;

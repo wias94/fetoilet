@@ -143,7 +143,7 @@ function InboxPage() {
                   </p>
                 </div>
               </Link>
-              {row.status === "pending" && (
+              {(row.status === "pending" || row.status === "accepted") && (
                 <Button
                   variant="secondary"
                   size="sm"

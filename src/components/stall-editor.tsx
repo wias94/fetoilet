@@ -828,10 +828,14 @@ export function StallEditor({
                 </Button>
               </div>
             </Field>
+            {asOwner ? (
             <label className="flex items-center gap-3 text-sm">
               <input type="checkbox" checked={form.online} onChange={(e) => setForm((f) => ({ ...f, online: e.target.checked }))} className="size-4 accent-fg" />
-              审核后立刻上架接询
+              挂牌出租（上架后必须接单。转让挂牌在名下页另设）
             </label>
+            ) : (
+              <p className="text-sm text-muted">出租是否休息由所属人控制。挂牌后单来必须接。</p>
+            )}
             <p className="text-sm text-muted">
               {form.persona} · {form.condom} · 保证金 {formatFen(form.depositFen)} · 一次{" "}
               {formatFen(Math.round(Number(form.hourYuan || 0) * 100))}

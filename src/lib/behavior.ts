@@ -273,6 +273,8 @@ export async function listNearby(lat: number, lng: number, radiusM: number) {
   const { syncWorldIfDue } = await import("@/lib/location-sim");
   await syncWorldIfDue();
   const sql = await getSql();
+  const { releaseExpiredRentals } = await import("@/lib/occupancy");
+  await releaseExpiredRentals(sql);
   const rows = await sql<{
     id: string;
     name: string;
@@ -292,6 +294,8 @@ export async function listNearby(lat: number, lng: number, radiusM: number) {
     from stalls
     where lat is not null and lng is not null
       and coalesce(hidden, false) = false
+      and online = true
+      and (busy_until is null or busy_until <= now())
   `;
   return rows
     .map((r) => {

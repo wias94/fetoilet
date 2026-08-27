@@ -190,8 +190,12 @@ function ProfilePage() {
               <p className="pt-1 text-xs text-muted">名下便器，主人使用不产生费用，也不计入收益。</p>
             ) : null}
           </div>
-          <Button className="mt-6 w-full" onClick={() => setOpen(true)}>
-            提交点单
+          <Button
+            className="mt-6 w-full"
+            disabled={Boolean(profile.busy) || !profile.online}
+            onClick={() => setOpen(true)}
+          >
+            {profile.busy ? "使用中（30 分钟）" : profile.online ? "提交点单" : "所属人休息中"}
           </Button>
           <Button
             className="mt-3 w-full"

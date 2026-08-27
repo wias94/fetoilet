@@ -17,7 +17,7 @@ import {
   type ClaimRow,
 } from "@/lib/owners";
 import { getProfile, type Profile } from "@/lib/profiles";
-import { listOwnedStalls, listPublicStalls } from "@/lib/stalls";
+import { listOwnedStalls, listPublicStalls, setOwnedStallOnline } from "@/lib/stalls";
 import { getMyMaleAccount, saveMyMaleAccount } from "@/lib/male-account";
 import {
   actOwnerInquiry,
@@ -277,21 +277,36 @@ function MePage() {
           <ul className="mt-3 space-y-2">
             {owned?.map((p) => (
               <li key={p.id}>
+                <div className="flex items-center gap-2 rounded-2xl bg-surface px-4 py-3 shadow-border">
                 <Link
                   to="/owned/$id"
                   params={{ id: p.id }}
-                  className="flex items-center justify-between rounded-2xl bg-surface px-4 py-3 shadow-border"
+                  className="min-w-0 flex-1 truncate font-medium"
                 >
-                  <span className="min-w-0 truncate font-medium">
                     {p.name}
                     {p.relation ? <span className="ml-2 text-sm font-normal text-muted">{p.relation}</span> : null}
-                  </span>
-                  <span className="text-sm text-muted">
-                    {p.listedFen
-                      ? `卖 ${formatFen(p.listedFen)}`
-                      : `${p.ownerSharePct ?? 100}% · ${p.online ? "可灌" : "收着"}`}
-                  </span>
+                    {p.busy ? <span className="ml-2 text-sm font-normal text-live">使用中</span> : null}
                 </Link>
+                  <span className="shrink-0 text-sm text-muted">
+                    {p.listedFen
+                      ? `转让 ${formatFen(p.listedFen)}`
+                      : `${p.ownerSharePct ?? 100}%`}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={busy !== null || Boolean(p.busy)}
+                    onClick={() => {
+                      setBusy(p.id);
+                      void setOwnedStallOnline({ data: { id: p.id, online: !p.online } })
+                        .then(() => refresh())
+                        .catch((err) => toast(err instanceof Error ? err.message : "没改成"))
+                        .finally(() => setBusy(null));
+                    }}
+                  >
+                    {p.online ? "休息" : "出租"}
+                  </Button>
+                </div>
               </li>
             ))}
           </ul>
@@ -307,38 +322,6 @@ function MePage() {
                 <p className="font-medium">{row.profileName}</p>
                 <p className="mt-1 text-sm text-muted">{row.slot}</p>
                 <p className="mt-1 text-sm text-subtle">{stallStatusLabel(row.status)}</p>
-                {row.status === "pending" && (
-                  <div className="mt-3 flex gap-2">
-                    <Button
-                      className="flex-1"
-                      size="sm"
-                      disabled={busy !== null}
-                      onClick={() => {
-                        setBusy(row.id);
-                        void actOwnerInquiry({ data: { id: row.id, action: "accept" } })
-                          .then((next) => setOrders((cur) => cur.map((r) => (r.id === next.id ? next : r))))
-                          .catch((err) => toast(err instanceof Error ? err.message : "没成"))
-                          .finally(() => setBusy(null));
-                      }}
-                    >
-                      把坑送过去
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      size="sm"
-                      variant="secondary"
-                      disabled={busy !== null}
-                      onClick={() => {
-                        setBusy(row.id);
-                        void actOwnerInquiry({ data: { id: row.id, action: "reject" } })
-                          .then((next) => setOrders((cur) => cur.map((r) => (r.id === next.id ? next : r))))
-                          .finally(() => setBusy(null));
-                      }}
-                    >
-                      不给
-                    </Button>
-                  </div>
-                )}
                 {row.status === "accepted" && (
                   <Button
                     className="mt-3 w-full"

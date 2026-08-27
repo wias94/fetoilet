@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LogoMark } from "@/components/logo";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { listStallInquiries, actStallInquiry, stallStatusLabel, type Inquiry } from "@/lib/inquiries";
-import { getMyStall, setMyStallOnline, type MineStall } from "@/lib/stalls";
+import { getMyStall, type MineStall } from "@/lib/stalls";
 import { requestOwnership } from "@/lib/owners";
 import { formatWhen } from "@/lib/utils";
 
@@ -65,7 +65,6 @@ function WorkLanding() {
 function WorkBoard() {
   const [stall, setStall] = useState<MineStall | null | undefined>(undefined);
   const [rows, setRows] = useState<Inquiry[] | null>(null);
-  const [busy, setBusy] = useState(false);
   const [acting, setActing] = useState<string | null>(null);
 
   useEffect(() => {
@@ -90,27 +89,13 @@ function WorkBoard() {
     };
   }, []);
 
-  async function toggleOnline() {
-    if (!stall) return;
-    setBusy(true);
-    try {
-      const next = await setMyStallOnline({ data: { online: !stall.online } });
-      setStall({ ...stall, ...next });
-      toast(next.online ? "已开坑，男人能拿你泄" : "已收坑，货架上先藏着这具便器");
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "没改成");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function act(id: string, action: "accept" | "reject" | "arrive") {
+  async function act(id: string, action: "arrive") {
     setActing(`${id}:${action}`);
     try {
       const next = await actStallInquiry({ data: { id, action } });
       setRows((cur) => cur?.map((row) => (row.id === id ? next : row)) ?? null);
       toast(
-        action === "accept" ? "已接，过去给人泄" : action === "reject" ? "已拒" : "已到，等人来用",
+        action === "arrive" ? "已到，等人来用" : "已改",
       );
     } catch (err) {
       toast(err instanceof Error ? err.message : "没改成");
@@ -148,38 +133,28 @@ function WorkBoard() {
       <p className="text-sm text-muted">便器端 · 等人来泄</p>
       <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">{stall.name}</h1>
       <p className="mt-1 text-sm text-muted">
-        {stall.etaMin} 分钟到 · {stall.online ? "现在挂着" : "关着"}
+        {stall.etaMin} 分钟到 · {stall.online ? "出租挂牌中，单来自动接" : "所属人让本厕休息"}
+        {stall.busy ? " · 使用中，货架不可见" : ""}
       </p>
 
-      <button
-        type="button"
-        onClick={() => void toggleOnline()}
-        disabled={busy}
-        className="mt-5 flex w-full items-center justify-between rounded-2xl bg-surface px-5 py-4 text-left shadow-border disabled:opacity-50"
-      >
-        <div>
-          <p className="font-display text-lg font-semibold">{stall.online ? "开着坑" : "收着坑"}</p>
-          <p className="mt-0.5 text-sm text-muted">
-            {stall.online ? "本厕已上架，客户可从附近点单灌注" : "本厕休息中，货架暂不展示"}
-          </p>
-        </div>
-        <span className={stall.online ? "text-sm text-live" : "text-sm text-subtle"}>
-          {stall.online ? "出车中" : "收车"}
-        </span>
-      </button>
+      <div className="mt-5 rounded-2xl bg-surface px-5 py-4 shadow-border">
+        <p className="font-display text-lg font-semibold">
+          {stall.busy ? "占用中 · 30 分钟" : stall.online ? "挂牌出租" : "休息"}
+        </p>
+        <p className="mt-0.5 text-sm text-muted">
+          出租挂牌后必须接单，先到先得。休息只能由所属人关。转让挂牌是另一套，不挡出租。
+        </p>
+      </div>
 
       <section className="mt-8">
         <h2 className="text-sm font-medium text-muted">
           要拿你泄的男人
-          {rows && rows.some((r) => r.status === "pending")
-            ? ` · ${rows.filter((r) => r.status === "pending").length} 单待接`
-            : ""}
         </h2>
         {rows && rows.length === 0 ? (
           <div className="mt-3 rounded-2xl bg-surface px-5 py-10 text-center shadow-border">
             <p className="font-display text-lg">还没人叫</p>
             <p className="mt-1 text-sm text-muted">
-              {stall.online ? "开着就等。有人要点这具便器，单会落在这儿。" : "先开坑，单才会来。"}
+              {stall.online ? "挂着就等。点单会自动接，使用 30 分钟。" : "所属人让本厕休息，货架不展示。"}
             </p>
           </div>
         ) : (
@@ -201,25 +176,6 @@ function WorkBoard() {
                 >
                   {stallStatusLabel(row.status)}
                 </p>
-                {row.status === "pending" && (
-                  <div className="mt-3 flex gap-2">
-                    <Button
-                      className="flex-1"
-                      disabled={acting !== null}
-                      onClick={() => void act(row.id, "accept")}
-                    >
-                      接单
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      variant="secondary"
-                      disabled={acting !== null}
-                      onClick={() => void act(row.id, "reject")}
-                    >
-                      不接
-                    </Button>
-                  </div>
-                )}
                 {row.status === "accepted" && (
                   <Button
                     className="mt-3 w-full"
