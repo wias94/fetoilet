@@ -66,11 +66,11 @@ export const listVisibleStalls = createServerFn({ method: "POST" })
     await releaseExpiredRentals(sql);
     await import("@/lib/text-scale").then((m) => m.loadTextScale(sql));
     const stalls = await listStallsNear(sql, origin.lat, origin.lng, radius, context.userId);
-    const { loadMaleVector, rankByAttract } = await import("@/lib/attract");
+    const { loadMaleDims, rankByDims } = await import("@/lib/dims");
     const { loadMaleEcon } = await import("@/lib/econ");
     const [male, econ] = await Promise.all([
-      loadMaleVector(sql, context.userId),
+      loadMaleDims(sql, context.userId),
       loadMaleEcon(sql, context.userId),
     ]);
-    return { origin, radius_m: radius, source, stalls: rankByAttract(male, stalls, econ) };
+    return { origin, radius_m: radius, source, stalls: rankByDims(male, stalls, econ) };
   });

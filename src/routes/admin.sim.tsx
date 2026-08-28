@@ -201,11 +201,15 @@ function AdminSim() {
         </table>
       </div>
 
-      <h2 className="mt-10 text-sm font-medium text-muted">吸引力 24 维（点乘排序）</h2>
+      <h2 className="mt-10 text-sm font-medium text-muted">排序轴（挂牌原字段）</h2>
+      <p className="mt-1 text-xs text-subtle">
+        cup / persona / demeanor 等各算一维。{snap.bipolarDims.join("、")} 男人用 -1～1，其余 0～1。looks = 卖点勾选 / 5。
+      </p>
       <div className="mt-3 flex flex-wrap gap-2">
-        {snap.attractKeys.map((k) => (
+        {snap.fieldDims.map((k) => (
           <span key={k} className="rounded-full bg-surface px-3 py-1 text-xs shadow-border">
             {k}
+            {snap.bipolarDims.includes(k) ? " ±" : ""}
           </span>
         ))}
       </div>

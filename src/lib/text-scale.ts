@@ -1,68 +1,62 @@
 import type { Sql } from "@/lib/db";
 
-/** 档案文字 → 轴 0–1。程度从低到高排。 */
+/** 档案文字 → 该字段自己的轴 0–1。不再合并进 lewd/chest。 */
 export const TEXT_SCALE_SEED: { field: string; option: string; axis: string; value: number }[] = [
-  { field: "cup", option: "B", axis: "chest", value: 0.35 },
-  { field: "cup", option: "C", axis: "chest", value: 0.55 },
-  { field: "cup", option: "D", axis: "chest", value: 0.78 },
-  { field: "cup", option: "E", axis: "chest", value: 1 },
+  { field: "cup", option: "B", axis: "cup", value: 0.35 },
+  { field: "cup", option: "C", axis: "cup", value: 0.55 },
+  { field: "cup", option: "D", axis: "cup", value: 0.78 },
+  { field: "cup", option: "E", axis: "cup", value: 1 },
 
-  { field: "demeanor", option: "被动保守呆板生涩", axis: "lewd", value: 0.08 },
-  { field: "demeanor", option: "羞涩需要引导鼓励", axis: "lewd", value: 0.28 },
-  { field: "demeanor", option: "自然开放积极配合", axis: "lewd", value: 0.5 },
-  { field: "demeanor", option: "风骚风情诱人魅惑", axis: "lewd", value: 0.72 },
-  { field: "demeanor", option: "主动豪放热情放荡", axis: "lewd", value: 0.88 },
-  { field: "demeanor", option: "卑微下贱无脑淫痴", axis: "lewd", value: 1 },
+  { field: "demeanor", option: "被动保守呆板生涩", axis: "demeanor", value: 0.08 },
+  { field: "demeanor", option: "羞涩需要引导鼓励", axis: "demeanor", value: 0.28 },
+  { field: "demeanor", option: "自然开放积极配合", axis: "demeanor", value: 0.5 },
+  { field: "demeanor", option: "风骚风情诱人魅惑", axis: "demeanor", value: 0.72 },
+  { field: "demeanor", option: "主动豪放热情放荡", axis: "demeanor", value: 0.88 },
+  { field: "demeanor", option: "卑微下贱无脑淫痴", axis: "demeanor", value: 1 },
 
-  { field: "persona", option: "有待开发的良家", axis: "lewd", value: 0.12 },
-  { field: "persona", option: "反差装逼的婊子", axis: "lewd", value: 0.42 },
-  { field: "persona", option: "风情万种的骚货", axis: "lewd", value: 0.62 },
-  { field: "persona", option: "淫荡风骚的荡妇", axis: "lewd", value: 0.82 },
-  { field: "persona", option: "欠操下贱的母狗", axis: "lewd", value: 0.95 },
-  { field: "persona", option: "专业熟练的妓女", axis: "lewd", value: 0.78 },
-  { field: "persona", option: "有待开发的良家", axis: "obedient", value: 0.35 },
-  { field: "persona", option: "反差装逼的婊子", axis: "obedient", value: 0.28 },
-  { field: "persona", option: "风情万种的骚货", axis: "obedient", value: 0.4 },
-  { field: "persona", option: "淫荡风骚的荡妇", axis: "obedient", value: 0.55 },
-  { field: "persona", option: "欠操下贱的母狗", axis: "obedient", value: 1 },
-  { field: "persona", option: "专业熟练的妓女", axis: "obedient", value: 0.7 },
+  { field: "persona", option: "有待开发的良家", axis: "persona", value: 0.12 },
+  { field: "persona", option: "反差装逼的婊子", axis: "persona", value: 0.42 },
+  { field: "persona", option: "风情万种的骚货", axis: "persona", value: 0.62 },
+  { field: "persona", option: "淫荡风骚的荡妇", axis: "persona", value: 0.82 },
+  { field: "persona", option: "欠操下贱的母狗", axis: "persona", value: 0.95 },
+  { field: "persona", option: "专业熟练的妓女", axis: "persona", value: 0.78 },
 
-  { field: "personality", option: "清高要强", axis: "obedient", value: 0.12 },
-  { field: "personality", option: "作精骄纵", axis: "obedient", value: 0.18 },
-  { field: "personality", option: "冷淡疏离", axis: "obedient", value: 0.22 },
-  { field: "personality", option: "外向热闹", axis: "obedient", value: 0.4 },
-  { field: "personality", option: "内向闷骚", axis: "obedient", value: 0.48 },
-  { field: "personality", option: "软萌粘人", axis: "obedient", value: 0.7 },
-  { field: "personality", option: "隐忍顾家", axis: "obedient", value: 0.82 },
-  { field: "personality", option: "温顺讨好", axis: "obedient", value: 0.92 },
+  { field: "personality", option: "清高要强", axis: "personality", value: 0.12 },
+  { field: "personality", option: "作精骄纵", axis: "personality", value: 0.18 },
+  { field: "personality", option: "冷淡疏离", axis: "personality", value: 0.22 },
+  { field: "personality", option: "外向热闹", axis: "personality", value: 0.4 },
+  { field: "personality", option: "内向闷骚", axis: "personality", value: 0.48 },
+  { field: "personality", option: "软萌粘人", axis: "personality", value: 0.7 },
+  { field: "personality", option: "隐忍顾家", axis: "personality", value: 0.82 },
+  { field: "personality", option: "温顺讨好", axis: "personality", value: 0.92 },
 
-  { field: "moan", option: "不吭声没动静", axis: "lewd", value: 0.1 },
-  { field: "moan", option: "只会轻喘呻吟", axis: "lewd", value: 0.4 },
-  { field: "moan", option: "叫声大叫的骚", axis: "lewd", value: 0.75 },
-  { field: "moan", option: "淫语骚话不停", axis: "lewd", value: 1 },
+  { field: "moan", option: "不吭声没动静", axis: "moan", value: 0.1 },
+  { field: "moan", option: "只会轻喘呻吟", axis: "moan", value: 0.4 },
+  { field: "moan", option: "叫声大叫的骚", axis: "moan", value: 0.75 },
+  { field: "moan", option: "淫语骚话不停", axis: "moan", value: 1 },
 
   { field: "skill", option: "入门基础级", axis: "skill", value: 0.15 },
   { field: "skill", option: "常规伴侣级", axis: "skill", value: 0.4 },
   { field: "skill", option: "优质情人级", axis: "skill", value: 0.7 },
   { field: "skill", option: "专业技师级", axis: "skill", value: 1 },
 
-  { field: "orgasm", option: "从未高潮", axis: "lewd", value: 0.12 },
-  { field: "orgasm", option: "不易高潮", axis: "lewd", value: 0.28 },
-  { field: "orgasm", option: "很难把握", axis: "lewd", value: 0.4 },
-  { field: "orgasm", option: "正常可以高潮", axis: "lewd", value: 0.55 },
-  { field: "orgasm", option: "很容易高潮", axis: "lewd", value: 0.78 },
-  { field: "orgasm", option: "可以多次连续高潮", axis: "lewd", value: 1 },
+  { field: "orgasm", option: "从未高潮", axis: "orgasm", value: 0.12 },
+  { field: "orgasm", option: "不易高潮", axis: "orgasm", value: 0.28 },
+  { field: "orgasm", option: "很难把握", axis: "orgasm", value: 0.4 },
+  { field: "orgasm", option: "正常可以高潮", axis: "orgasm", value: 0.55 },
+  { field: "orgasm", option: "很容易高潮", axis: "orgasm", value: 0.78 },
+  { field: "orgasm", option: "可以多次连续高潮", axis: "orgasm", value: 1 },
 
-  { field: "feel", option: "纯粹泄欲", axis: "lewd", value: 0.25 },
-  { field: "feel", option: "愉悦身心", axis: "lewd", value: 0.45 },
-  { field: "feel", option: "绝顶肉体", axis: "lewd", value: 0.7 },
-  { field: "feel", option: "荡妇享受", axis: "lewd", value: 0.88 },
-  { field: "feel", option: "大开眼界", axis: "lewd", value: 0.95 },
+  { field: "feel", option: "纯粹泄欲", axis: "feel", value: 0.25 },
+  { field: "feel", option: "愉悦身心", axis: "feel", value: 0.45 },
+  { field: "feel", option: "绝顶肉体", axis: "feel", value: 0.7 },
+  { field: "feel", option: "荡妇享受", axis: "feel", value: 0.88 },
+  { field: "feel", option: "大开眼界", axis: "feel", value: 0.95 },
 
-  { field: "condom", option: "必须带套", axis: "bare", value: 0.05 },
-  { field: "condom", option: "看人可无套", axis: "bare", value: 0.45 },
-  { field: "condom", option: "加钱可无套", axis: "bare", value: 0.7 },
-  { field: "condom", option: "均可无套", axis: "bare", value: 1 },
+  { field: "condom", option: "必须带套", axis: "condom", value: 0.05 },
+  { field: "condom", option: "看人可无套", axis: "condom", value: 0.45 },
+  { field: "condom", option: "加钱可无套", axis: "condom", value: 0.7 },
+  { field: "condom", option: "均可无套", axis: "condom", value: 1 },
 ];
 
 export type TextScaleMap = Map<string, number>;
@@ -85,6 +79,10 @@ export function defaultTextScale(): TextScaleMap {
 
 export function currentTextScale(): TextScaleMap {
   return cache?.map ?? defaultTextScale();
+}
+
+export function bustTextScaleCache() {
+  cache = null;
 }
 
 export async function loadTextScale(sql?: Sql): Promise<TextScaleMap> {
