@@ -2,7 +2,7 @@ import type { Sql } from "@/lib/db";
 import { scoreWithEcon, type EconKey } from "@/lib/econ";
 import { TASTE_KEYS, type BudgetBand, type CondomPref, type SessionStyle } from "@/lib/male-params";
 import type { Profile } from "@/lib/profiles";
-import { currentTextScale, meanScale, maxScale, scaleOf } from "@/lib/text-scale";
+import { currentTextScale, meanScale, scaleOf } from "@/lib/text-scale";
 
 /** 男女共用的轴。男人 = 想要什么，肉厕 = 是什么。点乘 / 模 = 吸引力。 */
 export const ATTRACT_KEYS = [
@@ -111,8 +111,8 @@ export function stallVector(p: Profile): AttractVec {
   const extras = (p.extras ?? []).map((e) => e.name);
   const hour = Math.max(1, p.hourFen);
   const cheap = clamp01(1 - (hour - 200) / 1800);
-  const chest = Math.max(scaleOf(scale, "cup", p.cup, "chest", 0.4), maxScale(scale, "point", points, "chest", 0));
-  const looks = clamp01(maxScale(scale, "point", points.filter((x) => x !== "巨乳"), "looks", 0));
+  const chest = scaleOf(scale, "cup", p.cup, "chest", 0.4);
+  const looks = clamp01(points.length / 5);
   const lewd = meanScale(
     scale,
     [

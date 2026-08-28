@@ -177,7 +177,7 @@ function AdminSim() {
       <Bars items={snap.person} />
 
       <h2 className="mt-10 text-sm font-medium text-muted">文字程度表（0–1）</h2>
-      <p className="mt-1 text-xs text-subtle">罩杯走 chest。B 0.35 · C 0.55 · D 0.78 · E 1。勾巨乳取更高。</p>
+      <p className="mt-1 text-xs text-subtle">罩杯走 chest。卖点不在这张表：选得越多 looks 越高（最多 5 个）。</p>
       <div className="mt-3 overflow-x-auto rounded-2xl bg-surface p-3 shadow-border">
         <table className="w-full min-w-[28rem] text-left text-xs">
           <thead>

@@ -63,14 +63,6 @@ export const TEXT_SCALE_SEED: { field: string; option: string; axis: string; val
   { field: "condom", option: "看人可无套", axis: "bare", value: 0.45 },
   { field: "condom", option: "加钱可无套", axis: "bare", value: 0.7 },
   { field: "condom", option: "均可无套", axis: "bare", value: 1 },
-
-  { field: "point", option: "巨乳", axis: "chest", value: 0.92 },
-  { field: "point", option: "高颜值", axis: "looks", value: 0.85 },
-  { field: "point", option: "美臀", axis: "looks", value: 0.55 },
-  { field: "point", option: "身材好", axis: "looks", value: 0.6 },
-  { field: "point", option: "皮肤好", axis: "looks", value: 0.4 },
-  { field: "point", option: "长腿美足", axis: "looks", value: 0.5 },
-  { field: "point", option: "气质反差", axis: "looks", value: 0.45 },
 ];
 
 export type TextScaleMap = Map<string, number>;
