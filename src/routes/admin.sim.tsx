@@ -9,7 +9,7 @@ import { formatFen } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/sim")({ component: AdminSim });
 
-const KNOBS: { key: keyof SimConfig; label: string; hint: string; step?: number }[] = [
+const KNOBS: { key: keyof SimConfig; label: string; hint: string; step?: number; planned?: boolean }[] = [
   { key: "nearbyRadiusM", label: "附近半径 m", hint: "可见 / 可点" },
   { key: "locationIntervalSec", label: "定位间隔 s", hint: "GPS 刷新" },
   { key: "rentSessionMin", label: "占用分钟", hint: "先到先得锁货" },
@@ -29,6 +29,19 @@ const KNOBS: { key: keyof SimConfig; label: string; hint: string; step?: number 
   { key: "marketMulSpan", label: "市场乘数跨度", hint: "", step: 0.01 },
   { key: "rentFloorMul", label: "租价相对底价下限", hint: "", step: 0.01 },
   { key: "rentCeilMul", label: "租价相对底价上限", hint: "", step: 0.01 },
+  { key: "simTickSec", label: "模拟醒来间隔 s", hint: "未接：自主点单节拍", planned: true },
+  { key: "useScoreMin", label: "点单门槛", hint: "未接：dimScore 低于此不租", step: 0.01, planned: true },
+  { key: "selfUseScoreMin", label: "自用门槛", hint: "未接：自己的也要够分才用", step: 0.01, planned: true },
+  { key: "buyScoreMin", label: "买货门槛", hint: "未接：wouldBuy 最低分", step: 0.01, planned: true },
+  { key: "listStaleDays", label: "挂牌无人买（天）", hint: "未接：改价/撤牌", planned: true },
+  { key: "dailyBudgetFen", label: "日预算 分", hint: "未接：花完停手，0=不限", planned: true },
+  { key: "maxConcurrentOrders", label: "同时锁单数", hint: "未接：男人并行占用", planned: true },
+  { key: "condomMatchMin", label: "套匹配门槛", hint: "未接：男人 condom vs 肉厕", step: 0.01, planned: true },
+  { key: "enforceDailyQuota", label: "日接客配额", hint: "未接：1=执行一天一客等", planned: true },
+  { key: "buyCooldownHours", label: "买后冷却 h", hint: "未接：刚买下不立刻再卖", planned: true },
+  { key: "reviewReturnMin", label: "差评回流", hint: "未接：低于此分不再点", step: 0.1, planned: true },
+  { key: "walletStopFen", label: "停手现金 分", hint: "未接：低于此不租不买", planned: true },
+  { key: "boredSwitchMin", label: "厌了改嫖", hint: "未接：厌腻超此先用别人的", step: 0.01, planned: true },
 ];
 
 function AdminSim() {
@@ -78,22 +91,16 @@ function AdminSim() {
         <Stat label="厌腻对数" value={snap.satiation.pairs} />
       </section>
 
-      <h2 className="mt-10 text-sm font-medium text-muted">可调参数</h2>
+      <h2 className="mt-10 text-sm font-medium text-muted">已接（点单/抽成/定价在用）</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {KNOBS.map((k) => (
-          <label key={k.key} className="rounded-2xl bg-surface px-4 py-3 shadow-border">
-            <span className="text-xs text-muted">{k.label}</span>
-            <Input
-              className="mt-1"
-              type="number"
-              step={k.step ?? 1}
-              value={form[k.key]}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, [k.key]: e.target.value === "" ? f[k.key] : Number(e.target.value) }))
-              }
-            />
-            {k.hint ? <span className="mt-1 block text-xs text-subtle">{k.hint}</span> : null}
-          </label>
+        {KNOBS.filter((k) => !k.planned).map((k) => (
+          <Knob key={k.key} k={k} form={form} setForm={setForm} />
+        ))}
+      </div>
+      <h2 className="mt-10 text-sm font-medium text-muted">未接模拟（只存数，进程还没打 API）</h2>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {KNOBS.filter((k) => k.planned).map((k) => (
+          <Knob key={k.key} k={k} form={form} setForm={setForm} />
         ))}
       </div>
       <div className="mt-4 flex gap-2">
@@ -225,6 +232,32 @@ function AdminSim() {
         ))}
       </ul>
     </AdminGate>
+  );
+}
+
+function Knob({
+  k,
+  form,
+  setForm,
+}: {
+  k: (typeof KNOBS)[number];
+  form: SimConfig;
+  setForm: (fn: (f: SimConfig) => SimConfig) => void;
+}) {
+  return (
+    <label className="rounded-2xl bg-surface px-4 py-3 shadow-border">
+      <span className="text-xs text-muted">{k.label}</span>
+      <Input
+        className="mt-1"
+        type="number"
+        step={k.step ?? 1}
+        value={form[k.key]}
+        onChange={(e) =>
+          setForm((f) => ({ ...f, [k.key]: e.target.value === "" ? f[k.key] : Number(e.target.value) }))
+        }
+      />
+      {k.hint ? <span className="mt-1 block text-xs text-subtle">{k.hint}</span> : null}
+    </label>
   );
 }
 

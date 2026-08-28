@@ -30,6 +30,20 @@ export const DEFAULT_SIM = {
   marketMulSpan: 0.58,
   rentFloorMul: 0.55,
   rentCeilMul: 1.85,
+  /** 以下未接模拟进程，只进后台，明天接。 */
+  simTickSec: 180,
+  useScoreMin: 0.35,
+  selfUseScoreMin: 0.4,
+  buyScoreMin: 0.2,
+  listStaleDays: 7,
+  dailyBudgetFen: 1500,
+  maxConcurrentOrders: 1,
+  condomMatchMin: 0.25,
+  enforceDailyQuota: 1,
+  buyCooldownHours: 24,
+  reviewReturnMin: 3,
+  walletStopFen: 200,
+  boredSwitchMin: 0.55,
 };
 
 export type SimConfig = typeof DEFAULT_SIM;
@@ -54,6 +68,19 @@ const SimSchema = z.object({
   marketMulSpan: z.number().min(0).max(2),
   rentFloorMul: z.number().min(0.2).max(1),
   rentCeilMul: z.number().min(1).max(4),
+  simTickSec: z.number().int().min(30).max(3600),
+  useScoreMin: z.number().min(0).max(1),
+  selfUseScoreMin: z.number().min(0).max(1),
+  buyScoreMin: z.number().min(0).max(1),
+  listStaleDays: z.number().int().min(1).max(90),
+  dailyBudgetFen: z.number().int().min(0).max(1_000_000),
+  maxConcurrentOrders: z.number().int().min(1).max(5),
+  condomMatchMin: z.number().min(0).max(1),
+  enforceDailyQuota: z.number().int().min(0).max(1),
+  buyCooldownHours: z.number().int().min(0).max(720),
+  reviewReturnMin: z.number().min(0).max(5),
+  walletStopFen: z.number().int().min(0).max(1_000_000),
+  boredSwitchMin: z.number().min(0).max(1),
 });
 
 let cache: { at: number; cfg: SimConfig } | null = null;
