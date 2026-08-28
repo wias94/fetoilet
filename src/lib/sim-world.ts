@@ -17,7 +17,7 @@ async function hashedPass() {
 }
 
 const WANDERERS = [
-  { id: "sim-wan-zhao", name: "阿钞", email: "zhao@xiangce.app", family: 0.18, nightlife: 0.78 },
+  { id: "sim-wan-zhao", name: "阿钊", email: "zhao@xiangce.app", family: 0.18, nightlife: 0.78 },
   { id: "sim-wan-chen", name: "阿晨", email: "chen@xiangce.app", family: 0.22, nightlife: 0.62 },
   { id: "sim-wan-bo", name: "阿博", email: "bo@xiangce.app", family: 0.28, nightlife: 0.55 },
   { id: "sim-wan-kai", name: "阿凯", email: "kai@xiangce.app", family: 0.12, nightlife: 0.84 },
