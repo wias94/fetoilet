@@ -64,21 +64,6 @@ export const TEXT_SCALE_SEED: { field: string; option: string; axis: string; val
   { field: "condom", option: "加钱可无套", axis: "bare", value: 0.7 },
   { field: "condom", option: "均可无套", axis: "bare", value: 1 },
 
-  { field: "hours", option: "仅白天可接", axis: "nightlife", value: 0.1 },
-  { field: "hours", option: "仅工作日可接", axis: "nightlife", value: 0.2 },
-  { field: "hours", option: "仅周末可接", axis: "nightlife", value: 0.35 },
-  { field: "hours", option: "全天可接", axis: "nightlife", value: 0.55 },
-  { field: "hours", option: "仅晚上可接", axis: "nightlife", value: 1 },
-  { field: "hours", option: "全天可接", axis: "session_fast", value: 0.9 },
-  { field: "hours", option: "仅晚上可接", axis: "session_fast", value: 0.45 },
-  { field: "hours", option: "仅白天可接", axis: "session_fast", value: 0.4 },
-
-  { field: "quota", option: "一天一客", axis: "session_keep", value: 1 },
-  { field: "quota", option: "一天两客", axis: "session_keep", value: 0.55 },
-  { field: "quota", option: "一天三客", axis: "session_keep", value: 0.3 },
-  { field: "quota", option: "不限", axis: "session_keep", value: 0.1 },
-  { field: "quota", option: "不限", axis: "session_fast", value: 0.95 },
-
   { field: "point", option: "巨乳", axis: "chest", value: 0.92 },
   { field: "point", option: "高颜值", axis: "looks", value: 0.85 },
   { field: "point", option: "美臀", axis: "looks", value: 0.55 },

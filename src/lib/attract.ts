@@ -128,12 +128,7 @@ export function stallVector(p: Profile): AttractVec {
   const obedient = meanScale(scale, [["personality", p.personality], ["persona", p.persona]], "obedient", 0.4);
   const skill = scaleOf(scale, "skill", p.skillLevel, "skill", 0.4);
   const bare = scaleOf(scale, "condom", p.condom, "bare", 0.2);
-  const nightlife = scaleOf(scale, "hours", p.hoursTag, "nightlife", (p.tags ?? []).includes("night") ? 1 : 0.25);
-  const sessionFast = Math.max(
-    scaleOf(scale, "hours", p.hoursTag, "session_fast", 0.35),
-    scaleOf(scale, "quota", p.dailyQuota, "session_fast", 0),
-  );
-  const sessionKeep = scaleOf(scale, "quota", p.dailyQuota, "session_keep", 0.2);
+  const nightlife = (p.tags ?? []).includes("night") ? 1 : 0.3;
   const v: Record<AttractKey, number> = {
     rel_母亲: rel === "母亲" ? 1 : 0,
     rel_妻子: rel === "妻子" ? 1 : 0,
@@ -146,9 +141,9 @@ export function stallVector(p: Profile): AttractVec {
     age_young: clamp01((32 - age) / 14),
     age_mid: clamp01(1 - Math.abs(age - 38) / 18),
     bare,
-    session_fast: sessionFast,
+    session_fast: 0.4,
     session_night: nightlife,
-    session_keep: sessionKeep,
+    session_keep: 0.4,
     lewd,
     obedient,
     skill,
