@@ -176,6 +176,31 @@ function AdminSim() {
       <h2 className="mt-8 text-sm font-medium text-muted">位置性格轴均值（behavior_person）</h2>
       <Bars items={snap.person} />
 
+      <h2 className="mt-10 text-sm font-medium text-muted">文字程度表（0–1）</h2>
+      <p className="mt-1 text-xs text-subtle">罩杯走 chest。B 0.35 · C 0.55 · D 0.78 · E 1。勾巨乳取更高。</p>
+      <div className="mt-3 overflow-x-auto rounded-2xl bg-surface p-3 shadow-border">
+        <table className="w-full min-w-[28rem] text-left text-xs">
+          <thead>
+            <tr>
+              <th className="p-2 text-muted">字段</th>
+              <th className="p-2 text-muted">选项</th>
+              <th className="p-2 text-muted">轴</th>
+              <th className="p-2 text-muted">值</th>
+            </tr>
+          </thead>
+          <tbody>
+            {snap.textScale.map((r) => (
+              <tr key={`${r.field}-${r.option}-${r.axis}`}>
+                <td className="p-2">{r.field}</td>
+                <td className="p-2">{r.option}</td>
+                <td className="p-2">{r.axis}</td>
+                <td className="p-2 tabular-nums">{r.value.toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
       <h2 className="mt-10 text-sm font-medium text-muted">吸引力 24 维（点乘排序）</h2>
       <div className="mt-3 flex flex-wrap gap-2">
         {snap.attractKeys.map((k) => (

@@ -64,6 +64,7 @@ export const listVisibleStalls = createServerFn({ method: "POST" })
     }
     const { releaseExpiredRentals } = await import("@/lib/occupancy");
     await releaseExpiredRentals(sql);
+    await import("@/lib/text-scale").then((m) => m.loadTextScale(sql));
     const stalls = await listStallsNear(sql, origin.lat, origin.lng, radius, context.userId);
     const { loadMaleVector, rankByAttract } = await import("@/lib/attract");
     const { loadMaleEcon } = await import("@/lib/econ");

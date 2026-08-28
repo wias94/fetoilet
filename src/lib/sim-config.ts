@@ -5,6 +5,7 @@ import { getSql, type Sql } from "@/lib/db";
 import { ATTRACT_KEYS } from "@/lib/attract";
 import { ECON_KEYS } from "@/lib/econ";
 import { TASTE_KEYS } from "@/lib/male-params";
+import { TEXT_SCALE_SEED } from "@/lib/text-scale";
 
 export const DEFAULT_SIM = {
   nearbyRadiusM: 3000,
@@ -98,6 +99,7 @@ export type SimSnapshot = {
   attractKeys: readonly string[];
   econKeys: readonly string[];
   tasteKeys: readonly string[];
+  textScale: { field: string; option: string; axis: string; value: number }[];
 };
 
 export const getSimAdmin = createServerFn({ method: "GET" })
@@ -226,6 +228,7 @@ export const getSimAdmin = createServerFn({ method: "GET" })
       attractKeys: ATTRACT_KEYS,
       econKeys: ECON_KEYS,
       tasteKeys: TASTE_KEYS,
+      textScale: TEXT_SCALE_SEED,
     };
   });
 

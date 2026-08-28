@@ -2,6 +2,7 @@ import type { Sql } from "@/lib/db";
 import { scoreWithEcon, type EconKey } from "@/lib/econ";
 import { TASTE_KEYS, type BudgetBand, type CondomPref, type SessionStyle } from "@/lib/male-params";
 import type { Profile } from "@/lib/profiles";
+import { currentTextScale, meanScale, maxScale, scaleOf } from "@/lib/text-scale";
 
 /** 男女共用的轴。男人 = 想要什么，肉厕 = 是什么。点乘 / 模 = 吸引力。 */
 export const ATTRACT_KEYS = [
@@ -23,6 +24,7 @@ export const ATTRACT_KEYS = [
   "obedient",
   "skill",
   "looks",
+  "chest",
   "cheap",
   "premium",
   "nightlife",
@@ -51,11 +53,6 @@ export type MaleAttractInput = {
 function clamp01(n: number) {
   if (!Number.isFinite(n)) return 0;
   return Math.min(1, Math.max(0, n));
-}
-
-function idx(list: readonly string[], value: string | undefined) {
-  const i = list.indexOf(value ?? "");
-  return i < 0 ? 0 : i / Math.max(1, list.length - 1);
 }
 
 function unit(vec: AttractVec): AttractVec {
@@ -95,6 +92,7 @@ export function maleVector(m: MaleAttractInput): AttractVec {
     obedient: clamp01(0.3 + m.objectify * 0.5),
     skill: m.sessionStyle === "快餐灌注" ? 0.35 : 0.8,
     looks: clamp01(0.55 + m.objectify * 0.25),
+    chest: clamp01(m.objectify * 0.65 + (m.budgetBand === "高" ? 0.25 : 0.1)),
     cheap,
     premium: 1 - cheap,
     nightlife: clamp01(m.nightlife),
@@ -105,37 +103,37 @@ export function maleVector(m: MaleAttractInput): AttractVec {
   return unit(ATTRACT_KEYS.map((k) => v[k]));
 }
 
-const DEMEANOR_LEWD = [
-  "被动保守呆板生涩",
-  "羞涩需要引导鼓励",
-  "自然开放积极配合",
-  "风骚风情诱人魅惑",
-  "主动豪放热情放荡",
-  "卑微下贱无脑淫痴",
-];
-const PERSONA_LEWD = [
-  "有待开发的良家",
-  "反差装逼的婊子",
-  "风情万种的骚货",
-  "淫荡风骚的荡妇",
-  "欠操下贱的母狗",
-  "专业熟练的妓女",
-];
-const SKILL = ["入门基础级", "常规伴侣级", "优质情人级", "专业技师级"];
-const LOOKS = ["高颜值", "巨乳", "美臀", "身材好", "皮肤好", "长腿美足", "气质反差"];
-
 export function stallVector(p: Profile): AttractVec {
+  const scale = currentTextScale();
   const rel = p.relation && TASTE_KEYS.includes(p.relation as (typeof TASTE_KEYS)[number]) ? p.relation : "路人";
   const age = Number(p.age) || 28;
-  const condom = p.condom ?? "";
-  const bare =
-    condom.includes("均可无套") ? 1 : condom.includes("加钱") ? 0.7 : condom.includes("看人") ? 0.45 : 0.08;
-  const hours = p.hoursTag ?? "";
-  const quota = p.dailyQuota ?? "";
   const points = p.sellingPoints ?? [];
   const extras = (p.extras ?? []).map((e) => e.name);
   const hour = Math.max(1, p.hourFen);
   const cheap = clamp01(1 - (hour - 200) / 1800);
+  const chest = Math.max(scaleOf(scale, "cup", p.cup, "chest", 0.4), maxScale(scale, "point", points, "chest", 0));
+  const looks = clamp01(maxScale(scale, "point", points.filter((x) => x !== "巨乳"), "looks", 0));
+  const lewd = meanScale(
+    scale,
+    [
+      ["demeanor", p.demeanor],
+      ["persona", p.persona],
+      ["moan", p.moan],
+      ["feel", p.feel],
+      ["orgasm", p.orgasm],
+    ],
+    "lewd",
+    0.4,
+  );
+  const obedient = meanScale(scale, [["personality", p.personality], ["persona", p.persona]], "obedient", 0.4);
+  const skill = scaleOf(scale, "skill", p.skillLevel, "skill", 0.4);
+  const bare = scaleOf(scale, "condom", p.condom, "bare", 0.2);
+  const nightlife = scaleOf(scale, "hours", p.hoursTag, "nightlife", (p.tags ?? []).includes("night") ? 1 : 0.25);
+  const sessionFast = Math.max(
+    scaleOf(scale, "hours", p.hoursTag, "session_fast", 0.35),
+    scaleOf(scale, "quota", p.dailyQuota, "session_fast", 0),
+  );
+  const sessionKeep = scaleOf(scale, "quota", p.dailyQuota, "session_keep", 0.2);
   const v: Record<AttractKey, number> = {
     rel_母亲: rel === "母亲" ? 1 : 0,
     rel_妻子: rel === "妻子" ? 1 : 0,
@@ -148,24 +146,19 @@ export function stallVector(p: Profile): AttractVec {
     age_young: clamp01((32 - age) / 14),
     age_mid: clamp01(1 - Math.abs(age - 38) / 18),
     bare,
-    session_fast: quota.includes("不限") || hours.includes("全天") ? 0.9 : 0.35,
-    session_night: hours.includes("晚上") || (p.tags ?? []).includes("night") ? 1 : 0.2,
-    session_keep: quota.includes("一天一客") ? 1 : 0.2,
-    lewd: (idx(DEMEANOR_LEWD, p.demeanor ?? "") + idx(PERSONA_LEWD, p.persona ?? "")) / 2,
-    obedient:
-      p.personality === "温顺讨好" || p.personality === "隐忍顾家" || p.persona === "欠操下贱的母狗"
-        ? 0.9
-        : 0.35,
-    skill: idx(SKILL, p.skillLevel ?? ""),
-    looks: clamp01(points.filter((x) => LOOKS.includes(x)).length / 4),
+    session_fast: sessionFast,
+    session_night: nightlife,
+    session_keep: sessionKeep,
+    lewd,
+    obedient,
+    skill,
+    looks,
+    chest,
     cheap,
     premium: 1 - cheap,
-    nightlife: hours.includes("晚上") || (p.tags ?? []).includes("night") ? 1 : 0.25,
+    nightlife,
     family: ["母亲", "妻子", "女儿", "兄妹"].includes(rel) ? 1 : 0,
-    risk: clamp01(
-      (extras.some((n) => n.includes("性虐") || n.includes("肛") || n.includes("录像")) ? 0.55 : 0) +
-        bare * 0.45,
-    ),
+    risk: clamp01((extras.some((n) => n.includes("性虐") || n.includes("肛") || n.includes("录像")) ? 0.55 : 0) + bare * 0.45),
     novelty: p.unowned || (p.holdWeeks ?? 0) === 0 ? 0.85 : clamp01(1 - (p.holdWeeks ?? 0) / 8),
   };
   return unit(ATTRACT_KEYS.map((k) => v[k]));
