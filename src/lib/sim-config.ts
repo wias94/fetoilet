@@ -3,7 +3,7 @@ import { z } from "zod";
 import { adminMiddleware } from "@/lib/auth/admin-middleware";
 import { getSql, type Sql } from "@/lib/db";
 import { ATTRACT_KEYS } from "@/lib/attract";
-import { FIELD_DIMS, BIPOLAR_DIMS } from "@/lib/dims";
+import { FIELD_DIMS, BIPOLAR_DIMS, MULTI_DIMS } from "@/lib/dims";
 import { ECON_KEYS } from "@/lib/econ";
 import { TASTE_KEYS } from "@/lib/male-params";
 import { TEXT_SCALE_SEED } from "@/lib/text-scale";
@@ -100,6 +100,7 @@ export type SimSnapshot = {
   attractKeys: readonly string[];
   fieldDims: readonly string[];
   bipolarDims: readonly string[];
+  multiDims: readonly string[];
   econKeys: readonly string[];
   tasteKeys: readonly string[];
   textScale: { field: string; option: string; axis: string; value: number }[];
@@ -111,7 +112,8 @@ export const getSimAdmin = createServerFn({ method: "GET" })
     const sql = await getSql();
     const cfg = await loadSimConfig(sql);
     const miss = await sql<{ n: number }>`
-      select count(*)::int as n from behavior_male where dims is null or dims = '{}'::jsonb
+      select count(*)::int as n from behavior_male
+      where jsonb_typeof(dims->'personality') is distinct from 'object'
     `;
     if (Number(miss[0]?.n ?? 0) > 0) {
       const { fillMissingMaleDims } = await import("@/lib/dims");
@@ -238,6 +240,7 @@ export const getSimAdmin = createServerFn({ method: "GET" })
       attractKeys: ATTRACT_KEYS,
       fieldDims: FIELD_DIMS,
       bipolarDims: BIPOLAR_DIMS,
+      multiDims: MULTI_DIMS,
       econKeys: ECON_KEYS,
       tasteKeys: TASTE_KEYS,
       textScale: TEXT_SCALE_SEED,

@@ -1,6 +1,6 @@
 import type { Sql } from "@/lib/db";
 import { TASTE_KEYS, type BudgetBand, type CondomPref, type SessionStyle } from "@/lib/male-params";
-import type { Profile } from "@/lib/profiles";
+import { type Profile } from "@/lib/profiles";
 import { currentTextScale, scaleOf } from "@/lib/text-scale";
 import { scoreWithEcon, type EconKey } from "@/lib/econ";
 
@@ -23,8 +23,9 @@ export const FIELD_DIMS = [
 ] as const;
 
 export type FieldDim = (typeof FIELD_DIMS)[number];
-export const BIPOLAR_DIMS = ["age", "height", "weight", "cup"] as const;
-export type DimMap = Record<string, number>;
+export const BIPOLAR_DIMS = ["age", "height", "weight"] as const;
+export const MULTI_DIMS = ["cup", "personality", "demeanor"] as const;
+export type DimMap = Record<string, number | Record<string, number>>;
 
 function clamp(n: number, lo: number, hi: number) {
   if (!Number.isFinite(n)) return (lo + hi) / 2;
@@ -39,6 +40,26 @@ function clamp11(n: number) {
 
 export function isBipolar(key: string) {
   return (BIPOLAR_DIMS as readonly string[]).includes(key);
+}
+
+export function isMulti(key: string) {
+  return (MULTI_DIMS as readonly string[]).includes(key);
+}
+
+function num(v: unknown, fallback = 0) {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  return fallback;
+}
+
+function optionMap(v: unknown): Record<string, number> | null {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  return v as Record<string, number>;
+}
+
+function optionScore(maleVal: unknown, stallOption: string | null | undefined) {
+  const map = optionMap(maleVal);
+  if (!map || !stallOption) return 0.5;
+  return (clamp11(Number(map[stallOption] ?? 0)) + 1) / 2;
 }
 
 export function stallDims(p: Profile): DimMap {
@@ -78,22 +99,45 @@ export type MaleDimInput = {
   familyOrientation: number;
 };
 
-/** 男人补和肉厕同一套字段。胸/年龄/身高/体重：-1～1；其余 0～1 目标程度。 */
+/** 男人同一套字段。cup/personality/demeanor 是对各选项的 -1～1，可多项同时为正。 */
 export function deriveMaleDims(m: MaleDimInput): DimMap {
   const o = clamp01(m.objectify);
   const nov = clamp01(m.novelty);
   const family = clamp01(m.familyOrientation);
-  const cup = clamp11(o * 1.7 - 0.55);
   const condom =
     m.condomPref === "无套优先" ? 0.95 : m.condomPref === "必须套" ? 0.08 : 0.45;
+  const cup: Record<string, number> = {
+    B: clamp11(0.4 - o * 1.15),
+    C: clamp11(0.35 - o * 0.15),
+    D: clamp11(o * 0.95 - 0.12),
+    E: clamp11(o * 1.35 - 0.4),
+  };
+  const personality: Record<string, number> = {
+    温顺讨好: clamp11(o * 0.85 + family * 0.35 - 0.15),
+    软萌粘人: clamp11(0.15 + o * 0.25 + family * 0.2),
+    内向闷骚: clamp11(0.05 + o * 0.45),
+    清高要强: clamp11((1 - o) * 0.95 - 0.2),
+    冷淡疏离: clamp11((1 - o) * 0.7 - 0.25),
+    外向热闹: clamp11(0.05 + (1 - family) * 0.35),
+    作精骄纵: clamp11(o * 0.6 - 0.18),
+    隐忍顾家: clamp11(family * 0.95 + (1 - o) * 0.1 - 0.15),
+  };
+  const demeanor: Record<string, number> = {
+    被动保守呆板生涩: clamp11((1 - o) * 0.85 - 0.1),
+    羞涩需要引导鼓励: clamp11((1 - o) * 0.55 + 0.08),
+    自然开放积极配合: clamp11(0.12 + o * 0.2),
+    风骚风情诱人魅惑: clamp11(o * 0.75 - 0.08),
+    主动豪放热情放荡: clamp11(o * 0.95 - 0.18),
+    卑微下贱无脑淫痴: clamp11(o * 1.15 - 0.35),
+  };
   const out: DimMap = {
     age: clamp11(0.15 - nov * 1.1),
     height: clamp11(o * 0.45 - 0.05),
     weight: clamp11(0.15 - o * 0.55),
     cup,
-    personality: clamp01(0.35 + o * 0.4 + family * 0.15),
-    marriage: clamp01(family * 0.7 + ( (m.age ?? 30) > 34 ? 0.2 : 0)),
-    demeanor: clamp01(o * 0.85 + 0.1),
+    personality,
+    marriage: clamp01(family * 0.7 + ((m.age ?? 30) > 34 ? 0.2 : 0)),
+    demeanor,
     moan: clamp01(o * 0.8 + 0.08),
     skill: m.sessionStyle === "快餐灌注" ? 0.35 : 0.75,
     orgasm: clamp01(0.3 + o * 0.55),
@@ -108,21 +152,27 @@ export function deriveMaleDims(m: MaleDimInput): DimMap {
   return out;
 }
 
-export function dimScore(male: DimMap, stall: DimMap) {
+export function dimScore(male: DimMap, stall: DimMap, profile: Profile) {
   const keys = new Set([...FIELD_DIMS, ...TASTE_KEYS.map((k) => `rel_${k}`)]);
   let s = 0;
   let n = 0;
   for (const key of keys) {
     const mv = male[key];
     const sv = stall[key];
-    if (mv == null || sv == null) continue;
+    if (mv == null) continue;
     n += 1;
-    if (isBipolar(key)) {
-      s += (clamp11(mv) * (clamp01(sv) * 2 - 1) + 1) / 2;
+    if (key === "cup") {
+      s += optionScore(mv, profile.cup);
+    } else if (key === "personality") {
+      s += optionScore(mv, profile.personality);
+    } else if (key === "demeanor") {
+      s += optionScore(mv, profile.demeanor);
+    } else if (isBipolar(key)) {
+      s += (clamp11(num(mv)) * (clamp01(num(sv)) * 2 - 1) + 1) / 2;
     } else if (key.startsWith("rel_")) {
-      s += clamp01(mv) * clamp01(sv);
+      s += clamp01(num(mv)) * clamp01(num(sv));
     } else {
-      s += 1 - Math.abs(clamp01(mv) - clamp01(sv));
+      s += 1 - Math.abs(clamp01(num(mv)) - clamp01(num(sv)));
     }
   }
   return n ? s / n : 0;
@@ -135,7 +185,7 @@ export function rankByDims(
 ) {
   return [...stalls]
     .map((p) => {
-      const a = dimScore(male, stallDims(p));
+      const a = dimScore(male, stallDims(p), p);
       const score = econ ? scoreWithEcon(a, p.hourFen, econ) : a;
       return { p, score };
     })
@@ -176,7 +226,7 @@ export async function loadMaleDims(sql: Sql, userId: string): Promise<DimMap> {
     });
   }
   if (male[0].dims && typeof male[0].dims === "object" && Object.keys(male[0].dims).length) {
-    return male[0].dims;
+    if (typeof male[0].dims.personality === "object") return male[0].dims;
   }
   if (typeof male[0].dims === "string") {
     try {
@@ -234,7 +284,7 @@ export async function fillMissingMaleDims(sql: Sql, limit = 4000) {
     from behavior_male m
     left join user_state u on u.user_id = m.user_id
     left join behavior_person p on p.person_id = m.person_id
-    where m.dims is null or m.dims = '{}'::jsonb
+    where jsonb_typeof(m.dims->'personality') is distinct from 'object'
     limit ${limit}
   `;
   for (let i = 0; i < rows.length; i += 40) {

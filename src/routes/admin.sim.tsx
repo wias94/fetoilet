@@ -203,7 +203,8 @@ function AdminSim() {
 
       <h2 className="mt-10 text-sm font-medium text-muted">排序轴（挂牌原字段）</h2>
       <p className="mt-1 text-xs text-subtle">
-        cup / persona / demeanor 等各算一维。{snap.bipolarDims.join("、")} 男人用 -1～1，其余 0～1。looks = 卖点勾选 / 5。
+        cup / persona / demeanor 等各算一维。{snap.bipolarDims.join("、")} 男人用 -1～1。
+        {snap.multiDims.join("、")} 是对每个选项打 -1～1，一个人可以同时喜欢好几档。looks = 卖点勾选 / 5。
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         {snap.fieldDims.map((k) => (
