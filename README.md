@@ -1,6 +1,6 @@
-# 巷厕 — 明天从这里接
+# 巷厕 — 模拟 tick 已接最简版
 
-后台 `/admin/sim`（admin / P@ssw0rd）。参数在 `sim_config`。模拟进程还没打 API，和 App 隔离。
+后台 `/admin/sim`（admin / P@ssw0rd）。参数在 `sim_config`。tick 只跑 `sim_enabled` 的男人，写市场表，不打 App 接口。
 
 ## 1. 基本轴（排序用这些，不是 lewd/chest）
 
@@ -67,31 +67,38 @@
 
 `dimScore` 平均各轴 → `scoreWithEcon` → 近到远。hours/quota **不是轴**，是营业限制（配额还没执行）。
 
-## 3. 未接（已写进 /admin/sim，模拟进程未打）
+## 3. 最简 tick（`src/lib/sim-tick.ts`，后台「跑一轮」）
+
+只跑 `sim_enabled`。没有定位时，用名下肉厕坐标当原点，不写死城市。
+
+每人每 `simTickSec` 最多一次：
+
+1. 自用：`score ≥ selfUseScoreMin` 且厌腻 `< boredSwitchMin` → 免费、bump × selfUseSatiation、maybeList
+2. 否则钱包 `< walletStopFen` 或日花费 ≥ dailyBudgetFen 或已有 maxConcurrentOrders → 停
+3. 附近租：`score ≥ useScoreMin` → 锁 `rentSessionMin` 分钟、一口价扣钱抽成
+4. 否则挂牌：`wouldBuy` 且 `score ≥ buyScoreMin` → 买下（买后 `buyCooldownHours` 内不挂）
+
+| 参数 | 默认 | 作用 |
+|---|---|---|
+| simTickSec | 180 | 同一个人两次决定最短间隔 |
+| useScoreMin | 0.35 | 低于此不租别人的 |
+| selfUseScoreMin | 0.4 | 用自己的也要够分 |
+| buyScoreMin | 0.2 | wouldBuy 最低吸引 |
+| maxConcurrentOrders | 1 | 同时锁几单 |
+| dailyBudgetFen | 1500 | 当天花完停手，0=不限 |
+| walletStopFen | 200 | 现金低于此不租不买（自用仍可） |
+| boredSwitchMin | 0.55 | 厌腻超此先嫖别人 |
+| buyCooldownHours | 24 | 刚买下不立刻再卖 |
+
+后台先点「打开有定位/有货的男人」，再「跑一轮」。
+
+## 4. 未接
 
 | 参数 | 默认 | 用途 |
 |---|---|---|
-| simTickSec | 180 | 多久醒来做一次决定 |
-| useScoreMin | 0.35 | 低于此不租 |
-| selfUseScoreMin | 0.4 | 用自己的也要够分 |
-| buyScoreMin | 0.2 | wouldBuy 最低吸引（函数在 `econ.ts`，无人调用） |
 | listStaleDays | 7 | 挂了没人买 → 改价/撤 |
-| dailyBudgetFen | 1500 | 一天最多花 |
-| maxConcurrentOrders | 1 | 同时锁几单 |
 | condomMatchMin | 0.25 | 套偏好对不上不点 |
 | enforceDailyQuota | 1 | 一天一客等是否真限制 |
-| buyCooldownHours | 24 | 刚买下不立刻再卖 |
 | reviewReturnMin | 3 | 低于此评分不再点这具 |
-| walletStopFen | 200 | 现金低于此停手 |
-| boredSwitchMin | 0.55 | 厌了先娼别人，还是挂自己的 |
-
-接模拟时读 `loadSimConfig()`，不要写死。
-
-## 明天建议顺序
-
-1. 模拟 tick：附近 → dimScore → useScoreMin → 锁 30 分钟 → 扣钱抽成 → bump 厌腻 → maybeList  
-2. wouldBuy 接 buyScoreMin，转让成交  
-3. 日预算 / 停手 / 同时一单  
-4. 配额、套匹配  
 
 GPS 节奏先不要做细。主程序别塞模拟字段。

@@ -88,6 +88,10 @@ export async function maybeListFromBoredom(sql: Sql, ownerId: string, stallId: s
   const { holdingCut } = await import("@/lib/yield");
   const cut = holdingCut(stall[0].relation, stall[0].owned_at, new Date(), cfg);
   if (cut.platformSharePct <= 0) return null;
+  if (cfg.buyCooldownHours > 0 && stall[0].owned_at) {
+    const owned = Date.parse(stall[0].owned_at);
+    if (Number.isFinite(owned) && Date.now() - owned < cfg.buyCooldownHours * 3600_000) return null;
+  }
   const sat = await sql<{ uses: number; value: number }>`
     select uses, value from behavior_satiation
     where male_id = ${ownerId} and stall_id = ${stallId} limit 1

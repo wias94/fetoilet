@@ -30,20 +30,21 @@ export const DEFAULT_SIM = {
   marketMulSpan: 0.58,
   rentFloorMul: 0.55,
   rentCeilMul: 1.85,
-  /** 以下未接模拟进程，只进后台，明天接。 */
+  /** 模拟 tick 节拍。只跑 sim_enabled 的男人。 */
   simTickSec: 180,
   useScoreMin: 0.35,
   selfUseScoreMin: 0.4,
   buyScoreMin: 0.2,
-  listStaleDays: 7,
-  dailyBudgetFen: 1500,
   maxConcurrentOrders: 1,
-  condomMatchMin: 0.25,
-  enforceDailyQuota: 1,
-  buyCooldownHours: 24,
-  reviewReturnMin: 3,
+  dailyBudgetFen: 1500,
   walletStopFen: 200,
   boredSwitchMin: 0.55,
+  buyCooldownHours: 24,
+  /** 以下未接：配额、套、差评、挂牌过期。 */
+  listStaleDays: 7,
+  condomMatchMin: 0.25,
+  enforceDailyQuota: 1,
+  reviewReturnMin: 3,
 };
 
 export type SimConfig = typeof DEFAULT_SIM;
@@ -109,10 +110,26 @@ export function bustSimCache() {
 }
 
 export type AxisMean = { key: string; mean: number };
+export type SimRunRow = {
+  id: string;
+  startedAt: string;
+  finishedAt: string | null;
+  uses: number;
+  selfUses: number;
+  buys: number;
+  listed: number;
+  skipped: number;
+  males: number;
+  durationMs: number;
+  notes: string[];
+};
+
 export type SimSnapshot = {
   cfg: SimConfig;
   users: number;
   males: number;
+  simEnabled: number;
+  located: number;
   stalls: number;
   platformStalls: number;
   listed: number;
@@ -120,6 +137,7 @@ export type SimSnapshot = {
   wallets: { n: number; avg: number; med: number; p90: number };
   market: { used7: number; online: number; busy: number; pressure: number; mul: number };
   satiation: { pairs: number; avgUses: number };
+  lastRun: SimRunRow | null;
   econ: AxisMean[];
   taste: AxisMean[];
   person: AxisMean[];
@@ -149,6 +167,8 @@ export const getSimAdmin = createServerFn({ method: "GET" })
     const head = await sql<{
       users: number;
       males: number;
+      sim_enabled: number;
+      located: number;
       stalls: number;
       platform_stalls: number;
       listed: number;
@@ -157,6 +177,10 @@ export const getSimAdmin = createServerFn({ method: "GET" })
       select
         (select count(*)::int from "user") as users,
         (select count(*)::int from user_state where role = 'male') as males,
+        (select count(*)::int from behavior_male where sim_enabled = true) as sim_enabled,
+        (select count(*)::int from user_state s
+          join behavior_male m on m.user_id = s.user_id
+          where m.sim_enabled = true and s.lat is not null) as located,
         (select count(*)::int from stalls) as stalls,
         (select count(*)::int from stalls where owner_id = 'platform') as platform_stalls,
         (select count(*)::int from stalls where listed_fen is not null) as listed,
@@ -224,10 +248,19 @@ export const getSimAdmin = createServerFn({ method: "GET" })
     const pressure = Math.min(1, Math.max(0, (per / cfg.marketUseNorm) * 0.65 + (busy / online) * 0.35));
     const e0 = econRows[0] ?? {};
     const p0 = personRows[0] ?? {};
+    const { latestSimRun } = await import("@/lib/sim-tick");
+    let lastRun = null;
+    try {
+      lastRun = await latestSimRun(sql);
+    } catch {
+      lastRun = null;
+    }
     return {
       cfg,
       users: Number(head[0]?.users ?? 0),
       males: Number(head[0]?.males ?? 0),
+      simEnabled: Number(head[0]?.sim_enabled ?? 0),
+      located: Number(head[0]?.located ?? 0),
       stalls: Number(head[0]?.stalls ?? 0),
       platformStalls: Number(head[0]?.platform_stalls ?? 0),
       listed: Number(head[0]?.listed ?? 0),
@@ -246,6 +279,7 @@ export const getSimAdmin = createServerFn({ method: "GET" })
         mul: cfg.marketMulMin + cfg.marketMulSpan * pressure,
       },
       satiation: { pairs: Number(sat[0]?.pairs ?? 0), avgUses: Number(sat[0]?.avg_uses ?? 0) },
+      lastRun,
       econ: ECON_KEYS.map((key) => ({ key, mean: Number(e0[key] ?? 0) })),
       taste: TASTE_KEYS.map((key) => {
         const hit = tasteRows.find((r) => r.key === key);
@@ -286,4 +320,20 @@ export const saveSimAdmin = createServerFn({ method: "POST" })
     `;
     bustSimCache();
     return data;
+  });
+
+export const runSimTickAdmin = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .handler(async () => {
+    const sql = await getSql();
+    const { runSimTick } = await import("@/lib/sim-tick");
+    return runSimTick(sql);
+  });
+
+export const enableSimLocatedAdmin = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .handler(async () => {
+    const sql = await getSql();
+    const { enableLocatedMales } = await import("@/lib/sim-tick");
+    return enableLocatedMales(sql);
   });

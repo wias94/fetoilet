@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AdminGate } from "@/lib/admin-gate";
-import { getSimAdmin, saveSimAdmin, DEFAULT_SIM, type SimConfig, type SimSnapshot } from "@/lib/sim-config";
+import { getSimAdmin, saveSimAdmin, runSimTickAdmin, enableSimLocatedAdmin, DEFAULT_SIM, type SimConfig, type SimSnapshot } from "@/lib/sim-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -29,55 +29,125 @@ const KNOBS: { key: keyof SimConfig; label: string; hint: string; step?: number;
   { key: "marketMulSpan", label: "市场乘数跨度", hint: "", step: 0.01 },
   { key: "rentFloorMul", label: "租价相对底价下限", hint: "", step: 0.01 },
   { key: "rentCeilMul", label: "租价相对底价上限", hint: "", step: 0.01 },
-  { key: "simTickSec", label: "模拟醒来间隔 s", hint: "未接：自主点单节拍", planned: true },
-  { key: "useScoreMin", label: "点单门槛", hint: "未接：dimScore 低于此不租", step: 0.01, planned: true },
-  { key: "selfUseScoreMin", label: "自用门槛", hint: "未接：自己的也要够分才用", step: 0.01, planned: true },
-  { key: "buyScoreMin", label: "买货门槛", hint: "未接：wouldBuy 最低分", step: 0.01, planned: true },
+  { key: "simTickSec", label: "模拟醒来间隔 s", hint: "每人两次决定最短间隔" },
+  { key: "useScoreMin", label: "点单门槛", hint: "dimScore 低于此不租", step: 0.01 },
+  { key: "selfUseScoreMin", label: "自用门槛", hint: "自己的也要够分才用", step: 0.01 },
+  { key: "buyScoreMin", label: "买货门槛", hint: "wouldBuy 最低吸引", step: 0.01 },
+  { key: "maxConcurrentOrders", label: "同时锁单数", hint: "男人并行占用" },
+  { key: "dailyBudgetFen", label: "日预算 分", hint: "花完停手，0=不限" },
+  { key: "walletStopFen", label: "停手现金 分", hint: "低于此不租不买（自用仍可）" },
+  { key: "boredSwitchMin", label: "厌了改嫖", hint: "厌腻超此先用别人的", step: 0.01 },
+  { key: "buyCooldownHours", label: "买后冷却 h", hint: "刚买下不立刻再卖" },
   { key: "listStaleDays", label: "挂牌无人买（天）", hint: "未接：改价/撤牌", planned: true },
-  { key: "dailyBudgetFen", label: "日预算 分", hint: "未接：花完停手，0=不限", planned: true },
-  { key: "maxConcurrentOrders", label: "同时锁单数", hint: "未接：男人并行占用", planned: true },
   { key: "condomMatchMin", label: "套匹配门槛", hint: "未接：男人 condom vs 肉厕", step: 0.01, planned: true },
   { key: "enforceDailyQuota", label: "日接客配额", hint: "未接：1=执行一天一客等", planned: true },
-  { key: "buyCooldownHours", label: "买后冷却 h", hint: "未接：刚买下不立刻再卖", planned: true },
   { key: "reviewReturnMin", label: "差评回流", hint: "未接：低于此分不再点", step: 0.1, planned: true },
-  { key: "walletStopFen", label: "停手现金 分", hint: "未接：低于此不租不买", planned: true },
-  { key: "boredSwitchMin", label: "厌了改嫖", hint: "未接：厌腻超此先用别人的", step: 0.01, planned: true },
 ];
 
 function AdminSim() {
+  return (
+    <AdminGate>
+      <AdminSimBody />
+    </AdminGate>
+  );
+}
+
+function AdminSimBody() {
   const [snap, setSnap] = useState<SimSnapshot | null>(null);
   const [form, setForm] = useState<SimConfig>(DEFAULT_SIM);
   const [busy, setBusy] = useState(false);
+  const [ticking, setTicking] = useState(false);
 
-  useEffect(() => {
-    void getSimAdmin()
+  function reload() {
+    return getSimAdmin()
       .then((row) => {
         setSnap(row);
         setForm(row.cfg);
+        return row;
       })
-      .catch((err) => toast(err instanceof Error ? err.message : "读失败"));
+      .catch((err) => {
+        toast(err instanceof Error ? err.message : "读失败");
+        return null;
+      });
+  }
+
+  useEffect(() => {
+    void reload();
   }, []);
 
   const table = useMemo(() => keepTable(form), [form]);
 
   if (!snap) {
-    return (
-      <AdminGate>
-        <p className="text-sm text-muted">读模拟参数…</p>
-      </AdminGate>
-    );
+    return <p className="text-sm text-muted">读模拟参数…</p>;
   }
 
+  const run = snap.lastRun;
+
   return (
-    <AdminGate>
+    <>
       <p className="text-sm text-muted">sim-admin</p>
       <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">行为与参数</h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-        数字矩阵和实时分布。厌腻只按使用次数：1−e^(−次数/半衰期)。周只决定抽成。keep = 主人分成 × (1−厌腻)，已抽成且 keep 低于阈值才挂。
+        最简 tick：附近 → dimScore → 门槛 → 锁 30 分钟 → 扣钱抽成 → 厌腻 → 挂牌。只跑 sim_enabled 的男人，不打 App 接口。
       </p>
+
+      <section className="mt-6 rounded-2xl bg-surface px-4 py-4 shadow-border">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            disabled={ticking}
+            onClick={() => {
+              setTicking(true);
+              void runSimTickAdmin()
+                .then((res) => {
+                  toast(`一轮 ${res.males} 人 · 用 ${res.uses}（自用 ${res.selfUses}）· 买 ${res.buys} · 跳过 ${res.skipped}`);
+                  return reload();
+                })
+                .catch((err) => toast(err instanceof Error ? err.message : "没跑成"))
+                .finally(() => setTicking(false));
+            }}
+          >
+            {ticking ? "在跑…" : "跑一轮"}
+          </Button>
+          <Button
+            variant="secondary"
+            type="button"
+            disabled={ticking || busy}
+            onClick={() => {
+              setBusy(true);
+              void enableSimLocatedAdmin()
+                .then((res) => {
+                  toast(res.n ? `打开了 ${res.n} 个有定位或名下货的男人` : "没有可开的（要有定位或名下货）");
+                  return reload();
+                })
+                .catch((err) => toast(err instanceof Error ? err.message : "没打开"))
+                .finally(() => setBusy(false));
+            }}
+          >
+            打开有定位/有货的男人
+          </Button>
+        </div>
+        {run ? (
+          <p className="mt-3 text-sm text-muted">
+            上次 {run.males} 人 · 用 {run.uses}（自用 {run.selfUses}）· 买 {run.buys} · 挂 {run.listed} · 跳过 {run.skipped} · {run.durationMs}ms
+          </p>
+        ) : (
+          <p className="mt-3 text-sm text-muted">还没跑过。先打开男人，再跑一轮。</p>
+        )}
+        {run?.notes?.length ? (
+          <ul className="mt-2 space-y-1 text-xs text-subtle">
+            {run.notes.map((line, i) => (
+              <li key={`${line}-${i}`} className="tabular-nums">
+                {line}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
 
       <section className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Stat label="男" value={snap.males} />
+        <Stat label="模拟开" value={snap.simEnabled} />
+        <Stat label="模拟有定位" value={snap.located} />
         <Stat label="厕" value={snap.stalls} />
         <Stat label="平台货" value={snap.platformStalls} />
         <Stat label="转让挂牌" value={snap.listed} />
@@ -91,13 +161,13 @@ function AdminSim() {
         <Stat label="厌腻对数" value={snap.satiation.pairs} />
       </section>
 
-      <h2 className="mt-10 text-sm font-medium text-muted">已接（点单/抽成/定价在用）</h2>
+      <h2 className="mt-10 text-sm font-medium text-muted">已接（点单/抽成/定价/tick）</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {KNOBS.filter((k) => !k.planned).map((k) => (
           <Knob key={k.key} k={k} form={form} setForm={setForm} />
         ))}
       </div>
-      <h2 className="mt-10 text-sm font-medium text-muted">未接模拟（只存数，进程还没打 API）</h2>
+      <h2 className="mt-10 text-sm font-medium text-muted">未接（配额、套、差评、挂牌过期）</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {KNOBS.filter((k) => k.planned).map((k) => (
           <Knob key={k.key} k={k} form={form} setForm={setForm} />
@@ -231,7 +301,7 @@ function AdminSim() {
           </li>
         ))}
       </ul>
-    </AdminGate>
+    </>
   );
 }
 

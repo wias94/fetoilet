@@ -161,45 +161,49 @@ export const setStallListed = createServerFn({ method: "POST" })
     return { id: data.id, listedFen: data.fen };
   });
 
+export async function executeBuy(sql: Sql, buyerId: string, stallId: string) {
+  const stall = await sql<{ id: string; name: string; owner_id: string | null; listed_fen: number | null }>`
+    select id, name, owner_id, listed_fen from stalls where id = ${stallId} limit 1
+  `;
+  if (!stall[0]) throw new Error("没这具");
+  const price = Number(stall[0].listed_fen ?? 0);
+  if (!stall[0].owner_id || stall[0].owner_id.startsWith("seed:")) throw new Error("这具不卖");
+  if (!price) throw new Error("主人没挂牌");
+  if (stall[0].owner_id === buyerId) throw new Error("已经是你的货");
+  await ensureWallet(sql, buyerId);
+  await ensureWallet(sql, stall[0].owner_id);
+  const mine = await sql<{ fen: number }>`
+    select fen from wallets where user_id = ${buyerId} limit 1
+  `;
+  if (Number(mine[0]?.fen ?? 0) < price) throw new Error("余额不够");
+  const debit = await sql<{ fen: number }>`
+    update wallets set fen = fen - ${price}
+    where user_id = ${buyerId} and fen >= ${price}
+    returning fen
+  `;
+  if (!debit[0]) throw new Error("余额不够");
+  await sql`update wallets set fen = fen + ${price} where user_id = ${stall[0].owner_id}`;
+  await sql`
+    insert into ledger (id, user_id, fen, kind, ref_id, note)
+    values (${crypto.randomUUID()}, ${buyerId}, ${-price}, 'buy', ${stall[0].id}, ${`买下 ${stall[0].name}`})
+  `;
+  await sql`
+    insert into ledger (id, user_id, fen, kind, ref_id, note)
+    values (${crypto.randomUUID()}, ${stall[0].owner_id}, ${price}, 'sell', ${stall[0].id}, ${`卖掉 ${stall[0].name}`})
+  `;
+  const moved = await sql<{ id: string }>`
+    update stalls set owner_id = ${buyerId}, listed_fen = null, owned_at = now(), updated_at = now()
+    where id = ${stall[0].id} and owner_id = ${stall[0].owner_id} and listed_fen = ${price}
+    returning id
+  `;
+  if (!moved[0]) throw new Error("被人买走了");
+  return { id: stall[0].id, paid: price };
+}
+
 export const buyStall = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: unknown) => z.object({ id: z.string().min(1) }).parse(data))
   .handler(async ({ context, data }) => {
     const sql = await getSql();
-    const stall = await sql<{ id: string; name: string; owner_id: string | null; listed_fen: number | null }>`
-      select id, name, owner_id, listed_fen from stalls where id = ${data.id} limit 1
-    `;
-    if (!stall[0]) throw new Error("没这具");
-    const price = Number(stall[0].listed_fen ?? 0);
-    if (!stall[0].owner_id || stall[0].owner_id.startsWith("seed:")) throw new Error("这具不卖");
-    if (!price) throw new Error("主人没挂牌");
-    if (stall[0].owner_id === context.userId) throw new Error("已经是你的货");
-    await ensureWallet(sql, context.userId);
-    await ensureWallet(sql, stall[0].owner_id);
-    const mine = await sql<{ fen: number }>`
-      select fen from wallets where user_id = ${context.userId} limit 1
-    `;
-    if (Number(mine[0]?.fen ?? 0) < price) throw new Error("余额不够");
-    const debit = await sql<{ fen: number }>`
-      update wallets set fen = fen - ${price}
-      where user_id = ${context.userId} and fen >= ${price}
-      returning fen
-    `;
-    if (!debit[0]) throw new Error("余额不够");
-    await sql`update wallets set fen = fen + ${price} where user_id = ${stall[0].owner_id}`;
-    await sql`
-      insert into ledger (id, user_id, fen, kind, ref_id, note)
-      values (${crypto.randomUUID()}, ${context.userId}, ${-price}, 'buy', ${stall[0].id}, ${`买下 ${stall[0].name}`})
-    `;
-    await sql`
-      insert into ledger (id, user_id, fen, kind, ref_id, note)
-      values (${crypto.randomUUID()}, ${stall[0].owner_id}, ${price}, 'sell', ${stall[0].id}, ${`卖掉 ${stall[0].name}`})
-    `;
-    const moved = await sql<{ id: string }>`
-      update stalls set owner_id = ${context.userId}, listed_fen = null, owned_at = now(), updated_at = now()
-      where id = ${stall[0].id} and owner_id = ${stall[0].owner_id} and listed_fen = ${price}
-      returning id
-    `;
-    if (!moved[0]) throw new Error("被人买走了");
-    return { id: stall[0].id, paid: price };
+    return executeBuy(sql, context.userId, data.id);
   });

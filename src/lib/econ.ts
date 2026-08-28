@@ -104,8 +104,10 @@ export function wouldBuy(opts: {
   listedFen: number;
   walletFen?: number | null;
   econ?: Record<EconKey, number> | EconVec;
+  minScore?: number;
 }) {
-  if (opts.score < 0.2 || opts.listedFen <= 0) return false;
+  const minScore = opts.minScore ?? 0.2;
+  if (opts.score < minScore || opts.listedFen <= 0) return false;
   if (opts.walletFen != null && opts.listedFen > opts.walletFen) return false;
   const e = vecToEcon(opts.econ);
   if (e.use_over_own > 0.7 && opts.listedFen > opts.hourFen * 14) return false;
