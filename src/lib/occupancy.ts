@@ -26,12 +26,13 @@ export async function releaseExpiredRentals(sql: Sql) {
   `;
 }
 
-export async function lockRental(sql: Sql, stallId: string, inquiryId: string) {
+export async function lockRental(sql: Sql, stallId: string, inquiryId: string, minutes?: number) {
   const { loadSimConfig } = await import("@/lib/sim-config");
   const cfg = await loadSimConfig(sql);
+  const mins = Math.max(5, Math.round(minutes ?? cfg.rentSessionMin));
   const rows = await sql<{ id: string }>`
     update stalls
-    set busy_until = now() + make_interval(mins => ${cfg.rentSessionMin}),
+    set busy_until = now() + make_interval(mins => ${mins}),
         busy_inquiry_id = ${inquiryId},
         updated_at = now()
     where id = ${stallId}
@@ -69,7 +70,12 @@ export async function bumpSatiation(sql: Sql, maleId: string, stallId: string, a
 }
 
 /** 厌腻按使用次数，抽成按周。两头都够且 keep 低于阈值才挂。 */
-export async function maybeListFromBoredom(sql: Sql, ownerId: string, stallId: string) {
+export async function maybeListFromBoredom(
+  sql: Sql,
+  ownerId: string,
+  stallId: string,
+  opts?: { force?: boolean },
+) {
   if (!ownerId || ownerId === "platform" || ownerId.startsWith("seed:")) return null;
   const stall = await sql<{
     listed_fen: number | null;
@@ -88,6 +94,10 @@ export async function maybeListFromBoredom(sql: Sql, ownerId: string, stallId: s
   const { holdingCut } = await import("@/lib/yield");
   const cut = holdingCut(stall[0].relation, stall[0].owned_at, new Date(), cfg);
   if (cut.platformSharePct <= 0) return null;
+  if (cfg.buyCooldownHours > 0 && stall[0].owned_at) {
+    const owned = Date.parse(stall[0].owned_at);
+    if (Number.isFinite(owned) && Date.now() - owned < cfg.buyCooldownHours * 3600_000) return null;
+  }
   const sat = await sql<{ uses: number; value: number }>`
     select uses, value from behavior_satiation
     where male_id = ${ownerId} and stall_id = ${stallId} limit 1
@@ -95,7 +105,7 @@ export async function maybeListFromBoredom(sql: Sql, ownerId: string, stallId: s
   const uses = Number(sat[0]?.value ?? sat[0]?.uses ?? 0);
   const sat01 = satiationFromUses(uses, cfg.satiationHalfUses);
   const keep = (cut.ownerSharePct / 100) * (1 - sat01);
-  if (keep >= cfg.listKeepThreshold) return null;
+  if (keep >= cfg.listKeepThreshold && !opts?.force) return null;
   const { loadMaleEcon, stallUsage } = await import("@/lib/econ");
   const econ = await loadMaleEcon(sql, ownerId);
   const { quoteSaleFen, loadMarket } = await import("@/lib/pricing");
