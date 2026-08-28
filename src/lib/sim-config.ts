@@ -14,8 +14,9 @@ export const DEFAULT_SIM = {
   familyCapPct: 80,
   otherWeekCutPct: 10,
   otherCapPct: 50,
-  /** 保有分 = 主人分成 × (1-厌腻)。低于此才自动挂转让。第一周分成 100% 不会挂。 */
+  /** 保有分 = 主人分成 × (1-厌腻)。厌腻只按使用次数。低于此且已抽成才挂。 */
   listKeepThreshold: 0.45,
+  /** 用几次厌腻到约 0.63。单位是次，不是周。 */
   satiationHalfUses: 4,
   selfUseSatiation: 1.35,
   platformSaleFen: 1000,

@@ -50,6 +50,13 @@ export async function unlockRental(sql: Sql, inquiryId: string) {
   `;
 }
 
+/** 厌腻只看累计使用量，和持有周数无关。 */
+export function satiationFromUses(uses: number, halfUses: number) {
+  const n = Math.max(0, uses);
+  const h = Math.max(0.01, halfUses);
+  return 1 - Math.exp(-n / h);
+}
+
 export async function bumpSatiation(sql: Sql, maleId: string, stallId: string, amount = 1) {
   await sql`
     insert into behavior_satiation (male_id, stall_id, uses, value, updated_at)
@@ -61,7 +68,7 @@ export async function bumpSatiation(sql: Sql, maleId: string, stallId: string, a
   `;
 }
 
-/** 厌腻 × 收益下滑才挂转让。单看满一周不挂。 */
+/** 厌腻按使用次数，抽成按周。两头都够且 keep 低于阈值才挂。 */
 export async function maybeListFromBoredom(sql: Sql, ownerId: string, stallId: string) {
   if (!ownerId || ownerId === "platform" || ownerId.startsWith("seed:")) return null;
   const stall = await sql<{
@@ -85,8 +92,8 @@ export async function maybeListFromBoredom(sql: Sql, ownerId: string, stallId: s
     select uses, value from behavior_satiation
     where male_id = ${ownerId} and stall_id = ${stallId} limit 1
   `;
-  const uses = Number(sat[0]?.uses ?? 0);
-  const sat01 = 1 - Math.exp(-uses / cfg.satiationHalfUses);
+  const uses = Number(sat[0]?.value ?? sat[0]?.uses ?? 0);
+  const sat01 = satiationFromUses(uses, cfg.satiationHalfUses);
   const keep = (cut.ownerSharePct / 100) * (1 - sat01);
   if (keep >= cfg.listKeepThreshold) return null;
   const { loadMaleEcon, stallUsage } = await import("@/lib/econ");

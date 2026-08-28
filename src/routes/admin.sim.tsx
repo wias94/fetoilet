@@ -18,8 +18,8 @@ const KNOBS: { key: keyof SimConfig; label: string; hint: string; step?: number 
   { key: "familyWeekCutPct", label: "家人每周抽 %", hint: "收益下滑" },
   { key: "familyCapPct", label: "家人抽成封顶 %", hint: "" },
   { key: "listKeepThreshold", label: "挂牌保有阈值", hint: "keep < 此值才挂", step: 0.01 },
-  { key: "satiationHalfUses", label: "厌腻半衰期（次）", hint: "1-e^(-uses/half)", step: 0.1 },
-  { key: "selfUseSatiation", label: "自用厌腻系数", hint: "主人自己用", step: 0.05 },
+  { key: "satiationHalfUses", label: "厌腻半衰期（次）", hint: "按使用次数，不是周", step: 0.1 },
+  { key: "selfUseSatiation", label: "自用一次的厌腻重量", hint: "外人用一次=1", step: 0.05 },
   { key: "platformSaleFen", label: "平台转让 分", hint: "C$×100" },
   { key: "platformRentFen", label: "平台出租 分", hint: "一口价" },
   { key: "wealthMeanCad", label: "初始均值 x CAD", hint: "对数正态" },
@@ -60,7 +60,7 @@ function AdminSim() {
       <p className="text-sm text-muted">sim-admin</p>
       <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">行为与参数</h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-        数字矩阵和实时分布。挂转让：保有分 keep = 主人分成 × (1−厌腻)，且已经开始抽成时，keep 低于阈值才挂。
+        数字矩阵和实时分布。厌腻只按使用次数：1−e^(−次数/半衰期)。周只决定抽成。keep = 主人分成 × (1−厌腻)，已抽成且 keep 低于阈值才挂。
       </p>
 
       <section className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -121,26 +121,42 @@ function AdminSim() {
         </Button>
       </div>
 
+      <h2 className="mt-10 text-sm font-medium text-muted">厌腻随使用次数（与周无关）</h2>
+      <p className="mt-1 text-xs text-subtle">sat = 1 − exp(−次数 / {form.satiationHalfUses})</p>
+      <ul className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-8">
+        {[0, 1, 2, 3, 4, 6, 8, 12].map((n) => {
+          const sat = 1 - Math.exp(-n / Math.max(0.01, form.satiationHalfUses));
+          return (
+            <li key={n} className="rounded-2xl bg-surface px-3 py-2 text-center shadow-border">
+              <p className="text-xs text-muted">{n} 次</p>
+              <p className="mt-1 font-display tabular-nums">{sat.toFixed(2)}</p>
+            </li>
+          );
+        })}
+      </ul>
+
       <h2 className="mt-10 text-sm font-medium text-muted">保有分矩阵（keep，红格会挂牌）</h2>
       <p className="mt-1 text-xs text-subtle">
-        列 = 持有周数后的主人分成。行 = 厌腻 0 / 0.3 / 0.6 / 0.9。阈值 {form.listKeepThreshold}
+        行 = 使用次数 → 厌腻。列 = 持有周（只改抽成，不改厌腻）。阈值 {form.listKeepThreshold}
       </p>
       <div className="mt-3 overflow-x-auto rounded-2xl bg-surface p-3 shadow-border">
         <table className="w-full min-w-[32rem] text-left text-xs">
           <thead>
             <tr>
-              <th className="p-2 text-muted">厌腻 \\ 周</th>
+              <th className="p-2 text-muted">次数 \\ 周</th>
               {table.weeks.map((w) => (
                 <th key={w.week} className="p-2 text-muted">
-                  W{w.week} {w.family}% / {w.other}%
+                  W{w.week} 家人{w.family}%
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {table.rows.map((row) => (
-              <tr key={row.sat}>
-                <td className="p-2">{row.sat}</td>
+              <tr key={row.uses}>
+                <td className="p-2">
+                  {row.uses}次 · {row.sat.toFixed(2)}
+                </td>
                 {row.cells.map((c, i) => (
                   <td key={i} className={c.list ? "p-2 font-medium text-live" : "p-2 text-subtle"}>
                     {c.keep.toFixed(2)}
@@ -215,17 +231,21 @@ function keepTable(cfg: SimConfig) {
     family: Math.max(0, 100 - Math.min(cfg.familyCapPct, cfg.familyWeekCutPct * week)),
     other: Math.max(0, 100 - Math.min(cfg.otherCapPct, cfg.otherWeekCutPct * week)),
   }));
-  const sats = [0, 0.3, 0.6, 0.9];
+  const usesList = [0, 1, 2, 4, 6, 8, 12];
   return {
     weeks,
-    rows: sats.map((sat) => ({
-      sat,
-      cells: weeks.map((w) => {
-        const share = w.family / 100;
-        const keep = share * (1 - sat);
-        const started = w.week >= 1;
-        return { keep, list: started && keep < cfg.listKeepThreshold };
-      }),
-    })),
+    rows: usesList.map((uses) => {
+      const sat = 1 - Math.exp(-uses / Math.max(0.01, cfg.satiationHalfUses));
+      return {
+        uses,
+        sat,
+        cells: weeks.map((w) => {
+          const share = w.family / 100;
+          const keep = share * (1 - sat);
+          const started = w.week >= 1;
+          return { keep, list: started && keep < cfg.listKeepThreshold };
+        }),
+      };
+    }),
   };
 }
