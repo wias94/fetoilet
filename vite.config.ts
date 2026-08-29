@@ -24,6 +24,10 @@ function pgliteBootstrapPlugin(): Plugin {
         if (typeof mod.ensureDbReady === "function") {
           await mod.ensureDbReady();
         }
+        const loop = (await server.ssrLoadModule("/src/lib/sim-loop.ts")) as {
+          startSimLoop?: () => void;
+        };
+        loop.startSimLoop?.();
       } catch (err) {
         console.error("[app-builder] DB bootstrap failed:", err);
         throw err;

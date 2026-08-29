@@ -29,8 +29,12 @@ export const DEFAULT_SIM = {
   marketMulSpan: 0.58,
   rentFloorMul: 0.55,
   rentCeilMul: 1.85,
-  /** 模拟 tick 节拍。全员打开，tick 只跑没封的男人。 */
+  /** 模拟 tick 节拍。loc-m 男人按 location status 醒来。 */
   simTickSec: 180,
+  autoTick: 1,
+  tickEverySec: 30,
+  tickBatch: 80,
+  dailyWageFen: 3000,
   useScoreMin: 0.35,
   selfUseScoreMin: 0.4,
   buyScoreMin: 0.2,
@@ -88,6 +92,10 @@ const SimSchema = z.object({
   rentFloorMul: z.number().min(0.2).max(1),
   rentCeilMul: z.number().min(1).max(4),
   simTickSec: z.number().int().min(30).max(3600),
+  autoTick: z.number().int().min(0).max(1),
+  tickEverySec: z.number().int().min(10).max(600),
+  tickBatch: z.number().int().min(5).max(500),
+  dailyWageFen: z.number().int().min(0).max(100_000),
   useScoreMin: z.number().min(0).max(1),
   selfUseScoreMin: z.number().min(0).max(1),
   buyScoreMin: z.number().min(0).max(1),
@@ -217,6 +225,8 @@ export type SimSnapshot = {
   market: { used7: number; online: number; busy: number; pressure: number; mul: number };
   satiation: { pairs: number; avgUses: number };
   lastRun: SimRunRow | null;
+  locationApi: boolean;
+  statuses: { status: string; n: number }[];
   econ: AxisMean[];
   taste: AxisMean[];
   person: AxisMean[];
@@ -330,11 +340,28 @@ export const getSimAdmin = createServerFn({ method: "GET" })
     const e0 = econRows[0] ?? {};
     const p0 = personRows[0] ?? {};
     const { latestSimRun } = await import("@/lib/sim-tick");
+    const { locationApiBase } = await import("@/lib/location-sim");
     let lastRun = null;
     try {
       lastRun = await latestSimRun(sql);
     } catch {
       lastRun = null;
+    }
+    let statuses: { status: string; n: number }[] = [];
+    try {
+      statuses = (
+        await sql<{ status: string; n: number }>`
+          select coalesce(nullif(s.loc_status, ''), '(无)') as status, count(*)::int as n
+          from user_state s
+          join behavior_male m on m.user_id = s.user_id
+          where m.sim_enabled = true and m.user_id like 'loc-m-%'
+          group by 1
+          order by n desc
+          limit 12
+        `
+      ).map((r) => ({ status: r.status, n: Number(r.n) }));
+    } catch {
+      statuses = [];
     }
     return {
       cfg,
@@ -361,6 +388,8 @@ export const getSimAdmin = createServerFn({ method: "GET" })
       },
       satiation: { pairs: Number(sat[0]?.pairs ?? 0), avgUses: Number(sat[0]?.avg_uses ?? 0) },
       lastRun,
+      locationApi: Boolean(locationApiBase()),
+      statuses,
       econ: ECON_KEYS.map((key) => ({ key, mean: Number(e0[key] ?? 0) })),
       taste: TASTE_KEYS.map((key) => {
         const hit = tasteRows.find((r) => r.key === key);

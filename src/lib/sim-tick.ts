@@ -7,8 +7,8 @@ import { bumpSatiation, lockRental, maybeListFromBoredom, releaseExpiredRentals,
 import type { Profile } from "@/lib/profiles";
 import { loadSimConfig, simDimWeights, simEconCoeffs, type SimConfig } from "@/lib/sim-config";
 
-const TICK_MALES = 40;
 const NOTE_CAP = 16;
+const BUSY_STATUS = new Set(["work", "study", "commuting", "commute"]);
 
 export type SimCandidate = {
   id: string;
@@ -137,6 +137,8 @@ async function tickOnce(sql: Sql): Promise<SimTickResult> {
     await enableAllMales(sql);
 
     const cfg = await loadSimConfig(sql);
+    const wages = await payDailyWage(sql, cfg.dailyWageFen);
+    if (wages) note(notes, `津贴 ${wages} 人`);
     if (cfg.listStaleDays > 0) {
       const stale = await sql<{ id: string }>`
         update stalls
@@ -186,16 +188,18 @@ async function tickOnce(sql: Sql): Promise<SimTickResult> {
   return result;
 }
 
-type TickMale = { userId: string; lat: number | null; lng: number | null };
+type TickMale = { userId: string; lat: number | null; lng: number | null; status: string | null };
 
 async function loadTickMales(sql: Sql, cfg: SimConfig): Promise<TickMale[]> {
+  const batch = Math.max(5, Math.min(500, cfg.tickBatch));
   const rows = await sql<{
     user_id: string;
     lat: number | null;
     lng: number | null;
+    loc_status: string | null;
     last_sim: string | null;
   }>`
-    select m.user_id, s.lat, s.lng, (
+    select m.user_id, s.lat, s.lng, s.loc_status, (
       select max(coalesce(i.updated_at, i.created_at))
       from inquiries i
       where i.user_id = m.user_id and i.slot = 'sim'
@@ -203,21 +207,25 @@ async function loadTickMales(sql: Sql, cfg: SimConfig): Promise<TickMale[]> {
     from behavior_male m
     join user_state s on s.user_id = m.user_id
     where m.sim_enabled = true
+      and m.user_id like 'loc-m-%'
       and coalesce(s.banned, false) = false
       and coalesce(s.role, 'male') = 'male'
-    order by coalesce(s.last_seen_at, s.updated_at) desc nulls last
-    limit ${TICK_MALES * 3}
+    order by last_sim nulls first
+    limit ${batch * 6}
   `;
   const wakeMs = cfg.simTickSec * 1000;
   const out: TickMale[] = [];
   for (const r of rows) {
-    if (out.length >= TICK_MALES) break;
+    if (out.length >= batch) break;
     const last = r.last_sim ? Date.parse(r.last_sim) : 0;
     if (last && Date.now() - last < wakeMs) continue;
+    const status = r.loc_status ? String(r.loc_status) : null;
+    if (status && BUSY_STATUS.has(status)) continue;
     out.push({
       userId: r.user_id,
       lat: r.lat == null ? null : Number(r.lat),
       lng: r.lng == null ? null : Number(r.lng),
+      status,
     });
   }
   return out;
@@ -233,6 +241,10 @@ async function tickMale(
     select fen from wallets where user_id = ${male.userId} limit 1
   `;
   const walletFen = Number(walletRows[0]?.fen ?? 0);
+  if (male.status && BUSY_STATUS.has(male.status)) {
+    note(notes, `${shortId(male.userId)} ${male.status}`);
+    return { kind: "skip" };
+  }
   const busyRows = await sql<{ n: number }>`
     select count(*)::int as n
     from stalls s
@@ -466,6 +478,55 @@ function shortId(id: string) {
 
 function note(notes: string[], line: string) {
   if (notes.length < NOTE_CAP) notes.push(line);
+}
+
+function torontoDayKey(at = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Toronto",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(at);
+  const y = parts.find((p) => p.type === "year")?.value ?? "1970";
+  const m = parts.find((p) => p.type === "month")?.value ?? "01";
+  const d = parts.find((p) => p.type === "day")?.value ?? "01";
+  return `${y}-${m}-${d}`;
+}
+
+async function payDailyWage(sql: Sql, fen: number) {
+  if (fen <= 0) return 0;
+  const noteText = `日津贴 ${torontoDayKey()}`;
+  const due = await sql<{ user_id: string }>`
+    select s.user_id
+    from user_state s
+    where s.user_id like 'loc-m-%'
+      and coalesce(s.role, 'male') = 'male'
+      and coalesce(s.banned, false) = false
+      and not exists (
+        select 1 from ledger l
+        where l.user_id = s.user_id and l.kind = 'wage' and l.note = ${noteText}
+      )
+  `;
+  if (!due.length) return 0;
+  for (let i = 0; i < due.length; i += 400) {
+    const part = due.slice(i, i + 400);
+    const ids = part.map((r) => r.user_id);
+    await sql.query(
+      `insert into wallets (user_id, fen)
+       select u.id, $1 from unnest($2::text[]) as u(id)
+       on conflict (user_id) do update set fen = wallets.fen + $1`,
+      [fen, ids],
+    );
+    const ledgers = part.map(() => crypto.randomUUID());
+    const notes = part.map(() => noteText);
+    await sql.query(
+      `insert into ledger (id, user_id, fen, kind, ref_id, note)
+       select l.id, l.uid, $1, 'wage', null, l.note
+       from unnest($2::text[], $3::text[], $4::text[]) as l(id, uid, note)`,
+      [fen, ledgers, ids, notes],
+    );
+  }
+  return due.length;
 }
 
 export async function enableAllMales(sql: Sql) {

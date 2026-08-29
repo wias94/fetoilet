@@ -55,6 +55,10 @@ const WEIGHTS: { key: keyof SimConfig; dim: string; label: string }[] = [
 ];
 
 const ACT: { key: keyof SimConfig; label: string; hint: string; step?: number }[] = [
+  { key: "autoTick", label: "自动跑", hint: "1=自己扫，0=只手点" },
+  { key: "tickEverySec", label: "扫场间隔 s", hint: "自动时钟多久跑一轮" },
+  { key: "tickBatch", label: "每轮人数", hint: "一轮最多处理多少 loc-m 男人" },
+  { key: "dailyWageFen", label: "日津贴 分", hint: "每人每天 C$×100，默认 3000=C$30" },
   { key: "simTickSec", label: "醒来间隔 s", hint: "同一人两次决定最短间隔" },
   { key: "useScoreMin", label: "点单门槛", hint: "低于此不租别人的", step: 0.01 },
   { key: "selfUseScoreMin", label: "自用门槛", hint: "自己的也要够分", step: 0.01 },
@@ -216,6 +220,7 @@ function AdminSimBody() {
       {tab === "live" ? (
         <LiveTab
           snap={snap}
+          form={form}
           run={run}
           ticking={ticking}
           busy={busy}
@@ -237,6 +242,19 @@ function AdminSimBody() {
                 return reload();
               })
               .catch((err) => toast(err instanceof Error ? err.message : "没打开"))
+              .finally(() => setBusy(false));
+          }}
+          onAuto={() => {
+            const next = { ...form, autoTick: form.autoTick ? 0 : 1 };
+            setForm(next);
+            setBusy(true);
+            void saveSimAdmin({ data: next })
+              .then((cfg) => {
+                setForm(cfg);
+                setSnap((s) => (s ? { ...s, cfg } : s));
+                toast(cfg.autoTick ? "自动开" : "自动关");
+              })
+              .catch((err) => toast(err instanceof Error ? err.message : "没写成"))
               .finally(() => setBusy(false));
           }}
         />
@@ -296,23 +314,30 @@ function AdminSimBody() {
 
 function LiveTab({
   snap,
+  form,
   run,
   ticking,
   busy,
   onTick,
   onEnable,
+  onAuto,
 }: {
   snap: SimSnapshot;
+  form: SimConfig;
   run: SimSnapshot["lastRun"];
   ticking: boolean;
   busy: boolean;
   onTick: () => void;
   onEnable: () => void;
+  onAuto: () => void;
 }) {
   return (
     <div className="mt-6 space-y-6">
       <section className="rounded-2xl bg-surface px-4 py-4 shadow-border">
         <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" disabled={ticking || busy} onClick={onAuto}>
+            {form.autoTick ? "自动开着" : "自动关着"}
+          </Button>
           <Button disabled={ticking} onClick={onTick}>
             {ticking ? "在跑…" : "跑一轮"}
           </Button>
@@ -320,12 +345,16 @@ function LiveTab({
             全员打开
           </Button>
         </div>
+        <p className="mt-3 text-sm text-muted">
+          {snap.locationApi ? "location 已接" : "location 未接（用种子/名下货坐标）"}
+          {form.autoTick ? ` · 每 ${form.tickEverySec}s 扫 ${form.tickBatch} 人` : " · 只手点"}
+        </p>
         {run ? (
-          <p className="mt-3 text-sm text-muted">
+          <p className="mt-2 text-sm text-muted">
             上次 {run.males} 人 · 用 {run.uses}（自用 {run.selfUses}）· 买 {run.buys} · 挂 {run.listed} · 跳过 {run.skipped} · {run.durationMs}ms
           </p>
         ) : (
-          <p className="mt-3 text-sm text-muted">还没跑过。打开本页已全员打开，点「跑一轮」。</p>
+          <p className="mt-2 text-sm text-muted">还没跑过。自动开着会自己扫 loc-m 男人。</p>
         )}
         {run?.notes?.length ? (
           <ul className="mt-2 space-y-1 text-xs text-subtle">
@@ -354,6 +383,20 @@ function LiveTab({
         <Stat label="市场乘数" value={snap.market.mul.toFixed(2)} />
         <Stat label="厌腻对数" value={snap.satiation.pairs} />
       </section>
+
+      {snap.statuses.length ? (
+        <section>
+          <h2 className="text-sm font-medium text-muted">location 作息</h2>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+            {snap.statuses.map((r) => (
+              <li key={r.status} className="flex items-center justify-between rounded-2xl bg-surface px-4 py-2 text-sm shadow-border">
+                <span>{r.status}</span>
+                <span className="tabular-nums">{r.n}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section>
         <h2 className="text-sm font-medium text-muted">关系存量</h2>

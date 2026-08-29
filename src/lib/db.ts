@@ -238,3 +238,9 @@ if (typeof window === "undefined" && !getDatabaseUrl() && !runtimeEnv("RAILWAY_E
     throw err;
   });
 }
+
+if (typeof window === "undefined") {
+  void import("@/lib/sim-loop")
+    .then((m) => m.startSimLoop())
+    .catch((err) => console.error("[sim-loop] boot", err));
+}

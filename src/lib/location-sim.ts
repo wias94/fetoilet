@@ -2,7 +2,7 @@ import { runtimeEnv } from "@/lib/runtime-env";
 import { getSql } from "@/lib/db";
 import { LOCATION_INTERVAL_MS } from "@/lib/geo";
 
-type PersonFix = { id: string; lat: number; lng: number };
+type PersonFix = { id: string; lat: number; lng: number; status: string | null };
 
 const cache: { at: number; running: Promise<number> | null; etag: string } = {
   at: 0,
@@ -25,6 +25,12 @@ function simHeaders(): Record<string, string> {
   return key ? { "X-API-Key": key } : {};
 }
 
+function readStatus(raw: unknown) {
+  if (typeof raw !== "string") return null;
+  const s = raw.trim();
+  return s ? s : null;
+}
+
 export async function fetchPersonLocation(personId: string): Promise<PersonFix | null> {
   const base = locationApiBase();
   if (!base) return null;
@@ -33,11 +39,11 @@ export async function fetchPersonLocation(personId: string): Promise<PersonFix |
       headers: simHeaders(),
     });
     if (!res.ok) return null;
-    const data = (await res.json()) as { lat?: unknown; lng?: unknown };
+    const data = (await res.json()) as { lat?: unknown; lng?: unknown; status?: unknown };
     const lat = Number(data.lat);
     const lng = Number(data.lng);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-    return { id: personId, lat, lng };
+    return { id: personId, lat, lng, status: readStatus(data.status) };
   } catch {
     return null;
   }
@@ -89,7 +95,7 @@ export async function syncWorldIfDue() {
         const lat = Number(row[1]);
         const lng = Number(row[2]);
         if (!/^P\d{5}$/.test(id) || !Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-        fixes.push({ id, lat, lng });
+        fixes.push({ id, lat, lng, status: readStatus(row[3]) });
       }
       const n = await writeFixes(fixes, "gps");
       cache.at = Date.now();
@@ -112,12 +118,20 @@ async function writeFixes(fixes: PersonFix[], source: "gps" | "fake") {
     const ids = part.map((p) => p.id);
     const lats = part.map((p) => p.lat);
     const lngs = part.map((p) => p.lng);
+    const statuses = part.map((p) => p.status ?? "");
     await sql.query(
       `update user_state u set
-         lat = v.lat, lng = v.lng, loc_source = $4, loc_updated_at = now(), updated_at = now()
-       from (select unnest($1::text[]) as id, unnest($2::float8[]) as lat, unnest($3::float8[]) as lng) v
+         lat = v.lat, lng = v.lng,
+         loc_status = nullif(v.status, ''),
+         loc_source = $4, loc_updated_at = now(), updated_at = now()
+       from (
+         select unnest($1::text[]) as id,
+                unnest($2::float8[]) as lat,
+                unnest($3::float8[]) as lng,
+                unnest($5::text[]) as status
+       ) v
        where u.user_id = v.id or u.location_id = v.id`,
-      [ids, lats, lngs, source],
+      [ids, lats, lngs, source, statuses],
     );
     await sql.query(
       `update stalls s set lat = v.lat, lng = v.lng, updated_at = now()

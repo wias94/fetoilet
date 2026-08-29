@@ -67,11 +67,11 @@
 
 `dimScore` 按轴权重平均 → `scoreWithEcon` → 近到远。hours/quota 不是轴：`enforceDailyQuota=1` 时按挂牌时段和一天一客限制。
 
-## 3. 最简 tick（`src/lib/sim-tick.ts`，后台「跑一轮」）
+## 3. 最简 tick（`src/lib/sim-tick.ts`）
 
-**tick = 一轮模拟时钟。** 每个打开的男人醒来一次：自用 / 租 / 买 / 跳过，直接写市场表，不打 App 接口。没有自动循环，要点「跑一轮」（或之后加节拍器）。
+**tick = 一轮模拟时钟。** 默认 `autoTick=1`，进程内每 `tickEverySec` 秒自己跑，不用手点。只动 `loc-m-*` 男人；附近真人肉厕可以被租/买。
 
-打开 `/admin/sim` 就会把所有没封的男人设成 `sim_enabled`。男人没有自己的 GPS 时，用名下肉厕坐标当原点，不写死城市。
+打开 `/admin/sim` 会把没封的男人设成 `sim_enabled`。原点：男人自己的 GPS → 没有就用名下货，不写死城市。location 世界快照的第四段 `status` 写入 `user_state.loc_status`。上班 / 上学 / 通勤跳过。
 
 每人每 `simTickSec` 最多一次：
 
@@ -83,6 +83,10 @@
 | 参数 | 默认 | 作用 |
 |---|---|---|
 | simTickSec | 180 | 同一个人两次决定最短间隔 |
+| autoTick | 1 | 1=自动扫 |
+| tickEverySec | 30 | 自动时钟间隔 |
+| tickBatch | 80 | 一轮最多处理人数 |
+| dailyWageFen | 3000 | 每人每天 C$30 津贴 |
 | useScoreMin | 0.35 | 低于此不租别人的 |
 | selfUseScoreMin | 0.4 | 用自己的也要够分 |
 | buyScoreMin | 0.2 | wouldBuy 最低吸引 |
@@ -92,6 +96,6 @@
 | boredSwitchMin | 0.55 | 厌腻超此先嫖别人 |
 | buyCooldownHours | 24 | 刚买下不立刻再卖 |
 
-后台打开 `/admin/sim` 即全员打开，再「跑一轮」。
+后台打开 `/admin/sim`：自动默认开。手点「跑一轮」仍可用。
 
-套匹配、差评回流、营业配额、挂牌过期已接到 tick（限制页）。主人自用不受这四项限制。
+套匹配、差评回流、营业配额、挂牌过期已接到 tick（限制页）。主人自用不受这四项限制。评语暂不由 tick 写。
