@@ -6,6 +6,7 @@ import { ATTRACT_KEYS } from "@/lib/attract";
 import { FIELD_DIMS, BIPOLAR_DIMS, MULTI_DIMS } from "@/lib/dims";
 import { ECON_KEYS } from "@/lib/econ";
 import { TASTE_KEYS } from "@/lib/male-params";
+import type { WorldStats } from "@/lib/sim-tick";
 
 export const DEFAULT_SIM = {
   nearbyRadiusM: 3000,
@@ -227,6 +228,7 @@ export type SimSnapshot = {
   lastRun: SimRunRow | null;
   locationApi: boolean;
   statuses: { status: string; n: number }[];
+  world: WorldStats | null;
   econ: AxisMean[];
   taste: AxisMean[];
   person: AxisMean[];
@@ -244,8 +246,6 @@ export const getSimAdmin = createServerFn({ method: "GET" })
   .middleware([adminMiddleware])
   .handler(async (): Promise<SimSnapshot> => {
     const sql = await getSql();
-    const { enableAllMales } = await import("@/lib/sim-tick");
-    await enableAllMales(sql);
     const cfg = await loadSimConfig(sql);
     const miss = await sql<{ n: number }>`
       select count(*)::int as n from behavior_male
@@ -339,13 +339,19 @@ export const getSimAdmin = createServerFn({ method: "GET" })
     const pressure = Math.min(1, Math.max(0, (per / cfg.marketUseNorm) * 0.65 + (busy / online) * 0.35));
     const e0 = econRows[0] ?? {};
     const p0 = personRows[0] ?? {};
-    const { latestSimRun } = await import("@/lib/sim-tick");
+    const { latestSimRun, loadWorldStats } = await import("@/lib/sim-tick");
     const { locationApiBase } = await import("@/lib/location-sim");
     let lastRun = null;
     try {
       lastRun = await latestSimRun(sql);
     } catch {
       lastRun = null;
+    }
+    let world: WorldStats | null = null;
+    try {
+      world = await loadWorldStats(sql);
+    } catch {
+      world = null;
     }
     let statuses: { status: string; n: number }[] = [];
     try {
@@ -390,6 +396,7 @@ export const getSimAdmin = createServerFn({ method: "GET" })
       lastRun,
       locationApi: Boolean(locationApiBase()),
       statuses,
+      world,
       econ: ECON_KEYS.map((key) => ({ key, mean: Number(e0[key] ?? 0) })),
       taste: TASTE_KEYS.map((key) => {
         const hit = tasteRows.find((r) => r.key === key);

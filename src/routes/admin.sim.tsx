@@ -24,10 +24,11 @@ import { cn, formatFen } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/sim")({ component: AdminSim });
 
-type Tab = "live" | "attract" | "scale" | "act" | "market" | "gate";
+type Tab = "world" | "live" | "attract" | "scale" | "act" | "market" | "gate";
 type ScaleRow = { field: string; option: string; axis: string; value: number };
 
 const TABS: { id: Tab; label: string }[] = [
+  { id: "world", label: "世界" },
   { id: "live", label: "现场" },
   { id: "attract", label: "吸引" },
   { id: "scale", label: "程度" },
@@ -143,17 +144,19 @@ function AdminSimBody() {
   const [snap, setSnap] = useState<SimSnapshot | null>(null);
   const [form, setForm] = useState<SimConfig>(DEFAULT_SIM);
   const [scale, setScale] = useState<ScaleRow[]>([]);
-  const [tab, setTab] = useState<Tab>("live");
+  const [tab, setTab] = useState<Tab>("world");
   const [busy, setBusy] = useState(false);
   const [ticking, setTicking] = useState(false);
   const [objectify, setObjectify] = useState(0.55);
 
-  function reload() {
+  function reload(keepForm = false) {
     return getSimAdmin()
       .then((row) => {
         setSnap(row);
-        setForm(row.cfg);
-        setScale(row.textScale);
+        if (!keepForm) {
+          setForm(row.cfg);
+          setScale(row.textScale);
+        }
         return row;
       })
       .catch((err) => {
@@ -165,6 +168,15 @@ function AdminSimBody() {
   useEffect(() => {
     void reload();
   }, []);
+
+  useEffect(() => {
+    if (tab !== "world" && tab !== "live") return;
+    const ms = Math.max(8_000, (form.autoTick ? form.tickEverySec : 20) * 1000);
+    const t = setInterval(() => {
+      void reload(true);
+    }, ms);
+    return () => clearInterval(t);
+  }, [tab, form.autoTick, form.tickEverySec]);
 
   const dirty =
     snap != null &&
@@ -216,6 +228,8 @@ function AdminSimBody() {
           ))}
         </div>
       </div>
+
+      {tab === "world" ? <WorldTab snap={snap} /> : null}
 
       {tab === "live" ? (
         <LiveTab
@@ -309,6 +323,194 @@ function AdminSimBody() {
         </Button>
       </div>
     </>
+  );
+}
+
+const KIND_LABEL: Record<string, string> = {
+  self: "自用",
+  rent: "租",
+  buy: "买",
+  skip: "跳过",
+  wage: "津贴",
+  delist: "撤牌",
+  list: "挂牌",
+};
+
+const REASON_LABEL: Record<string, string> = {
+  wallet: "现金不够",
+  budget: "日预算",
+  concurrent: "占满",
+  "no-fit": "没看上",
+  condom: "套不合",
+  hours: "时段",
+  quota: "配额",
+  review: "差评",
+  status: "作息",
+  work: "上班",
+  study: "上学",
+  commuting: "通勤",
+  commute: "通勤",
+};
+
+function kindLabel(kind: string) {
+  return KIND_LABEL[kind] ?? kind;
+}
+
+function reasonLabel(reason: string) {
+  return REASON_LABEL[reason] ?? reason;
+}
+
+function clock(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  return `${hh}:${mm}:${ss}`;
+}
+
+function WorldTab({ snap }: { snap: SimSnapshot }) {
+  const w = snap.world;
+  if (!w) {
+    return <p className="mt-6 text-sm text-muted">还没有世界记录。等自动 tick 或手点「跑一轮」。</p>;
+  }
+  const skipMax = Math.max(1, ...w.skips.map((s) => s.n), 1);
+  const runMax = Math.max(1, ...w.runs.map((r) => r.uses + r.buys + r.skipped));
+  return (
+    <div className="mt-6 space-y-8">
+      <section className="grid gap-3 sm:grid-cols-3">
+        <SliceCard title="近 1 小时" slice={w.h1} />
+        <SliceCard title="近 24 小时" slice={w.h24} />
+        <div className="rounded-2xl bg-surface px-4 py-4 shadow-border">
+          <p className="text-xs text-muted">累计</p>
+          <p className="mt-2 font-display text-2xl tabular-nums">{w.all.ticks} 轮</p>
+          <p className="mt-2 text-sm text-muted">
+            用 {w.all.uses}（自用 {w.all.selfUses}）· 买 {w.all.buys} · 挂 {w.all.listed} · 跳过 {w.all.skipped}
+          </p>
+          <p className="mt-2 text-sm text-muted">平台 {formatFen(w.platformFen)}</p>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-sm font-medium text-muted">跳过原因 · 24h</h2>
+        {w.skips.length ? (
+          <ul className="mt-3 space-y-2">
+            {w.skips.map((s) => (
+              <li key={s.reason}>
+                <div className="flex items-center justify-between text-xs">
+                  <span>{reasonLabel(s.reason)}</span>
+                  <span className="tabular-nums">{s.n}</span>
+                </div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-fg/10">
+                  <div
+                    className="h-full rounded-full bg-fg/70"
+                    style={{ width: `${Math.max(2, Math.min(100, (s.n / skipMax) * 100))}%` }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-muted">还没有跳过记录。</p>
+        )}
+      </section>
+
+      <section>
+        <h2 className="text-sm font-medium text-muted">近 24 轮</h2>
+        {w.runs.length ? (
+          <ul className="mt-3 space-y-2">
+            {w.runs.map((r) => (
+              <li key={r.id} className="rounded-2xl bg-surface px-4 py-2 shadow-border">
+                <div className="flex items-baseline justify-between gap-3 text-xs">
+                  <span className="tabular-nums text-muted">{clock(r.startedAt)}</span>
+                  <span className="tabular-nums">
+                    {r.males}人 · 用{r.uses} · 买{r.buys} · 跳{r.skipped} · {r.durationMs}ms
+                  </span>
+                </div>
+                <div className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-fg/10">
+                  <div
+                    className="h-full bg-live"
+                    style={{ width: `${((r.uses + r.buys) / runMax) * 100}%` }}
+                  />
+                  <div
+                    className="h-full bg-fg/30"
+                    style={{ width: `${(r.skipped / runMax) * 100}%` }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-muted">还没有跑过。</p>
+        )}
+      </section>
+
+      <section>
+        <h2 className="text-sm font-medium text-muted">世界 log</h2>
+        {w.log.length ? (
+          <ul className="mt-3 space-y-1">
+            {w.log.map((row) => (
+              <li key={row.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border-b border-border/40 py-2 text-sm last:border-0">
+                <span className="w-16 shrink-0 tabular-nums text-subtle">{clock(row.at)}</span>
+                <span className="w-10 shrink-0 text-muted">{kindLabel(row.kind)}</span>
+                <span className="min-w-0 flex-1">
+                  {row.maleName ? <span>{row.maleName} </span> : null}
+                  {row.name ? <span>{row.name}</span> : null}
+                  {row.reason ? (
+                    <span className="text-muted"> {reasonLabel(row.reason)}</span>
+                  ) : null}
+                </span>
+                {row.fen > 0 ? (
+                  <span className="tabular-nums text-muted">{formatFen(row.fen)}</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-muted">还没有事件。</p>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function SliceCard({ title, slice }: { title: string; slice: { uses: number; selfUses: number; rents: number; buys: number; skipped: number; listed: number; wageFen: number; spendFen: number } }) {
+  return (
+    <div className="rounded-2xl bg-surface px-4 py-4 shadow-border">
+      <p className="text-xs text-muted">{title}</p>
+      <p className="mt-2 font-display text-2xl tabular-nums">{slice.uses + slice.buys}</p>
+      <p className="mt-1 text-xs text-subtle">租+买+自用</p>
+      <ul className="mt-3 space-y-1 text-sm text-muted">
+        <li className="flex justify-between">
+          <span>租</span>
+          <span className="tabular-nums">{slice.rents}</span>
+        </li>
+        <li className="flex justify-between">
+          <span>自用</span>
+          <span className="tabular-nums">{slice.selfUses}</span>
+        </li>
+        <li className="flex justify-between">
+          <span>买</span>
+          <span className="tabular-nums">{slice.buys}</span>
+        </li>
+        <li className="flex justify-between">
+          <span>跳过</span>
+          <span className="tabular-nums">{slice.skipped}</span>
+        </li>
+        <li className="flex justify-between">
+          <span>挂牌</span>
+          <span className="tabular-nums">{slice.listed}</span>
+        </li>
+        <li className="flex justify-between">
+          <span>花出</span>
+          <span className="tabular-nums">{formatFen(slice.spendFen)}</span>
+        </li>
+        <li className="flex justify-between">
+          <span>津贴</span>
+          <span className="tabular-nums">{formatFen(slice.wageFen)}</span>
+        </li>
+      </ul>
+    </div>
   );
 }
 
