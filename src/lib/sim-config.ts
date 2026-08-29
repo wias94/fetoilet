@@ -6,7 +6,6 @@ import { ATTRACT_KEYS } from "@/lib/attract";
 import { FIELD_DIMS, BIPOLAR_DIMS, MULTI_DIMS } from "@/lib/dims";
 import { ECON_KEYS } from "@/lib/econ";
 import { TASTE_KEYS } from "@/lib/male-params";
-import { TEXT_SCALE_SEED } from "@/lib/text-scale";
 
 export const DEFAULT_SIM = {
   nearbyRadiusM: 3000,
@@ -40,7 +39,26 @@ export const DEFAULT_SIM = {
   walletStopFen: 200,
   boredSwitchMin: 0.55,
   buyCooldownHours: 24,
-  /** 以下未接：配额、套、差评、挂牌过期。 */
+  /** 轴权重。0=不参与平均。关系已合成一轴。 */
+  wAge: 1,
+  wHeight: 1,
+  wWeight: 1,
+  wCup: 1,
+  wPersonality: 1,
+  wMarriage: 1,
+  wDemeanor: 1,
+  wMoan: 1,
+  wSkill: 1,
+  wOrgasm: 1,
+  wFeel: 1,
+  wPersona: 1,
+  wCondom: 1,
+  wLooks: 1,
+  wRel: 1,
+  econCashTight: 0.4,
+  econPrestige: 0.18,
+  econRentDrag: 0.08,
+  /** 挂牌超过这些天无人买就撤。 */
   listStaleDays: 7,
   condomMatchMin: 0.25,
   enforceDailyQuota: 1,
@@ -82,6 +100,24 @@ const SimSchema = z.object({
   reviewReturnMin: z.number().min(0).max(5),
   walletStopFen: z.number().int().min(0).max(1_000_000),
   boredSwitchMin: z.number().min(0).max(1),
+  wAge: z.number().min(0).max(5),
+  wHeight: z.number().min(0).max(5),
+  wWeight: z.number().min(0).max(5),
+  wCup: z.number().min(0).max(5),
+  wPersonality: z.number().min(0).max(5),
+  wMarriage: z.number().min(0).max(5),
+  wDemeanor: z.number().min(0).max(5),
+  wMoan: z.number().min(0).max(5),
+  wSkill: z.number().min(0).max(5),
+  wOrgasm: z.number().min(0).max(5),
+  wFeel: z.number().min(0).max(5),
+  wPersona: z.number().min(0).max(5),
+  wCondom: z.number().min(0).max(5),
+  wLooks: z.number().min(0).max(5),
+  wRel: z.number().min(0).max(5),
+  econCashTight: z.number().min(0).max(2),
+  econPrestige: z.number().min(0).max(2),
+  econRentDrag: z.number().min(0).max(2),
 });
 
 let cache: { at: number; cfg: SimConfig } | null = null;
@@ -107,6 +143,49 @@ export async function loadSimConfig(sql?: Sql): Promise<SimConfig> {
 
 export function bustSimCache() {
   cache = null;
+}
+
+export function simDimWeights(cfg: SimConfig): Record<string, number> {
+  return {
+    age: cfg.wAge,
+    height: cfg.wHeight,
+    weight: cfg.wWeight,
+    cup: cfg.wCup,
+    personality: cfg.wPersonality,
+    marriage: cfg.wMarriage,
+    demeanor: cfg.wDemeanor,
+    moan: cfg.wMoan,
+    skill: cfg.wSkill,
+    orgasm: cfg.wOrgasm,
+    feel: cfg.wFeel,
+    persona: cfg.wPersona,
+    condom: cfg.wCondom,
+    looks: cfg.wLooks,
+    rel: cfg.wRel,
+  };
+}
+
+export function simEconCoeffs(cfg: SimConfig) {
+  return {
+    cashTight: cfg.econCashTight,
+    prestige: cfg.econPrestige,
+    rentDrag: cfg.econRentDrag,
+  };
+}
+
+async function loadLiveTextScale(sql: Sql) {
+  const { loadTextScale, TEXT_SCALE_SEED } = await import("@/lib/text-scale");
+  await loadTextScale(sql);
+  const rows = await sql<{ field: string; option: string; axis: string; value: number }>`
+    select field, option, axis, value from text_scale order by field, value
+  `;
+  if (!rows.length) return TEXT_SCALE_SEED;
+  return rows.map((r) => ({
+    field: r.field,
+    option: r.option,
+    axis: r.axis,
+    value: Number(r.value),
+  }));
 }
 
 export type AxisMean = { key: string; mean: number };
@@ -304,7 +383,7 @@ export const getSimAdmin = createServerFn({ method: "GET" })
       multiDims: MULTI_DIMS,
       econKeys: ECON_KEYS,
       tasteKeys: TASTE_KEYS,
-      textScale: TEXT_SCALE_SEED,
+      textScale: await loadLiveTextScale(sql),
     };
   });
 
@@ -319,6 +398,30 @@ export const saveSimAdmin = createServerFn({ method: "POST" })
       on conflict (id) do update set data = excluded.data, updated_at = now()
     `;
     bustSimCache();
+    return data;
+  });
+
+const TextScaleRow = z.object({
+  field: z.string().min(1),
+  option: z.string().min(1),
+  axis: z.string().min(1),
+  value: z.number().min(0).max(1),
+});
+
+export const saveTextScaleAdmin = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .validator((data: unknown) => z.array(TextScaleRow).min(1).max(200).parse(data))
+  .handler(async ({ data }) => {
+    const sql = await getSql();
+    for (const row of data) {
+      await sql`
+        insert into text_scale (field, option, axis, value)
+        values (${row.field}, ${row.option}, ${row.axis}, ${row.value})
+        on conflict (field, option, axis) do update set value = excluded.value
+      `;
+    }
+    const { bustTextScaleCache } = await import("@/lib/text-scale");
+    bustTextScaleCache();
     return data;
   });
 

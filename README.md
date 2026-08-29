@@ -4,21 +4,21 @@
 
 ## 1. 基本轴（排序用这些，不是 lewd/chest）
 
-肉厕一档一个值；男人同一套。`looks = 卖点勾选数 / 5`。
+肉厕一档一个值；男人同一套。`looks = 卖点勾选数 / 5`。**关系合成一轴**（只看她的关系对应的 taste），权重可在 `/admin/sim` 吸引页调。
 
 | 轴 | 肉厕 | 男人 | 怎么乘 |
 |---|---|---|---|
-| cup | 实际罩杯 one-hot | 对 B/C/D/E 各打 −1～1，可多项为正 | `男人[那档罩杯]`，再 `(x+1)/2` |
-| personality | 实际性格 one-hot | 对 8 个性格各 −1～1 | 同上 |
-| demeanor | 实际姿态 one-hot | 对 6 个姿态各 −1～1 | 同上 |
+| cup | 实际罩杯 | 对 B/C/D/E 各打 −1～1 | `男人[那档罩杯]`，再 `(x+1)/2` |
+| personality | 实际性格 | 对 8 个性格各 −1～1 | 同上 |
+| demeanor | 实际姿态 | 对 6 个姿态各 −1～1 | 同上 |
 | age / height / weight | 0～1 归一 | −1～1（幼/高/瘦 对 熟/矮/胖） | `男人 × (2×肉厕−1)` 再折 0～1 |
 | moan, skill, orgasm, feel, persona, condom, marriage | 程度表 0～1 | 目标 0～1 | `1 − \|男人−肉厕\|` |
 | looks | 勾选/5 | 0～1 | 同上 |
-| rel_母亲…路人 | 关系 one-hot | taste 0～1 | 点乘 |
+| rel | 她的关系 | 对应 taste | 单轴，不再被另外 7 个 0 稀释 |
 
-代码：`src/lib/dims.ts`。程度表：`text_scale`（轴名=字段名）。男人向量：`behavior_male.dims`。
+代码：`src/lib/dims.ts`。程度表可在管理台改。男人向量：`behavior_male.dims`。
 
-经济观另 8 维（`behavior_econ`）：cash_tight, bargain, flip, hold, rent, prestige, family_liquidate, use_over_own。只调排序和买不买，不是吸引轴。
+经济观另 8 维（`behavior_econ`）：cash_tight, bargain, flip, hold, rent, prestige, family_liquidate, use_over_own。只调排序和买不买，系数在管理台。
 
 ## 2. 已接阈值和算法
 
@@ -65,7 +65,7 @@
 
 ### 排序
 
-`dimScore` 平均各轴 → `scoreWithEcon` → 近到远。hours/quota **不是轴**，是营业限制（配额还没执行）。
+`dimScore` 按轴权重平均 → `scoreWithEcon` → 近到远。hours/quota 不是轴：`enforceDailyQuota=1` 时按挂牌时段和一天一客限制。
 
 ## 3. 最简 tick（`src/lib/sim-tick.ts`，后台「跑一轮」）
 
@@ -92,13 +92,4 @@
 
 后台先点「打开有定位/有货的男人」，再「跑一轮」。
 
-## 4. 未接
-
-| 参数 | 默认 | 用途 |
-|---|---|---|
-| listStaleDays | 7 | 挂了没人买 → 改价/撤 |
-| condomMatchMin | 0.25 | 套偏好对不上不点 |
-| enforceDailyQuota | 1 | 一天一客等是否真限制 |
-| reviewReturnMin | 3 | 低于此评分不再点这具 |
-
-GPS 节奏先不要做细。主程序别塞模拟字段。
+套匹配、差评回流、营业配额、挂牌过期已接到 tick（限制页）。主人自用不受这四项限制。

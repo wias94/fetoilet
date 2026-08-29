@@ -132,13 +132,21 @@ function vecToEcon(v?: Record<EconKey, number> | EconVec): Record<EconKey, numbe
   return v;
 }
 
-export function scoreWithEcon(attract: number, hourFen: number, econ: EconVec | Record<EconKey, number>) {
+export function scoreWithEcon(
+  attract: number,
+  hourFen: number,
+  econ: EconVec | Record<EconKey, number>,
+  coeffs?: { cashTight?: number; prestige?: number; rentDrag?: number },
+) {
   const e = vecToEcon(econ);
   const price = clamp01((hourFen - 200) / 1800);
+  const cashTight = coeffs?.cashTight ?? 0.4;
+  const prestige = coeffs?.prestige ?? 0.18;
+  const rentDrag = coeffs?.rentDrag ?? 0.08;
   let s = attract;
-  s *= 1 - e.cash_tight * 0.4 * price;
-  s *= 1 + e.prestige * 0.18 * price;
-  s *= 1 - e.rent * 0.08;
+  s *= 1 - e.cash_tight * cashTight * price;
+  s *= 1 + e.prestige * prestige * price;
+  s *= 1 - e.rent * rentDrag;
   return clamp01(s);
 }
 

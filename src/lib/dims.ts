@@ -62,8 +62,7 @@ function optionScore(maleVal: unknown, stallOption: string | null | undefined) {
   return (clamp11(Number(map[stallOption] ?? 0)) + 1) / 2;
 }
 
-export function stallDims(p: Profile): DimMap {
-  const scale = currentTextScale();
+export function stallDims(p: Profile, scale = currentTextScale()): DimMap {
   const out: DimMap = {
     age: clamp01(((Number(p.age) || 28) - 18) / 25),
     height: clamp01(((Number(p.heightCm) || 160) - 155) / 25),
@@ -152,28 +151,65 @@ export function deriveMaleDims(m: MaleDimInput): DimMap {
   return out;
 }
 
-export function dimScore(male: DimMap, stall: DimMap, profile: Profile) {
-  const keys = new Set([...FIELD_DIMS, ...TASTE_KEYS.map((k) => `rel_${k}`)]);
+export type AxisHit = { key: string; match: number; weight: number };
+export type EconCoeffs = { cashTight?: number; prestige?: number; rentDrag?: number };
+
+function axisWeight(weights: Record<string, number> | undefined, key: string) {
+  if (!weights) return 1;
+  const n = Number(weights[key]);
+  return Number.isFinite(n) ? Math.max(0, n) : 1;
+}
+
+function axisMatch(male: DimMap, stall: DimMap, profile: Profile, key: string) {
+  const mv = male[key];
+  const sv = stall[key];
+  if (mv == null) return null;
+  if (key === "cup") return optionScore(mv, profile.cup);
+  if (key === "personality") return optionScore(mv, profile.personality);
+  if (key === "demeanor") return optionScore(mv, profile.demeanor);
+  if (isBipolar(key)) return (clamp11(num(mv)) * (clamp01(num(sv)) * 2 - 1) + 1) / 2;
+  return 1 - Math.abs(clamp01(num(mv)) - clamp01(num(sv)));
+}
+
+/** 关系合成一轴：只看她的关系对应男人的 taste，不再被另外 7 个 0 稀释。 */
+export function axisHits(
+  male: DimMap,
+  stall: DimMap,
+  profile: Profile,
+  weights?: Record<string, number>,
+): AxisHit[] {
+  const hits: AxisHit[] = [];
+  for (const key of FIELD_DIMS) {
+    const match = axisMatch(male, stall, profile, key);
+    if (match == null) continue;
+    const weight = axisWeight(weights, key);
+    if (weight <= 0) continue;
+    hits.push({ key, match, weight });
+  }
+  const relName = !profile.relation || profile.relation === "其他" ? "路人" : profile.relation;
+  const relW = axisWeight(weights, "rel");
+  if (relW > 0) {
+    hits.push({
+      key: "rel",
+      match: clamp01(num(male[`rel_${relName}`])),
+      weight: relW,
+    });
+  }
+  return hits;
+}
+
+export function dimScore(
+  male: DimMap,
+  stall: DimMap,
+  profile: Profile,
+  weights?: Record<string, number>,
+) {
+  const hits = axisHits(male, stall, profile, weights);
   let s = 0;
   let n = 0;
-  for (const key of keys) {
-    const mv = male[key];
-    const sv = stall[key];
-    if (mv == null) continue;
-    n += 1;
-    if (key === "cup") {
-      s += optionScore(mv, profile.cup);
-    } else if (key === "personality") {
-      s += optionScore(mv, profile.personality);
-    } else if (key === "demeanor") {
-      s += optionScore(mv, profile.demeanor);
-    } else if (isBipolar(key)) {
-      s += (clamp11(num(mv)) * (clamp01(num(sv)) * 2 - 1) + 1) / 2;
-    } else if (key.startsWith("rel_")) {
-      s += clamp01(num(mv)) * clamp01(num(sv));
-    } else {
-      s += 1 - Math.abs(clamp01(num(mv)) - clamp01(num(sv)));
-    }
+  for (const h of hits) {
+    s += h.match * h.weight;
+    n += h.weight;
   }
   return n ? s / n : 0;
 }
@@ -182,11 +218,12 @@ export function rankByDims(
   male: DimMap,
   stalls: Profile[],
   econ?: import("@/lib/econ").EconVec | Record<EconKey, number>,
+  opts?: { weights?: Record<string, number>; econCoeffs?: EconCoeffs },
 ) {
   return [...stalls]
     .map((p) => {
-      const a = dimScore(male, stallDims(p), p);
-      const score = econ ? scoreWithEcon(a, p.hourFen, econ) : a;
+      const a = dimScore(male, stallDims(p), p, opts?.weights);
+      const score = econ ? scoreWithEcon(a, p.hourFen, econ, opts?.econCoeffs) : a;
       return { p, score };
     })
     .sort((a, b) => b.score - a.score || (a.p.distanceM ?? 0) - (b.p.distanceM ?? 0))

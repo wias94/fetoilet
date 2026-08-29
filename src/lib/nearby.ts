@@ -56,7 +56,7 @@ export const listVisibleStalls = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { origin, source } = await resolveOrigin(context.userId, data);
     const sql = await getSql();
-    const { loadSimConfig } = await import("@/lib/sim-config");
+    const { loadSimConfig, simDimWeights, simEconCoeffs } = await import("@/lib/sim-config");
     const cfg = await loadSimConfig(sql);
     const radius = cfg.nearbyRadiusM;
     if (!origin) {
@@ -72,5 +72,13 @@ export const listVisibleStalls = createServerFn({ method: "POST" })
       loadMaleDims(sql, context.userId),
       loadMaleEcon(sql, context.userId),
     ]);
-    return { origin, radius_m: radius, source, stalls: rankByDims(male, stalls, econ) };
+    return {
+      origin,
+      radius_m: radius,
+      source,
+      stalls: rankByDims(male, stalls, econ, {
+        weights: simDimWeights(cfg),
+        econCoeffs: simEconCoeffs(cfg),
+      }),
+    };
   });

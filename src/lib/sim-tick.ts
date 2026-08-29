@@ -5,7 +5,7 @@ import { loadMaleEcon, scoreWithEcon, wouldBuy, type EconKey } from "@/lib/econ"
 import { debitUser, executeBuy, settleUse } from "@/lib/economy";
 import { bumpSatiation, lockRental, maybeListFromBoredom, releaseExpiredRentals, unlockRental } from "@/lib/occupancy";
 import type { Profile } from "@/lib/profiles";
-import { loadSimConfig, type SimConfig } from "@/lib/sim-config";
+import { loadSimConfig, simDimWeights, simEconCoeffs, type SimConfig } from "@/lib/sim-config";
 
 const TICK_MALES = 40;
 const NOTE_CAP = 16;
@@ -18,6 +18,7 @@ export type SimCandidate = {
   mine: boolean;
   satiation: number;
   busy: boolean;
+  block?: string;
 };
 
 export type SimPick =
@@ -67,12 +68,12 @@ export function pickSimAction(opts: {
   if (cfg.dailyBudgetFen > 0 && spentToday >= cfg.dailyBudgetFen) return { kind: "skip", reason: "budget" };
 
   const rent = candidates
-    .filter((c) => !c.mine && !c.busy && c.score >= cfg.useScoreMin)
+    .filter((c) => !c.mine && !c.busy && !c.block && c.score >= cfg.useScoreMin)
     .sort((a, b) => b.score - a.score);
   if (rent[0]) return { kind: "use", stallId: rent[0].id, reason: "rent" };
 
   const listed = candidates
-    .filter((c) => !c.mine && c.listedFen != null && c.listedFen > 0)
+    .filter((c) => !c.mine && !c.block && c.listedFen != null && c.listedFen > 0)
     .sort((a, b) => b.score - a.score);
   for (const c of listed) {
     if (
@@ -88,6 +89,8 @@ export function pickSimAction(opts: {
       return { kind: "buy", stallId: c.id, reason: "buy" };
     }
   }
+  const blocked = candidates.find((c) => !c.mine && c.block);
+  if (blocked?.block) return { kind: "skip", reason: blocked.block };
   return { kind: "skip", reason: "no-fit" };
 }
 
@@ -133,6 +136,16 @@ async function tickOnce(sql: Sql): Promise<SimTickResult> {
     await syncWorldIfDue();
 
     const cfg = await loadSimConfig(sql);
+    if (cfg.listStaleDays > 0) {
+      const stale = await sql<{ id: string }>`
+        update stalls
+        set listed_fen = null, updated_at = now()
+        where listed_fen is not null
+          and updated_at < now() - make_interval(days => ${cfg.listStaleDays})
+        returning id
+      `;
+      if (stale.length) note(notes, `撤牌 ${stale.length}（超 ${cfg.listStaleDays} 天）`);
+    }
     const males = await loadTickMales(sql, cfg);
     result.males = males.length;
 
@@ -261,11 +274,56 @@ async function tickMale(
   `;
   const satMap = new Map(satRows.map((r) => [r.stall_id, Number(r.value ?? r.uses ?? 0)]));
   const { satiationFromUses } = await import("@/lib/occupancy");
+  const weights = simDimWeights(cfg);
+  const econCoeffs = simEconCoeffs(cfg);
+  const stallIds = [...byId.keys()];
+  const usedToday = new Map<string, number>();
+  if (cfg.enforceDailyQuota && stallIds.length) {
+    const usedRows = await sql.query<{ id: string; n: number }>(
+      `select profile_id as id, count(*)::int as n
+       from inquiries
+       where profile_id = any($1::text[])
+         and coalesce(status, 'pending') = 'used'
+         and coalesce(updated_at, created_at) >= date_trunc('day', now())
+       group by profile_id`,
+      [stallIds],
+    );
+    for (const r of usedRows) usedToday.set(r.id, Number(r.n));
+  }
+  const myReviews = new Map<string, number>();
+  if (cfg.reviewReturnMin > 0 && stallIds.length) {
+    const revRows = await sql.query<{ id: string; score: number }>(
+      `select profile_id as id, score from reviews
+       where user_id = $1 and profile_id = any($2::text[])`,
+      [male.userId, stallIds],
+    );
+    for (const r of revRows) myReviews.set(r.id, Number(r.score));
+  }
 
   const candidates: SimCandidate[] = [];
   for (const p of byId.values()) {
-    const raw = dimScore(dims, stallDims(p), p);
-    const score = scoreWithEcon(raw, p.hourFen, econ);
+    const stall = stallDims(p);
+    const raw = dimScore(dims, stall, p, weights);
+    const score = scoreWithEcon(raw, p.hourFen, econ, econCoeffs);
+    let block: string | undefined;
+    if (!p.mine) {
+      if (cfg.condomMatchMin > 0) {
+        const maleC = Number(dims.condom ?? 0);
+        const stallC = Number(stall.condom ?? 0);
+        const match = 1 - Math.abs(maleC - stallC);
+        if (match < cfg.condomMatchMin) block = "condom";
+      }
+      if (!block && cfg.enforceDailyQuota) {
+        if (!hoursOpen(p.hoursTag)) block = "hours";
+        const cap = quotaCap(p.dailyQuota);
+        if (!block && cap != null && (usedToday.get(p.id) ?? 0) >= cap) block = "quota";
+      }
+      if (!block && cfg.reviewReturnMin > 0) {
+        const mine = myReviews.get(p.id);
+        if (mine != null && mine < cfg.reviewReturnMin) block = "review";
+        else if ((p.ratingCount ?? 0) >= 1 && (p.ratingAvg ?? 0) < cfg.reviewReturnMin) block = "review";
+      }
+    }
     candidates.push({
       id: p.id,
       score,
@@ -274,6 +332,7 @@ async function tickMale(
       mine: Boolean(p.mine),
       satiation: satiationFromUses(satMap.get(p.id) ?? 0, cfg.satiationHalfUses),
       busy: Boolean(p.busy),
+      block,
     });
   }
 
@@ -373,6 +432,30 @@ async function resolveOrigin(sql: Sql, male: TickMale): Promise<{ lat: number; l
     limit 1
   `;
   if (home[0]) return { lat: Number(home[0].lat), lng: Number(home[0].lng) };
+  return null;
+}
+
+function hoursOpen(tag: string | null | undefined, at = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Toronto",
+    hour: "numeric",
+    hour12: false,
+    weekday: "short",
+  }).formatToParts(at);
+  const hour = Number(parts.find((p) => p.type === "hour")?.value ?? at.getHours());
+  const weekday = parts.find((p) => p.type === "weekday")?.value ?? "";
+  const weekend = weekday === "Sat" || weekday === "Sun";
+  if (tag === "仅晚上可接") return hour >= 18 || hour < 6;
+  if (tag === "仅白天可接") return hour >= 8 && hour < 18;
+  if (tag === "仅周末可接") return weekend;
+  if (tag === "仅工作日可接") return !weekend;
+  return true;
+}
+
+function quotaCap(tag: string | null | undefined) {
+  if (tag === "一天一客") return 1;
+  if (tag === "一天两客") return 2;
+  if (tag === "一天三客") return 3;
   return null;
 }
 

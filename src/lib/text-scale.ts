@@ -73,6 +73,10 @@ function fromRows(rows: { field: string; option: string; axis: string; value: nu
 
 let cache: { at: number; map: TextScaleMap } | null = null;
 
+export function textScaleFromRows(rows: { field: string; option: string; axis: string; value: number }[]) {
+  return fromRows(rows);
+}
+
 export function defaultTextScale(): TextScaleMap {
   return fromRows(TEXT_SCALE_SEED);
 }
