@@ -233,7 +233,7 @@ function AdminSimBody() {
             setBusy(true);
             void enableSimLocatedAdmin()
               .then((res) => {
-                toast(res.n ? `打开了 ${res.n} 个有定位或名下货的男人` : "没有可开的（要有定位或名下货）");
+                toast(res.n ? `打开了 ${res.n} 个男人` : "已经全开");
                 return reload();
               })
               .catch((err) => toast(err instanceof Error ? err.message : "没打开"))
@@ -317,7 +317,7 @@ function LiveTab({
             {ticking ? "在跑…" : "跑一轮"}
           </Button>
           <Button variant="secondary" type="button" disabled={ticking || busy} onClick={onEnable}>
-            打开有定位/有货的男人
+            全员打开
           </Button>
         </div>
         {run ? (
@@ -325,7 +325,7 @@ function LiveTab({
             上次 {run.males} 人 · 用 {run.uses}（自用 {run.selfUses}）· 买 {run.buys} · 挂 {run.listed} · 跳过 {run.skipped} · {run.durationMs}ms
           </p>
         ) : (
-          <p className="mt-3 text-sm text-muted">还没跑过。先打开男人，再跑一轮。</p>
+          <p className="mt-3 text-sm text-muted">还没跑过。打开本页已全员打开，点「跑一轮」。</p>
         )}
         {run?.notes?.length ? (
           <ul className="mt-2 space-y-1 text-xs text-subtle">

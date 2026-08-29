@@ -29,7 +29,7 @@ export const DEFAULT_SIM = {
   marketMulSpan: 0.58,
   rentFloorMul: 0.55,
   rentCeilMul: 1.85,
-  /** 模拟 tick 节拍。只跑 sim_enabled 的男人。 */
+  /** 模拟 tick 节拍。全员打开，tick 只跑没封的男人。 */
   simTickSec: 180,
   useScoreMin: 0.35,
   selfUseScoreMin: 0.4,
@@ -234,6 +234,8 @@ export const getSimAdmin = createServerFn({ method: "GET" })
   .middleware([adminMiddleware])
   .handler(async (): Promise<SimSnapshot> => {
     const sql = await getSql();
+    const { enableAllMales } = await import("@/lib/sim-tick");
+    await enableAllMales(sql);
     const cfg = await loadSimConfig(sql);
     const miss = await sql<{ n: number }>`
       select count(*)::int as n from behavior_male
@@ -437,6 +439,6 @@ export const enableSimLocatedAdmin = createServerFn({ method: "POST" })
   .middleware([adminMiddleware])
   .handler(async () => {
     const sql = await getSql();
-    const { enableLocatedMales } = await import("@/lib/sim-tick");
-    return enableLocatedMales(sql);
+    const { enableAllMales } = await import("@/lib/sim-tick");
+    return enableAllMales(sql);
   });

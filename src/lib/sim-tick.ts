@@ -134,6 +134,7 @@ async function tickOnce(sql: Sql): Promise<SimTickResult> {
     await import("@/lib/text-scale").then((m) => m.loadTextScale(sql));
     const { syncWorldIfDue } = await import("@/lib/location-sim");
     await syncWorldIfDue();
+    await enableAllMales(sql);
 
     const cfg = await loadSimConfig(sql);
     if (cfg.listStaleDays > 0) {
@@ -467,7 +468,7 @@ function note(notes: string[], line: string) {
   if (notes.length < NOTE_CAP) notes.push(line);
 }
 
-export async function enableLocatedMales(sql: Sql) {
+export async function enableAllMales(sql: Sql) {
   await sql`
     insert into behavior_male (user_id)
     select s.user_id
@@ -475,6 +476,24 @@ export async function enableLocatedMales(sql: Sql) {
     where coalesce(s.role, 'male') = 'male'
       and coalesce(s.banned, false) = false
     on conflict (user_id) do nothing
+  `;
+  await sql`
+    update user_state u
+    set lat = s.lat,
+        lng = s.lng,
+        loc_source = coalesce(u.loc_source, 'gps'),
+        loc_updated_at = coalesce(u.loc_updated_at, now()),
+        updated_at = now()
+    from (
+      select distinct on (owner_id) owner_id, lat, lng
+      from stalls
+      where owner_id is not null
+        and lat is not null
+        and lng is not null
+      order by owner_id, updated_at desc nulls last
+    ) s
+    where u.user_id = s.owner_id
+      and (u.lat is null or u.lng is null)
   `;
   const rows = await sql<{ user_id: string }>`
     update behavior_male m
@@ -484,14 +503,18 @@ export async function enableLocatedMales(sql: Sql) {
       and coalesce(s.banned, false) = false
       and coalesce(s.role, 'male') = 'male'
       and m.sim_enabled = false
-      and (
-        (s.lat is not null and s.lng is not null)
-        or exists (select 1 from stalls st where st.owner_id = m.user_id)
-      )
     returning m.user_id
+  `;
+  await sql`
+    update behavior_stall
+    set sim_enabled = true, updated_at = now()
+    where sim_enabled = false
   `;
   return { n: rows.length };
 }
+
+/** @deprecated 全员打开，不再要求先有定位。 */
+export const enableLocatedMales = enableAllMales;
 
 export async function latestSimRun(sql: Sql) {
   const rows = await sql<{
