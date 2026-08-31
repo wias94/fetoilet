@@ -32,7 +32,7 @@ export const DEFAULT_SIM = {
   rentCeilMul: 1.85,
   /** 模拟 tick 节拍。loc-m 男人按 location status 醒来。 */
   simTickSec: 180,
-  autoTick: 1,
+  autoTick: 0,
   tickEverySec: 30,
   tickBatch: 80,
   dailyWageFen: 3000,
