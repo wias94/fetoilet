@@ -1,16 +1,14 @@
 import { cn } from "@/lib/utils";
 
+/** 巷口印：门楣两柱是巷，底洼是厕。 */
 export function LogoMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={cn("size-8", className)} aria-hidden="true">
       <path
-        d="M8 24c4-9 7.2-14.5 8.8-19.2 2.4 5.6 6.4 12 8.8 19.2"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
+        fill="currentColor"
+        d="M7 5.8h18v3.2h-3.2v10.4c0 2.2-1.4 4.2-5.8 5.9-4.4-1.7-5.8-3.7-5.8-5.9V9H7V5.8Z"
       />
-      <circle cx="16" cy="6.5" r="1.8" fill="currentColor" />
+      <ellipse cx="16" cy="23" rx="4.2" ry="2.1" className="fill-live" />
     </svg>
   );
 }
