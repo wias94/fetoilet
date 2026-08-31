@@ -17,4 +17,4 @@ RUN npx vite build \
         .output/server/_libs/
 
 EXPOSE 8080
-CMD ["sh", "-c", "node scripts/migrate.mjs && node .output/server/index.mjs"]
+CMD ["sh", "-c", "node scripts/migrate.mjs; exec node .output/server/index.mjs"]

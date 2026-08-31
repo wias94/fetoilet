@@ -14,7 +14,10 @@ const fetchSessionUser = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const Route = createRootRoute({
-  beforeLoad: async () => ({ sessionUser: await fetchSessionUser() }),
+  beforeLoad: async ({ location }) => {
+    if (location.pathname.startsWith("/api/")) return { sessionUser: null };
+    return { sessionUser: await fetchSessionUser() };
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
