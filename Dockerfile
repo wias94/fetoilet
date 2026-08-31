@@ -3,6 +3,8 @@ WORKDIR /app
 
 ENV NPM_CONFIG_PRODUCTION=false
 ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=8080
 
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -17,4 +19,5 @@ RUN npx vite build \
         .output/server/_libs/
 
 EXPOSE 8080
-CMD ["sh", "-c", "node scripts/migrate.mjs; exec node .output/server/index.mjs"]
+# Listen first. Migrate in the background so Neon-down cannot fail healthcheck.
+CMD ["sh", "-c", "node scripts/migrate.mjs & exec node .output/server/index.mjs"]
