@@ -69,7 +69,7 @@
 
 ## 3. 最简 tick（`src/lib/sim-tick.ts`）
 
-**tick = 一轮模拟时钟。** 自动扫已关（`startSimLoop` 空转），避免打爆 Neon。只手点「跑一轮」。只动 `loc-m-*` 男人；附近真人肉厕可以被租/买。
+**tick = 一轮模拟时钟。** `autoTick=1` 时进程内每 `tickEverySec` 秒自己跑。默认关着，现场页打开。只动 `loc-m-*` 男人；附近真人肉厕可以被租/买。
 
 打开 `/admin/sim` 会把没封的男人设成 `sim_enabled`。原点：男人自己的 GPS → 没有就用名下货，不写死城市。location 世界快照的第四段 `status` 写入 `user_state.loc_status`。上班 / 上学 / 通勤跳过。
 
@@ -83,7 +83,7 @@
 | 参数 | 默认 | 作用 |
 |---|---|---|
 | simTickSec | 180 | 同一个人两次决定最短间隔 |
-| autoTick | 0 | 1=自动扫（loop 现已停） |
+| autoTick | 0 | 1=自动扫 |
 | tickEverySec | 30 | 自动时钟间隔 |
 | tickBatch | 80 | 一轮最多处理人数 |
 | dailyWageFen | 3000 | 每人每天 C$30 津贴 |
