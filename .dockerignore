@@ -8,3 +8,8 @@ artifacts
 screenshots
 .grok
 *.log
+data-runtime/
+history.sqlite
+history.sqlite-*
+.env*
+compose.yaml

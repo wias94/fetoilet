@@ -20,4 +20,4 @@ RUN npx vite build \
 
 EXPOSE 8080
 # Listen first. Migrate in the background so Neon-down cannot fail healthcheck.
-CMD ["sh", "-c", "node scripts/migrate.mjs & exec node .output/server/index.mjs"]
+CMD ["sh", "-c", "node scripts/migrate.mjs & node scripts/history-worker.mjs & exec node .output/server/index.mjs"]

@@ -197,7 +197,7 @@ async function tickOnce(sql: Sql): Promise<SimTickResult> {
     where id = ${id}
   `;
   try {
-    await pruneSimLog(sql);
+    // Simulation details are durable history; do not prune automatically.
   } catch {
     /* keep the run even if prune fails */
   }
@@ -554,16 +554,6 @@ async function writeLog(sql: Sql, row: LogRow) {
       ${row.name ?? ""},
       ${row.reason ?? ""},
       ${row.fen ?? 0}
-    )
-  `;
-}
-
-async function pruneSimLog(sql: Sql) {
-  await sql`delete from sim_log where at < now() - interval '3 days'`;
-  await sql`
-    delete from sim_log
-    where id in (
-      select id from sim_log order by at desc offset 4000
     )
   `;
 }

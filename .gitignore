@@ -7,3 +7,7 @@ screenshots
 artifacts
 *.log
 .grok/memory.md
+data-runtime/
+history.sqlite
+history.sqlite-*
+compose.yaml
