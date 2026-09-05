@@ -32,6 +32,7 @@ export const Route = createRootRoute({
       { name: "theme-color", content: "#0C0B0A" },
     ],
     links: [
+      { rel: "icon", type: "image/png", href: "/logo-180.png" },
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/__grok/manifest.webmanifest" },

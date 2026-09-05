@@ -76,6 +76,10 @@
     outline-offset: -1px;
   }
 
+  img.mark {
+    outline: none;
+  }
+
   ::selection {
     background: var(--color-fg);
     color: var(--color-bg);

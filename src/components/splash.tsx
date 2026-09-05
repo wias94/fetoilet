@@ -2,28 +2,24 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { useEntry } from "@/lib/entry";
 import { Button } from "@/components/ui/button";
-import { LogoMark } from "@/components/logo";
 
 export function Splash() {
   const enter = useEntry((s) => s.enter);
 
   return (
     <main className="relative min-h-dvh overflow-hidden bg-bg text-fg">
-      <img
-        src="/profiles/join-poster.jpg"
-        alt=""
-        className="absolute inset-0 size-full object-cover"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/70 to-bg/25" />
+      <div className="absolute inset-x-0 top-0 flex h-[56dvh] items-end justify-center px-10 pt-8">
+        <img src="/logo.png" alt="" className="mark h-full w-auto max-w-[min(28rem,86vw)] object-contain object-bottom" />
+      </div>
+      <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/75 to-transparent" />
       <div className="relative z-10 flex min-h-dvh flex-col justify-end px-6 pb-10 pt-16 sm:px-10">
         <div className="mx-auto w-full max-w-lg">
-          <div
-            className="splash-rise flex items-center gap-2 text-fg/70"
+          <p
+            className="splash-rise text-sm tracking-widest text-fg/70"
             style={{ animationDelay: "40ms" }}
           >
-            <LogoMark className="size-8" />
-            <span className="text-sm tracking-widest">XIANGCE</span>
-          </div>
+            XIANGCE
+          </p>
           <h1
             className="splash-rise mt-5 font-display text-6xl font-semibold leading-[1.05] tracking-tight sm:text-7xl"
             style={{ animationDelay: "120ms" }}
